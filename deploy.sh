@@ -9,6 +9,8 @@ export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-indo-israel}"
 DEPLOY_HEALTH_URL="${DEPLOY_HEALTH_URL:-http://localhost}"
 HEALTH_RETRIES="${HEALTH_RETRIES:-12}"
 HEALTH_INTERVAL="${HEALTH_INTERVAL:-5}"
+# Seconds to wait after "up -d" before first health check (lets backend/frontend finish cold start)
+HEALTH_STARTUP_DELAY="${HEALTH_STARTUP_DELAY:-15}"
 
 # Project root = directory of this script
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -151,7 +153,8 @@ deploy() {
   do_build
   do_up
 
-  log "Waiting for health check (${HEALTH_RETRIES}x every ${HEALTH_INTERVAL}s)..."
+  log "Waiting ${HEALTH_STARTUP_DELAY}s for services to start, then health check (${HEALTH_RETRIES}x every ${HEALTH_INTERVAL}s)..."
+  sleep "$HEALTH_STARTUP_DELAY"
   if health_check "$DEPLOY_HEALTH_URL" "$HEALTH_RETRIES" "$HEALTH_INTERVAL"; then
     log "Deployment finished successfully."
     print_urls
@@ -159,6 +162,8 @@ deploy() {
   fi
 
   err "Health check failed. Stopping new deployment and attempting rollback..."
+  log "Recent backend/frontend logs from the failed deployment:"
+  $COMPOSE_CMD logs --tail=120 backend frontend 2>&1 | sed 's/^/[deploy]   /' >&2 || true
   $COMPOSE_CMD down 2>/dev/null || true
 
   if do_rollback; then
