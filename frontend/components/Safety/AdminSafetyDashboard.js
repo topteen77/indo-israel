@@ -7,7 +7,7 @@ import {
   List, ListItem, ListItemText, ListItemIcon, Avatar
 } from '@mui/material';
 import {
-  LocationOn, CheckCircle, Warning, Error, Emergency,
+  LocationOn, CheckCircle, Warning, Error, ReportProblem,
   Refresh, Phone, WhatsApp, Email, AccessTime, Person
 } from '@mui/icons-material';
 import api from '../../utils/api';
@@ -136,7 +136,7 @@ const AdminSafetyDashboard = () => {
         <Card sx={{ mb: 3, border: '2px solid', borderColor: 'error.main' }}>
           <CardContent>
             <Typography variant="h6" color="error" gutterBottom>
-              <Emergency sx={{ mr: 1, verticalAlign: 'middle' }} />
+              <ReportProblem sx={{ mr: 1, verticalAlign: 'middle' }} />
               Active Emergency Alerts
             </Typography>
             <List>
@@ -144,7 +144,7 @@ const AdminSafetyDashboard = () => {
                 <ListItem key={alert.id}>
                   <ListItemIcon>
                     <Avatar sx={{ bgcolor: 'error.main' }}>
-                      <Emergency />
+                      <ReportProblem />
                     </Avatar>
                   </ListItemIcon>
                   <ListItemText
