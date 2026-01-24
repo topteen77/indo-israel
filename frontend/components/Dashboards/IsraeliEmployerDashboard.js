@@ -16,7 +16,7 @@ import {
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
-  ResponsiveContainer,
+  ResponsiveContainer, Legend,
 } from 'recharts';
 import api from '../../utils/api';
 

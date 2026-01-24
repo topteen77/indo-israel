@@ -1194,7 +1194,7 @@ export default function Home() {
                 mx: 'auto',
               }}
             >
-              Have questions? We're here to help! Reach out to our team for support, partnerships, or general inquiries.
+              Have questions? We&apos;re here to help! Reach out to our team for support, partnerships, or general inquiries.
             </Typography>
             <Stack 
               direction={{ xs: 'column', sm: 'row' }} 

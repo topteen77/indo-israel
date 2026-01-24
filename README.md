@@ -11,6 +11,7 @@ A comprehensive India-Israel manpower recruitment platform with three profession
 | **Quick local run** | [Quick Start](#quick-start) below, or [SETUP.md](SETUP.md) |
 | **Docker + production-style deploy** (health check, rollback) | [DEPLOY.md](DEPLOY.md) → `./deploy.sh deploy` |
 | **Deploy on AWS EC2** | [DEPLOY.md](DEPLOY.md) (full steps: launch, Docker, `deploy.sh`, systemd) |
+| **Production** | [http://43.204.127.118:8081](http://43.204.127.118:8081) — set `APP_PORT=8081` in `.env`, open TCP 8081; see [DEPLOY.md](DEPLOY.md) |
 
 ---
 
