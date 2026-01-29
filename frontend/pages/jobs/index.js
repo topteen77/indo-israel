@@ -51,8 +51,8 @@ export default function JobsPage() {
   };
 
   const handleApply = (jobId) => {
-    // Navigate to application page or show modal
-    alert(`Apply for job ${jobId}. This will redirect to application form.`);
+    // Navigate to application form
+    router.push(`/apply?jobId=${jobId}`);
   };
 
   if (loading) {

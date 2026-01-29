@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Application Submitted Successfully</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f5f5f5;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+    }
+    .header {
+      background: linear-gradient(135deg, #7B0FF5 0%, #9D4EDD 100%);
+      color: white;
+      padding: 40px 20px;
+      text-align: center;
+    }
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .header p {
+      font-size: 16px;
+      opacity: 0.95;
+    }
+    .content {
+      padding: 40px 30px;
+    }
+    .greeting {
+      font-size: 18px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    .application-id-box {
+      background: linear-gradient(135deg, #7B0FF5 0%, #9D4EDD 100%);
+      color: white;
+      padding: 25px;
+      text-align: center;
+      border-radius: 8px;
+      margin: 30px 0;
+      box-shadow: 0 4px 6px rgba(123, 15, 245, 0.2);
+    }
+    .application-id-box .label {
+      font-size: 14px;
+      opacity: 0.9;
+      margin-bottom: 8px;
+    }
+    .application-id-box .id {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #7B0FF5;
+      margin: 30px 0 15px 0;
+    }
+    .info-box {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .info-box h4 {
+      color: #856404;
+      margin-bottom: 12px;
+      font-size: 16px;
+    }
+    .info-box ul {
+      margin-left: 20px;
+      color: #856404;
+    }
+    .info-box li {
+      margin-bottom: 8px;
+    }
+    .timeline-box {
+      background-color: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .timeline-box strong {
+      color: #1976d2;
+    }
+    .button-container {
+      text-align: center;
+      margin: 30px 0;
+    }
+    .button {
+      display: inline-block;
+      padding: 14px 32px;
+      background: linear-gradient(135deg, #7B0FF5 0%, #9D4EDD 100%);
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 16px;
+      box-shadow: 0 4px 6px rgba(123, 15, 245, 0.3);
+      transition: transform 0.2s;
+    }
+    .button:hover {
+      transform: translateY(-2px);
+    }
+    .contact-section {
+      background-color: #f9f9f9;
+      padding: 25px;
+      border-radius: 8px;
+      margin: 30px 0;
+    }
+    .contact-section h3 {
+      color: #7B0FF5;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+    .contact-item {
+      margin: 10px 0;
+      color: #555;
+    }
+    .contact-item strong {
+      color: #333;
+    }
+    .footer {
+      background-color: #f5f5f5;
+      padding: 30px;
+      text-align: center;
+      color: #666;
+      font-size: 12px;
+      border-top: 1px solid #e0e0e0;
+    }
+    .footer p {
+      margin: 5px 0;
+    }
+    .divider {
+      height: 1px;
+      background-color: #e0e0e0;
+      margin: 30px 0;
+    }
+    @media only screen and (max-width: 600px) {
+      .content {
+        padding: 20px 15px;
+      }
+      .header {
+        padding: 30px 15px;
+      }
+      .header h1 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <!-- Header -->
+    <div class="header">
+      <h1>✓ Application Submitted Successfully!</h1>
+      <p>Thank you for choosing Apravas Recruitment</p>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+      <p class="greeting">Dear {{applicantName}},</p>
+      
+      <p>Thank you for registering with <strong>Apravas</strong>. Your application has been received and is currently under review by our recruitment team.</p>
+
+      <!-- Application ID -->
+      <div class="application-id-box">
+        <div class="label">Your Application ID</div>
+        <div class="id">{{applicationId}}</div>
+        <div style="margin-top: 10px; font-size: 12px; opacity: 0.9;">
+          Submitted on: {{submittedDate}}
+        </div>
+      </div>
+
+      <!-- What's Next Section -->
+      <h2 class="section-title">What's Next?</h2>
+      
+      <div class="timeline-box">
+        <p>Our recruitment team will review your profile and contact shortlisted candidates within <strong>7-10 working days</strong>.</p>
+      </div>
+
+      <!-- Important Notes -->
+      <div class="info-box">
+        <h4>📋 Important Notes:</h4>
+        <ul>
+          <li>Submission does not guarantee selection</li>
+          <li>Keep your phone active for WhatsApp/email communication</li>
+          <li>Prepare for skill tests/interviews if shortlisted</li>
+          <li>Ensure passport validity for visa processing (minimum 18 months recommended)</li>
+          <li>Check your email regularly for updates</li>
+        </ul>
+      </div>
+
+      <!-- Track Application Button -->
+      <div class="button-container">
+        <a href="{{trackingUrl}}" class="button">Track Your Application Status</a>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Contact Information -->
+      <div class="contact-section">
+        <h3>📞 Contact Us</h3>
+        <div class="contact-item">
+          <strong>Phone:</strong> {{recruitmentPhone}}
+        </div>
+        <div class="contact-item">
+          <strong>Email:</strong> {{recruitmentEmail}}
+        </div>
+        <div class="contact-item">
+          <strong>WhatsApp:</strong> {{recruitmentWhatsApp}}
+        </div>
+        <div class="contact-item">
+          <strong>Website:</strong> <a href="{{frontendUrl}}" style="color: #7B0FF5;">{{frontendUrl}}</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p><strong>Apravas Recruitment Platform</strong></p>
+      <p>This is an automated email. Please do not reply to this message.</p>
+      <p>If you have any questions, please contact us using the information above.</p>
+      <p>&copy; {{currentYear}} Apravas. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>

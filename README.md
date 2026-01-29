@@ -190,6 +190,14 @@ apravas-recruitment-platform/
 
 ## Troubleshooting
 
+**Code changes not showing in the browser?**
+
+| How you run the app | What to do |
+|---------------------|------------|
+| **Production server** (EC2, http://43.204.127.118:8081, Docker) | **`git push` alone does not update the server.** On the EC2 machine: `cd` into the project (e.g. `~/indo-israel` or `~/git-project/indo-israel`), run `git pull`, then `./deploy.sh deploy`. That rebuilds the images from the new code and restarts the stack. See [DEPLOY.md](DEPLOY.md) §7. |
+| **Docker** (`docker compose up`, or production at :80 / :8081) | The app serves a **built** copy of the code. You must **rebuild** after edits: `docker compose build frontend && docker compose up -d` (or `docker compose up -d --build`). |
+| **Local dev** (`cd frontend && npm run dev` at http://localhost:3000) | 1. Save the file. 2. If it still doesn’t update: stop the dev server, run `npm run dev:fresh` (clears `.next` and starts dev), then **hard refresh** the page (Ctrl+Shift+R or Cmd+Shift+R). If needed, try an incognito/private window to rule out browser cache. |
+
 **Port already in use:**
 - Backend: Change PORT in `backend/server.js` or use environment variable
 - Frontend: Change port in `frontend/package.json` dev script

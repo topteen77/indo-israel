@@ -501,6 +501,8 @@ For specific information, contact NSDC International.`;
         }}
         maxWidth={false}
         fullWidth={false}
+        disableEnforceFocus
+        disableRestoreFocus
         PaperProps={{
           sx: {
             position: 'fixed',
@@ -549,6 +551,8 @@ For specific information, contact NSDC International.`;
             padding: '12px 20px',
             borderRadius: '12px 12px 0 0',
             position: 'relative',
+            zIndex: 10,
+            flexShrink: 0,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -579,7 +583,7 @@ For specific information, contact NSDC International.`;
               ApravasGPT
             </Typography>
           </Box>
-          <Box display="flex" gap={1}>
+          <Box display="flex" gap={1} alignItems="center">
             <IconButton
               onClick={handleClearChat}
               size="small"
@@ -587,17 +591,35 @@ For specific information, contact NSDC International.`;
             >
               <Delete sx={{ fontSize: 18 }} />
             </IconButton>
-            <IconButton
+            <Box
+              component="button"
+              type="button"
+              aria-label="Close chat"
               onClick={() => {
                 if (typeof onClose === 'function') {
                   onClose(false);
                 }
               }}
-              size="small"
-              sx={{ color: '#333' }}
+              sx={{
+                cursor: 'pointer',
+                padding: '8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: 'none',
+                background: 'transparent',
+                color: '#333',
+                flexShrink: 0,
+                minWidth: 44,
+                minHeight: 44,
+                borderRadius: '50%',
+                '&:hover': { backgroundColor: 'rgba(0,0,0,0.04)' },
+                '&:focus': { outline: 'none' },
+                '&:focus-visible': { outline: '2px solid #7B0FFF', outlineOffset: 2 },
+              }}
             >
               <Close sx={{ fontSize: 21 }} />
-            </IconButton>
+            </Box>
           </Box>
         </Box>
 

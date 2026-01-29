@@ -1,0 +1,142 @@
+{
+  "form": {
+    "sections": {
+      "personal": "Personal Details",
+      "passport": "Passport Details",
+      "job": "Job Application",
+      "skills": "Skills & Language",
+      "health": "Health & Legal",
+      "documents": "Documents",
+      "declaration": "Declaration"
+    },
+    "personalDetails": {
+      "title": "Personal Information"
+    },
+    "passportDetails": {
+      "title": "Passport Information",
+      "mandatory": "Mandatory",
+      "warning": "A valid passport is required to proceed with the application",
+      "noPassportMessage": "You must have a valid passport to apply for this position"
+    },
+    "jobApplication": {
+      "title": "Job Application Details",
+      "autoRoute": "Auto-Routing Enabled"
+    },
+    "fields": {
+      "fullName": "Full Name",
+      "fullNameHelper": "Enter your full name as it appears on your passport",
+      "dateOfBirth": "Date of Birth",
+      "dateOfBirthHelper": "Select your date of birth",
+      "gender": "Gender",
+      "maritalStatus": "Marital Status",
+      "mobileNumber": "Mobile Number",
+      "mobileNumberHelper": "Enter your 10-digit mobile number",
+      "email": "Email Address",
+      "permanentAddress": "Permanent Address",
+      "permanentAddressHelper": "Enter your complete permanent address",
+      "hasPassport": "Do you have a valid passport?",
+      "passportNumber": "Passport Number",
+      "passportNumberHelper": "Enter your passport number (8-9 characters)",
+      "passportIssuePlace": "Passport Issue Place",
+      "passportIssueDate": "Passport Issue Date",
+      "passportExpiryDate": "Passport Expiry Date",
+      "passportExpiryHelper": "Passport must be valid for at least 12 months",
+      "jobCategory": "Job Category",
+      "jobCategoryHelper": "Select the category that best matches your skills",
+      "specificTrade": "Specific Trade",
+      "experienceYears": "Years of Experience",
+      "workedAbroad": "Have you worked abroad before?",
+      "countriesWorked": "Countries Worked",
+      "hasCertificate": "Do you have professional certificates?",
+      "certificateDetails": "Certificate Details",
+      "canReadDrawings": "Can you read technical drawings?",
+      "languages": "Languages Spoken",
+      "medicalCondition": "Do you have any medical conditions?",
+      "medicalDetails": "Medical Condition Details",
+      "criminalCase": "Do you have any pending criminal cases?",
+      "criminalDetails": "Criminal Case Details"
+    },
+    "options": {
+      "yes": "Yes",
+      "no": "No",
+      "male": "Male",
+      "female": "Female",
+      "other": "Other",
+      "single": "Single",
+      "married": "Married",
+      "divorced": "Divorced",
+      "widowed": "Widowed",
+      "construction": "Construction",
+      "caregiving": "Caregiving",
+      "agriculture": "Agriculture",
+      "manufacturing": "Manufacturing",
+      "hospitality": "Hospitality",
+      "expertSpecialist": "Expert/Specialist"
+    },
+    "buttons": {
+      "next": "Next",
+      "back": "Back",
+      "submit": "Submit Application",
+      "save": "Save Draft",
+      "preview": "Preview"
+    },
+    "messages": {
+      "submissionSuccess": "Application submitted successfully!",
+      "submissionError": "Failed to submit application. Please try again.",
+      "requiredFields": "Please fill all required fields",
+      "signatureRequired": "Digital signature is required"
+    }
+  },
+  "validation": {
+    "required": "This field is required",
+    "invalidPhone": "Please enter a valid phone number (10-13 digits)",
+    "invalidEmail": "Please enter a valid email address",
+    "invalidPassport": "Please enter a valid passport number"
+  },
+  "merf": {
+    "sections": {
+      "basic": "Basic Information",
+      "jobDetails": "Job Details",
+      "location": "Work Location",
+      "benefits": "Benefits & Conditions",
+      "review": "Review & Submit"
+    },
+    "basicInfo": {
+      "title": "Basic Information"
+    },
+    "jobDetails": {
+      "title": "Job Details"
+    },
+    "location": {
+      "title": "Work Location"
+    },
+    "benefits": {
+      "title": "Benefits & Conditions"
+    },
+    "review": {
+      "title": "Review & Submit"
+    },
+    "fields": {
+      "title": "Title (English)",
+      "titleHe": "Title (Hebrew)",
+      "description": "Description (English)",
+      "descriptionHe": "Description (Hebrew)",
+      "jobCategory": "Job Category",
+      "specificTrade": "Specific Trade",
+      "numberOfWorkers": "Number of Workers",
+      "experienceRequired": "Experience Required",
+      "qualifications": "Required Qualifications",
+      "languagesRequired": "Languages Required",
+      "salaryRange": "Salary Range (ILS)",
+      "contractDuration": "Contract Duration",
+      "startDate": "Expected Start Date",
+      "workLocation": "Work Location (English)",
+      "workLocationHe": "Work Location (Hebrew)",
+      "accommodationProvided": "Accommodation Provided",
+      "accommodationDetails": "Accommodation Details",
+      "transportationProvided": "Transportation Provided",
+      "otherBenefits": "Other Benefits (English)",
+      "otherBenefitsHe": "Other Benefits (Hebrew)"
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import {
   Container,
@@ -58,27 +58,54 @@ export default function Home() {
   const [email, setEmail] = useState('');
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [user, setUser] = useState(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    if (typeof window === 'undefined') return;
+    const token = localStorage.getItem('token');
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      setUser(u?.id ? u : null);
+    } catch (_) {
+      setUser(null);
+    }
+  }, []);
+
+  // Seed credentials matching backend DB (same as /login page)
+  const seedCredentials = {
+    admin: { email: 'admin@apravas.com', password: 'admin123' },
+    employer: { email: 'employer@israel.com', password: 'employer123' },
+    worker: { email: 'worker@india.com', password: 'worker123' },
+  };
 
   const handleLogin = async (loginRole = null) => {
     try {
       const roleToUse = loginRole || role;
-      const emailToUse = loginRole ? `${loginRole}@apravas.com` : email;
-      
+      const creds = seedCredentials[roleToUse];
+      const emailToUse = creds ? creds.email : email;
+      const passwordToUse = creds ? creds.password : undefined;
+
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: emailToUse, role: roleToUse }),
+        body: JSON.stringify({
+          email: emailToUse,
+          ...(passwordToUse && { password: passwordToUse }),
+          ...(!passwordToUse && { role: roleToUse }),
+        }),
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        
-        // Redirect based on the actual role returned from server
+        setUser(data.user);
+
         if (data.user.role === 'admin') {
           router.push('/dashboard/admin');
         } else if (data.user.role === 'employer') {
@@ -86,6 +113,8 @@ export default function Home() {
         } else if (data.user.role === 'worker') {
           router.push('/dashboard/worker');
         }
+      } else {
+        alert(data.message || 'Login failed. Please try again.');
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -160,61 +189,103 @@ export default function Home() {
             >
               APRAVAS
             </Typography>
-            <Stack direction="row" spacing={2}>
-              <Button
-                variant="contained"
-                startIcon={<Business />}
-                sx={{
-                  background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-                  borderRadius: '25px',
-                  px: 3,
-                  color: 'white',
-                  '&:hover': {
-                    background: 'linear-gradient(135deg, #1565c0 0%, #1976d2 100%)',
-                    transform: 'translateY(-2px)',
-                  },
-                  transition: 'all 0.3s ease',
-                }}
-                onClick={() => quickLogin('admin')}
-              >
-                Admin
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<Work />}
-                sx={{
-                  background: 'linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)',
-                  borderRadius: '25px',
-                  px: 3,
-                  color: 'white',
-                  '&:hover': {
-                    background: 'linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%)',
-                    transform: 'translateY(-2px)',
-                  },
-                  transition: 'all 0.3s ease',
-                }}
-                onClick={() => quickLogin('employer')}
-              >
-                Employer
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<Person />}
-                sx={{
-                  background: 'linear-gradient(135deg, #ed6c02 0%, #e65100 100%)',
-                  borderRadius: '25px',
-                  px: 3,
-                  color: 'white',
-                  '&:hover': {
-                    background: 'linear-gradient(135deg, #e65100 0%, #ed6c02 100%)',
-                    transform: 'translateY(-2px)',
-                  },
-                  transition: 'all 0.3s ease',
-                }}
-                onClick={() => quickLogin('worker')}
-              >
-                Worker
-              </Button>
+            <Stack direction="row" spacing={2} alignItems="center">
+              {mounted && user ? (
+                <>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {user.fullName || user.name || 'User'}
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    startIcon={<Dashboard />}
+                    onClick={() => {
+                      if (user.role === 'admin') router.push('/dashboard/admin');
+                      else if (user.role === 'employer') router.push('/dashboard/employer');
+                      else if (user.role === 'worker') router.push('/dashboard/worker');
+                      else router.push('/');
+                    }}
+                    sx={{ borderRadius: '25px', px: 3 }}
+                  >
+                    Dashboard
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={() => {
+                      localStorage.removeItem('token');
+                      localStorage.removeItem('user');
+                      setUser(null);
+                      router.push('/');
+                    }}
+                    sx={{ borderRadius: '25px', px: 3 }}
+                  >
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outlined"
+                    onClick={() => router.push('/login')}
+                    sx={{ borderRadius: '25px', px: 3 }}
+                  >
+                    Login
+                  </Button>
+                  <Button
+                    variant="contained"
+                    startIcon={<Business />}
+                    sx={{
+                      background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+                      borderRadius: '25px',
+                      px: 3,
+                      color: 'white',
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #1565c0 0%, #1976d2 100%)',
+                        transform: 'translateY(-2px)',
+                      },
+                      transition: 'all 0.3s ease',
+                    }}
+                    onClick={() => quickLogin('admin')}
+                  >
+                    Admin
+                  </Button>
+                  <Button
+                    variant="contained"
+                    startIcon={<Work />}
+                    sx={{
+                      background: 'linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)',
+                      borderRadius: '25px',
+                      px: 3,
+                      color: 'white',
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%)',
+                        transform: 'translateY(-2px)',
+                      },
+                      transition: 'all 0.3s ease',
+                    }}
+                    onClick={() => quickLogin('employer')}
+                  >
+                    Employer
+                  </Button>
+                  <Button
+                    variant="contained"
+                    startIcon={<Person />}
+                    sx={{
+                      background: 'linear-gradient(135deg, #ed6c02 0%, #e65100 100%)',
+                      borderRadius: '25px',
+                      px: 3,
+                      color: 'white',
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #e65100 0%, #ed6c02 100%)',
+                        transform: 'translateY(-2px)',
+                      },
+                      transition: 'all 0.3s ease',
+                    }}
+                    onClick={() => quickLogin('worker')}
+                  >
+                    Worker
+                  </Button>
+                </>
+              )}
             </Stack>
           </Box>
         </Container>

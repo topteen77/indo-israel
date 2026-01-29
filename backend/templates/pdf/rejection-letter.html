@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rejection Letter - Apravas Recruitment</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    @page {
+      size: A4;
+      margin: 2cm;
+    }
+    body {
+      font-family: 'Times New Roman', serif;
+      line-height: 1.6;
+      color: #000;
+      background-color: #fff;
+      font-size: 12pt;
+    }
+    .letter-container {
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .letterhead {
+      border-bottom: 3px solid #7B0FF5;
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+    }
+    .letterhead .logo {
+      font-size: 24pt;
+      font-weight: bold;
+      color: #7B0FF5;
+      margin-bottom: 10px;
+    }
+    .letterhead .address {
+      font-size: 10pt;
+      color: #666;
+      line-height: 1.4;
+    }
+    .date {
+      text-align: right;
+      margin-bottom: 30px;
+      font-size: 11pt;
+    }
+    .recipient {
+      margin-bottom: 30px;
+    }
+    .recipient .name {
+      font-weight: bold;
+      font-size: 11pt;
+      margin-bottom: 5px;
+    }
+    .recipient .address {
+      font-size: 10pt;
+      color: #333;
+    }
+    .subject {
+      font-weight: bold;
+      margin-bottom: 20px;
+      font-size: 11pt;
+    }
+    .content {
+      text-align: justify;
+      margin-bottom: 20px;
+      font-size: 11pt;
+    }
+    .content p {
+      margin-bottom: 15px;
+      text-indent: 0;
+    }
+    .application-details {
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .application-details h4 {
+      font-size: 11pt;
+      margin-bottom: 10px;
+      color: #333;
+    }
+    .application-details table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10pt;
+    }
+    .application-details td {
+      padding: 5px 10px;
+      border-bottom: 1px solid #eee;
+    }
+    .application-details td:first-child {
+      font-weight: bold;
+      width: 40%;
+    }
+    .rejection-reason-box {
+      background-color: #fff3cd;
+      border: 1px solid #ffc107;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .rejection-reason-box h4 {
+      font-size: 11pt;
+      margin-bottom: 10px;
+      color: #856404;
+    }
+    .signature-section {
+      margin-top: 50px;
+    }
+    .signature-line {
+      border-top: 1px solid #000;
+      width: 300px;
+      margin-top: 60px;
+    }
+    .signature-name {
+      font-weight: bold;
+      margin-top: 5px;
+      font-size: 11pt;
+    }
+    .signature-title {
+      font-size: 10pt;
+      color: #666;
+      margin-top: 3px;
+    }
+    .footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #ddd;
+      font-size: 9pt;
+      color: #666;
+      text-align: center;
+    }
+    .appeal-section {
+      background-color: #e3f2fd;
+      border: 1px solid #2196f3;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .appeal-section h4 {
+      font-size: 11pt;
+      margin-bottom: 10px;
+      color: #1976d2;
+    }
+    @media print {
+      body {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+      .letter-container {
+        padding: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="letter-container">
+    <!-- Letterhead -->
+    <div class="letterhead">
+      <div class="logo">APRAVAS RECRUITMENT</div>
+      <div class="address">
+        <strong>Apravas Recruitment Platform</strong><br>
+        {{companyAddress}}<br>
+        Phone: {{recruitmentPhone}} | Email: {{recruitmentEmail}}<br>
+        Website: {{frontendUrl}}
+      </div>
+    </div>
+
+    <!-- Date -->
+    <div class="date">
+      {{currentDate}}
+    </div>
+
+    <!-- Recipient -->
+    <div class="recipient">
+      <div class="name">{{applicantName}}</div>
+      <div class="address">
+        {{applicantAddress}}<br>
+        Email: {{applicantEmail}}<br>
+        Phone: {{applicantPhone}}
+      </div>
+    </div>
+
+    <!-- Subject -->
+    <div class="subject">
+      <strong>Subject:</strong> Application Status Update - Application ID: {{applicationId}}
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+      <p>Dear {{applicantName}},</p>
+
+      <p>Thank you for your interest in working with <strong>Apravas</strong> and for taking the time to submit your application for the position of <strong>{{jobTitle}}</strong>.</p>
+
+      <p>We have carefully reviewed your application and qualifications. After thorough consideration, we regret to inform you that your application was not selected for this position at this time.</p>
+
+      <!-- Application Details -->
+      <div class="application-details">
+        <h4>Application Details:</h4>
+        <table>
+          <tr>
+            <td>Application ID:</td>
+            <td>{{applicationId}}</td>
+          </tr>
+          <tr>
+            <td>Position Applied:</td>
+            <td>{{jobTitle}}</td>
+          </tr>
+          <tr>
+            <td>Application Date:</td>
+            <td>{{applicationDate}}</td>
+          </tr>
+          <tr>
+            <td>Review Date:</td>
+            <td>{{reviewDate}}</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Rejection Reason (if provided) -->
+      {{#if rejectionReason}}
+      <div class="rejection-reason-box">
+        <h4>Reason for Rejection:</h4>
+        <p>{{rejectionReason}}</p>
+      </div>
+      {{/if}}
+
+      <p>This decision was made after careful evaluation of all applications received. We received a large number of qualified candidates, and the selection process was competitive.</p>
+
+      <p>We want to emphasize that this decision does not reflect on your abilities or potential. We encourage you to apply for future opportunities that may be a better match for your skills and experience.</p>
+
+      <!-- Appeal Section -->
+      <div class="appeal-section">
+        <h4>Appeal Process:</h4>
+        <p>If you believe there was an error in the review process or have additional information to share, you may submit an appeal within <strong>7 days</strong> of receiving this letter.</p>
+        <p><strong>Appeal Deadline:</strong> {{appealDeadline}}</p>
+        <p>To submit an appeal, please visit: <a href="{{appealUrl}}">{{appealUrl}}</a></p>
+        <p>Alternatively, you can contact us directly at {{recruitmentEmail}} or {{recruitmentPhone}}.</p>
+      </div>
+
+      <p>We appreciate your interest in <strong>Apravas</strong> and wish you the best in your future endeavors.</p>
+
+      <p>Sincerely,</p>
+    </div>
+
+    <!-- Signature -->
+    <div class="signature-section">
+      <div class="signature-line"></div>
+      <div class="signature-name">{{signatoryName}}</div>
+      <div class="signature-title">{{signatoryTitle}}</div>
+      <div class="signature-title">Apravas Recruitment Platform</div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p>This is an official document from Apravas Recruitment Platform.</p>
+      <p>For inquiries, please contact: {{recruitmentEmail}} | {{recruitmentPhone}}</p>
+      <p>&copy; {{currentYear}} Apravas. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Application Status Update</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f5f5f5;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+    }
+    .header {
+      background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+      color: white;
+      padding: 40px 20px;
+      text-align: center;
+    }
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .content {
+      padding: 40px 30px;
+    }
+    .greeting {
+      font-size: 18px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    .application-id-box {
+      background-color: #f8f9fa;
+      border: 2px solid #dee2e6;
+      padding: 20px;
+      text-align: center;
+      border-radius: 8px;
+      margin: 30px 0;
+    }
+    .application-id-box .label {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    .application-id-box .id {
+      font-size: 20px;
+      font-weight: 700;
+      color: #333;
+    }
+    .rejection-notice {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .rejection-notice h3 {
+      color: #856404;
+      margin-bottom: 12px;
+      font-size: 18px;
+    }
+    .rejection-reason {
+      background-color: #f8f9fa;
+      border-left: 4px solid #6c757d;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .rejection-reason h4 {
+      color: #495057;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #dc3545;
+      margin: 30px 0 15px 0;
+    }
+    .appeal-section {
+      background-color: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .appeal-section h3 {
+      color: #1976d2;
+      margin-bottom: 12px;
+      font-size: 18px;
+    }
+    .appeal-section p {
+      color: #1565c0;
+      margin-bottom: 10px;
+    }
+    .button-container {
+      text-align: center;
+      margin: 30px 0;
+    }
+    .button {
+      display: inline-block;
+      padding: 14px 32px;
+      background-color: #2196f3;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 16px;
+      box-shadow: 0 4px 6px rgba(33, 150, 243, 0.3);
+      transition: transform 0.2s;
+    }
+    .button:hover {
+      transform: translateY(-2px);
+    }
+    .button-secondary {
+      background-color: #6c757d;
+      margin-left: 10px;
+    }
+    .contact-section {
+      background-color: #f9f9f9;
+      padding: 25px;
+      border-radius: 8px;
+      margin: 30px 0;
+    }
+    .contact-section h3 {
+      color: #dc3545;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+    .contact-item {
+      margin: 10px 0;
+      color: #555;
+    }
+    .contact-item strong {
+      color: #333;
+    }
+    .footer {
+      background-color: #f5f5f5;
+      padding: 30px;
+      text-align: center;
+      color: #666;
+      font-size: 12px;
+      border-top: 1px solid #e0e0e0;
+    }
+    .footer p {
+      margin: 5px 0;
+    }
+    .divider {
+      height: 1px;
+      background-color: #e0e0e0;
+      margin: 30px 0;
+    }
+    .encouragement {
+      background-color: #d4edda;
+      border-left: 4px solid #28a745;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .encouragement p {
+      color: #155724;
+      margin: 0;
+    }
+    @media only screen and (max-width: 600px) {
+      .content {
+        padding: 20px 15px;
+      }
+      .header {
+        padding: 30px 15px;
+      }
+      .header h1 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <!-- Header -->
+    <div class="header">
+      <h1>Application Status Update</h1>
+      <p>Apravas Recruitment</p>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+      <p class="greeting">Dear {{applicantName}},</p>
+      
+      <p>Thank you for your interest in working with <strong>Apravas</strong> and for taking the time to submit your application.</p>
+
+      <!-- Application ID -->
+      <div class="application-id-box">
+        <div class="label">Application ID</div>
+        <div class="id">{{applicationId}}</div>
+      </div>
+
+      <!-- Rejection Notice -->
+      <div class="rejection-notice">
+        <h3>Application Review Result</h3>
+        <p>After careful review of your application, we regret to inform you that your application was not selected for this position at this time.</p>
+      </div>
+
+      <!-- Rejection Reason (if provided) -->
+      {{#if rejectionReason}}
+      <div class="rejection-reason">
+        <h4>Reason for Rejection:</h4>
+        <p>{{rejectionReason}}</p>
+      </div>
+      {{/if}}
+
+      <!-- Encouragement -->
+      <div class="encouragement">
+        <p><strong>We encourage you to apply for future opportunities</strong> that may be a better match for your skills and experience.</p>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Appeal Section -->
+      <h2 class="section-title">Appeal Process</h2>
+      
+      <div class="appeal-section">
+        <h3>📝 Want to Appeal This Decision?</h3>
+        <p>If you believe there was an error in the review process or have additional information to share, you can submit an appeal within <strong>7 days</strong> of receiving this notification.</p>
+        <p><strong>Appeal Deadline:</strong> {{appealDeadline}}</p>
+      </div>
+
+      <!-- Appeal Button -->
+      <div class="button-container">
+        <a href="{{appealUrl}}" class="button">Submit an Appeal</a>
+        <a href="{{frontendUrl}}" class="button button-secondary">View Other Opportunities</a>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Contact Information -->
+      <div class="contact-section">
+        <h3>📞 Contact Us</h3>
+        <p style="margin-bottom: 15px;">If you have any questions about this decision or need assistance with the appeal process, please contact us:</p>
+        <div class="contact-item">
+          <strong>Phone:</strong> {{recruitmentPhone}}
+        </div>
+        <div class="contact-item">
+          <strong>Email:</strong> {{recruitmentEmail}}
+        </div>
+        <div class="contact-item">
+          <strong>WhatsApp:</strong> {{recruitmentWhatsApp}}
+        </div>
+        <div class="contact-item">
+          <strong>Website:</strong> <a href="{{frontendUrl}}" style="color: #2196f3;">{{frontendUrl}}</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p><strong>Apravas Recruitment Platform</strong></p>
+      <p>This is an automated email. Please do not reply to this message.</p>
+      <p>If you have any questions, please contact us using the information above.</p>
+      <p>&copy; {{currentYear}} Apravas. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>

@@ -2,17 +2,19 @@ import React, { useState, useEffect } from 'react';
 import {
   Box, Card, CardContent, Typography, Grid, Chip,
   Alert, LinearProgress, List, ListItem, ListItemText,
-  ListItemIcon, Avatar, IconButton, Paper
+  ListItemIcon, Avatar, IconButton, Paper, Tabs, Tab
 } from '@mui/material';
 import {
   LocationOn, CheckCircle, Warning, Error, Refresh,
-  Phone, WhatsApp, Email, AccessTime, Person
+  Phone, WhatsApp, Email, AccessTime, Person, Map
 } from '@mui/icons-material';
 import api from '../../utils/api';
+import LocationMapView from './LocationMapView';
 
 const FamilyPortal = ({ workerId = '1' }) => {
   const [safetyData, setSafetyData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState(0);
 
   useEffect(() => {
     loadSafetyData();
@@ -23,7 +25,7 @@ const FamilyPortal = ({ workerId = '1' }) => {
   const loadSafetyData = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/safety/family/${workerId}/status`);
+      const response = await api.get(`/safety/family/${workerId}/status?includeLocation=true&includeHistory=true`);
       setSafetyData(response.data.data);
     } catch (error) {
       console.error('Error loading safety data:', error);
@@ -61,7 +63,7 @@ const FamilyPortal = ({ workerId = '1' }) => {
 
   if (!safetyData) return null;
 
-  const { status, lastCheckIn, location } = safetyData;
+  const { status, lastCheckIn, location, locationHistory } = safetyData;
 
   return (
     <Box sx={{ p: 3 }}>
@@ -71,6 +73,20 @@ const FamilyPortal = ({ workerId = '1' }) => {
           <Refresh />
         </IconButton>
       </Box>
+
+      {/* Tabs */}
+      <Tabs
+        value={activeTab}
+        onChange={(e, newValue) => setActiveTab(newValue)}
+        sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
+      >
+        <Tab icon={<Person />} label="Status" />
+        <Tab icon={<Map />} label="Location Map" />
+      </Tabs>
+
+      {/* Status Tab */}
+      {activeTab === 0 && (
+        <>
 
       {/* Status Card */}
       <Card sx={{ mb: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
@@ -100,23 +116,91 @@ const FamilyPortal = ({ workerId = '1' }) => {
         <CardContent>
           <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <LocationOn color="primary" />
-            Last Known Location
+            Current Location
           </Typography>
-          {location && (
+          {location ? (
             <>
-              <Typography variant="body1" sx={{ mt: 1, fontWeight: 'bold' }}>
-                {location.address}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {location.city}, {location.country}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                Last updated: {new Date(location.timestamp).toLocaleString()}
-              </Typography>
+              <Grid container spacing={2} sx={{ mt: 1 }}>
+                <Grid item xs={12}>
+                  <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                    {location.address || 'Location not available'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {location.city}, {location.country}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="caption" color="text.secondary">
+                    Coordinates
+                  </Typography>
+                  <Typography variant="body2">
+                    {location.latitude?.toFixed(6)}, {location.longitude?.toFixed(6)}
+                  </Typography>
+                </Grid>
+                {location.accuracy && (
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="caption" color="text.secondary">
+                      Accuracy
+                    </Typography>
+                    <Typography variant="body2">
+                      ±{Math.round(location.accuracy)}m
+                    </Typography>
+                  </Grid>
+                )}
+                <Grid item xs={12}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                    Last updated: {new Date(location.timestamp).toLocaleString()}
+                  </Typography>
+                </Grid>
+              </Grid>
             </>
+          ) : (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              Location data not available
+            </Alert>
           )}
         </CardContent>
       </Card>
+
+      {/* Location History */}
+      {locationHistory && locationHistory.length > 0 && (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <LocationOn color="primary" />
+              Recent Location History
+            </Typography>
+            <List dense>
+              {locationHistory.slice(0, 10).map((loc, index) => (
+                <ListItem key={loc.id || index}>
+                  <ListItemIcon>
+                    <Avatar sx={{ bgcolor: 'primary.light', width: 32, height: 32 }}>
+                      <LocationOn fontSize="small" />
+                    </Avatar>
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={new Date(loc.timestamp).toLocaleString()}
+                    secondary={
+                      <>
+                        <Typography component="span" variant="body2" color="text.primary">
+                          {loc.latitude?.toFixed(4)}, {loc.longitude?.toFixed(4)}
+                        </Typography>
+                        {loc.eventType && (
+                          <Chip
+                            label={loc.eventType}
+                            size="small"
+                            sx={{ ml: 1, height: 20 }}
+                          />
+                        )}
+                      </>
+                    }
+                  />
+                </ListItem>
+              ))}
+            </List>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Last Check-in */}
       {lastCheckIn && (
@@ -205,6 +289,13 @@ const FamilyPortal = ({ workerId = '1' }) => {
           </List>
         </CardContent>
       </Card>
+        </>
+      )}
+
+      {/* Location Map Tab */}
+      {activeTab === 1 && (
+        <LocationMapView workerId={workerId} />
+      )}
     </Box>
   );
 };

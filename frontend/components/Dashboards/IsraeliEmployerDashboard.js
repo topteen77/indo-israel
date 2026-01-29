@@ -11,7 +11,7 @@ import {
 import {
   Work, People, Assessment, Schedule, CheckCircle,
   Warning, Visibility, Message, Download, Edit,
-  TrendingUp, Close, Add,
+  TrendingUp, Close, Add, AutoAwesome, Business,
 } from '@mui/icons-material';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -19,12 +19,20 @@ import {
   ResponsiveContainer, Legend,
 } from 'recharts';
 import api from '../../utils/api';
+import dynamic from 'next/dynamic';
+
+const AIJobGenerator = dynamic(
+  () => import('../AI/AIJobGenerator'),
+  { ssr: false }
+);
 
 const IsraeliEmployerDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
   const [postJobDialogOpen, setPostJobDialogOpen] = useState(false);
+  const [aiGeneratorOpen, setAiGeneratorOpen] = useState(false);
+  const [jobPostTab, setJobPostTab] = useState(0); // 0 = manual, 1 = AI generator
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [jobForm, setJobForm] = useState({
     title: '',
@@ -107,6 +115,8 @@ const IsraeliEmployerDashboard = () => {
       const requirementsArray = jobForm.requirements
         ? jobForm.requirements.split(',').map(r => r.trim()).filter(r => r)
         : [];
+      const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : null;
+      const postedBy = user?.id || null;
 
       const response = await api.post('/jobs/create', {
         title: jobForm.title,
@@ -119,6 +129,7 @@ const IsraeliEmployerDashboard = () => {
         requirements: requirementsArray,
         category: jobForm.category,
         openings: parseInt(jobForm.openings) || 1,
+        postedBy,
       });
 
       if (response.data.success) {
@@ -127,6 +138,8 @@ const IsraeliEmployerDashboard = () => {
           message: 'Job posted successfully!',
           severity: 'success'
         });
+        setPostJobDialogOpen(false);
+        fetchDashboardData(); // Refresh dashboard with new job from DB
         // Reset form
         setJobForm({
           title: '',
@@ -180,10 +193,25 @@ const IsraeliEmployerDashboard = () => {
             Israeli Employer Dashboard
           </Typography>
           <Typography variant="subtitle1" color="textSecondary">
-            {dashboardData.profile.companyName}
+            {dashboardData?.profile?.companyName ?? 'Company'}
           </Typography>
         </Box>
         <Box display="flex" gap={2}>
+          <Button
+            variant="outlined"
+            startIcon={<Business />}
+            onClick={() => window.location.href = '/merf'}
+            sx={{
+              borderColor: '#7B0FF5',
+              color: '#7B0FF5',
+              '&:hover': {
+                borderColor: '#9D4EDD',
+                bgcolor: 'rgba(123, 15, 245, 0.04)',
+              },
+            }}
+          >
+            MERF Requisitions
+          </Button>
           <Button
             variant="contained"
             startIcon={<Add />}
@@ -217,10 +245,10 @@ const IsraeliEmployerDashboard = () => {
                     Active Jobs
                   </Typography>
                   <Typography variant="h4">
-                    {dashboardData.jobs.activeJobs}
+                    {dashboardData?.jobs?.activeJobs ?? 0}
                   </Typography>
                   <Typography variant="body2" color="success.main">
-                    +{dashboardData.jobs.totalJobs - dashboardData.jobs.activeJobs} this month
+                    +{(dashboardData?.jobs?.totalJobs ?? 0) - (dashboardData?.jobs?.activeJobs ?? 0)} this month
                   </Typography>
                 </Box>
                 <Avatar sx={{ bgcolor: 'success.main' }}>
@@ -240,10 +268,10 @@ const IsraeliEmployerDashboard = () => {
                     Total Applications
                   </Typography>
                   <Typography variant="h4">
-                    {dashboardData.jobs.totalApplications}
+                    {dashboardData?.jobs?.totalApplications ?? 0}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
-                    Avg: {dashboardData.jobs.averageApplications} per job
+                    Avg: {dashboardData?.jobs?.averageApplications ?? 0} per job
                   </Typography>
                 </Box>
                 <Avatar sx={{ bgcolor: 'info.main' }}>
@@ -263,10 +291,10 @@ const IsraeliEmployerDashboard = () => {
                     Approval Rate
                   </Typography>
                   <Typography variant="h4">
-                    {dashboardData.performance.overall.approvalRate}%
+                    {dashboardData?.performance?.overall?.approvalRate ?? 0}%
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
-                    Processing: {dashboardData.performance.overall.averageProcessingTime} days avg
+                    Processing: {dashboardData?.performance?.overall?.averageProcessingTime ?? 0} days avg
                   </Typography>
                 </Box>
                 <Avatar sx={{ bgcolor: 'warning.main' }}>
@@ -286,10 +314,10 @@ const IsraeliEmployerDashboard = () => {
                     Compliance Status
                   </Typography>
                   <Typography variant="h4">
-                    {dashboardData.compliance.status}
+                    {dashboardData?.compliance?.status ?? 'Compliant'}
                   </Typography>
-                  <Typography variant="body2" color={dashboardData.compliance.score >= 90 ? 'success.main' : 'warning.main'}>
-                    {dashboardData.compliance.score}% score
+                  <Typography variant="body2" color={(dashboardData?.compliance?.score ?? 0) >= 90 ? 'success.main' : 'warning.main'}>
+                    {dashboardData?.compliance?.score ?? 0}% score
                   </Typography>
                 </Box>
                 <Avatar sx={{ bgcolor: dashboardData.compliance.score >= 90 ? 'success.main' : 'warning.main' }}>
@@ -335,7 +363,7 @@ const IsraeliEmployerDashboard = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {dashboardData.jobs.jobs.map((job) => (
+                  {(dashboardData?.jobs?.jobs ?? []).map((job) => (
                     <TableRow key={job.id}>
                       <TableCell>
                         <Typography variant="subtitle2">{job.title}</Typography>
@@ -395,12 +423,12 @@ const IsraeliEmployerDashboard = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {dashboardData.pipeline.candidates.map((candidate) => (
+                  {(dashboardData?.pipeline?.candidates ?? []).map((candidate) => (
                     <TableRow key={candidate.id}>
                       <TableCell>
                         <Box display="flex" alignItems="center">
                           <Avatar sx={{ mr: 2 }}>
-                            {candidate.full_name.charAt(0)}
+                            {(candidate.full_name || 'A').charAt(0)}
                           </Avatar>
                           <Box>
                             <Typography variant="subtitle2">
@@ -439,8 +467,11 @@ const IsraeliEmployerDashboard = () => {
                             <Visibility />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Schedule Interview">
-                          <IconButton size="small">
+                        <Tooltip title="Conduct Interview Assessment">
+                          <IconButton
+                            size="small"
+                            onClick={() => window.location.href = `/interviews/assess/${candidate.applicationId || candidate.id}`}
+                          >
                             <Schedule />
                           </IconButton>
                         </Tooltip>
@@ -471,7 +502,7 @@ const IsraeliEmployerDashboard = () => {
                         Weekly Application Trends
                       </Typography>
                       <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={dashboardData.performance.weeklyMetrics}>
+                        <LineChart data={dashboardData?.performance?.weeklyMetrics ?? []}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="week" />
                           <YAxis />
@@ -494,8 +525,8 @@ const IsraeliEmployerDashboard = () => {
                         <PieChart>
                           <Pie
                             data={[
-                              { name: 'Approved', value: dashboardData.performance.overall.approvalRate },
-                              { name: 'Rejected', value: 100 - dashboardData.performance.overall.approvalRate }
+                              { name: 'Approved', value: dashboardData?.performance?.overall?.approvalRate ?? 0 },
+                              { name: 'Rejected', value: 100 - (dashboardData?.performance?.overall?.approvalRate ?? 0) }
                             ]}
                             cx="50%"
                             cy="50%"
@@ -533,13 +564,13 @@ const IsraeliEmployerDashboard = () => {
                       <Box display="flex" alignItems="center" mt={2}>
                         <CircularProgress
                           variant="determinate"
-                          value={dashboardData.compliance.score}
+                          value={dashboardData?.compliance?.score ?? 0}
                           size={100}
                           thickness={4}
                         />
                         <Box ml={3}>
                           <Typography variant="h3">
-                            {dashboardData.compliance.score}%
+                            {dashboardData?.compliance?.score ?? 0}%
                           </Typography>
                           <Typography variant="body2" color="textSecondary">
                             {dashboardData.compliance.status}
@@ -555,7 +586,7 @@ const IsraeliEmployerDashboard = () => {
                       <Typography variant="h6" gutterBottom>
                         Compliance Requirements
                       </Typography>
-                      {dashboardData.compliance.requirements?.map((req, index) => (
+                      {(dashboardData?.compliance?.requirements ?? []).map((req, index) => (
                         <Box key={index} display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                           <Typography variant="body2">{req.name}</Typography>
                           <Chip
@@ -730,7 +761,8 @@ const IsraeliEmployerDashboard = () => {
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions sx={{ p: 3, pt: 2, borderTop: '1px solid #E0E0E0' }}>
+        {jobPostTab === 0 && (
+          <DialogActions sx={{ p: 3, pt: 2, borderTop: '1px solid #E0E0E0' }}>
           <Button onClick={handleCloseDialog} sx={{ color: '#666' }}>
             Cancel
           </Button>
@@ -748,6 +780,7 @@ const IsraeliEmployerDashboard = () => {
             Post Job
           </Button>
         </DialogActions>
+        )}
       </Dialog>
 
       {/* Snackbar for notifications */}

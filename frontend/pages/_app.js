@@ -1,6 +1,7 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import '../styles/globals.css';
+import '../utils/i18n';
 
 // Apna.co-inspired modern theme
 const theme = createTheme({

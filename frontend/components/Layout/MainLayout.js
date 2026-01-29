@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import {
   AppBar,
@@ -13,13 +13,43 @@ import {
   Dashboard,
   Logout,
   Home,
+  Login,
 } from '@mui/icons-material';
 import IndiaIsraelRecruitmentChatbot from '../Chatbot/IndiaIsraelRecruitmentChatbot';
+import api from '../../utils/api';
 
 const MainLayout = ({ children }) => {
   const router = useRouter();
   const [chatbotOpen, setChatbotOpen] = useState(false);
-  const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+  const [user, setUser] = useState({});
+  const [mounted, setMounted] = useState(false);
+
+  // Load user from localStorage, then sync from API when token exists (dynamic DB data)
+  useEffect(() => {
+    setMounted(true);
+    if (typeof window === 'undefined') return;
+    const token = localStorage.getItem('token');
+    try {
+      const localUser = JSON.parse(localStorage.getItem('user') || '{}');
+      setUser(localUser);
+      if (token) {
+        api.get('/auth/me')
+          .then((res) => {
+            if (res.data?.user) {
+              setUser(res.data.user);
+              localStorage.setItem('user', JSON.stringify(res.data.user));
+            }
+          })
+          .catch(() => {
+            // Token invalid/expired: keep local user or clear
+            if (!localUser?.id) setUser({});
+          });
+      }
+    } catch (e) {
+      console.error('Error loading user:', e);
+      setUser({});
+    }
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -42,9 +72,6 @@ const MainLayout = ({ children }) => {
             Apravas Recruitment Platform
           </Typography>
           <Box display="flex" gap={1} alignItems="center">
-            <Typography variant="body2" sx={{ mr: 2 }}>
-              {user.name || user.fullName || 'User'}
-            </Typography>
             <Button
               color="inherit"
               startIcon={<Home />}
@@ -52,13 +79,35 @@ const MainLayout = ({ children }) => {
             >
               Home
             </Button>
-            <Button
-              color="inherit"
-              startIcon={<Logout />}
-              onClick={handleLogout}
-            >
-              Logout
-            </Button>
+            {mounted && (user?.id || localStorage.getItem('token')) ? (
+              <>
+                <Typography variant="body2" sx={{ mr: 1 }}>
+                  {user?.name || user?.fullName || 'User'}
+                </Typography>
+                <Button
+                  color="inherit"
+                  startIcon={<Dashboard />}
+                  onClick={() => router.push(getDashboardPath())}
+                >
+                  Dashboard
+                </Button>
+                <Button
+                  color="inherit"
+                  startIcon={<Logout />}
+                  onClick={handleLogout}
+                >
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <Button
+                color="inherit"
+                startIcon={<Login />}
+                onClick={() => router.push('/login')}
+              >
+                Login
+              </Button>
+            )}
           </Box>
         </Toolbar>
       </AppBar>

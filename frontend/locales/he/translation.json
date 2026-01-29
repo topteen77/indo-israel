@@ -1,0 +1,112 @@
+{
+  "form": {
+    "sections": {
+      "personal": "פרטים אישיים",
+      "passport": "פרטי דרכון",
+      "job": "מועמדות לעבודה",
+      "skills": "כישורים ושפות",
+      "health": "בריאות ומשפט",
+      "documents": "מסמכים",
+      "declaration": "הצהרה"
+    },
+    "personalDetails": {
+      "title": "מידע אישי"
+    },
+    "passportDetails": {
+      "title": "מידע על דרכון",
+      "mandatory": "חובה",
+      "warning": "נדרש דרכון תקף כדי להמשיך עם הבקשה",
+      "noPassportMessage": "עליך להיות בעל דרכון תקף כדי להגיש מועמדות למשרה זו"
+    },
+    "jobApplication": {
+      "title": "פרטי מועמדות לעבודה",
+      "autoRoute": "ניתוב אוטומטי מופעל"
+    },
+    "fields": {
+      "fullName": "שם מלא",
+      "dateOfBirth": "תאריך לידה",
+      "gender": "מין",
+      "maritalStatus": "מצב משפחתי",
+      "mobileNumber": "מספר נייד",
+      "email": "כתובת אימייל",
+      "permanentAddress": "כתובת קבועה",
+      "hasPassport": "האם יש לך דרכון תקף?",
+      "passportNumber": "מספר דרכון",
+      "passportIssuePlace": "מקום הנפקת דרכון",
+      "passportIssueDate": "תאריך הנפקת דרכון",
+      "passportExpiryDate": "תאריך תפוגת דרכון",
+      "jobCategory": "קטגוריית עבודה",
+      "specificTrade": "מקצוע ספציפי",
+      "experienceYears": "שנות ניסיון",
+      "workedAbroad": "האם עבדת בחו\"ל בעבר?",
+      "countriesWorked": "מדינות בהן עבדת",
+      "hasCertificate": "האם יש לך תעודות מקצועיות?",
+      "certificateDetails": "פרטי תעודות",
+      "canReadDrawings": "האם אתה יכול לקרוא שרטוטים טכניים?",
+      "languages": "שפות מדוברות",
+      "medicalCondition": "האם יש לך בעיות רפואיות?",
+      "medicalDetails": "פרטי בעיה רפואית",
+      "criminalCase": "האם יש לך תיקים פליליים תלויים?",
+      "criminalDetails": "פרטי תיק פלילי"
+    },
+    "buttons": {
+      "next": "הבא",
+      "back": "חזור",
+      "submit": "שלח בקשה",
+      "save": "שמור טיוטה",
+      "preview": "תצוגה מקדימה"
+    },
+    "messages": {
+      "submissionSuccess": "הבקשה נשלחה בהצלחה!",
+      "submissionError": "שליחת הבקשה נכשלה. אנא נסה שוב.",
+      "requiredFields": "אנא מלא את כל השדות הנדרשים",
+      "signatureRequired": "חתימה דיגיטלית נדרשת"
+    }
+  },
+  "merf": {
+    "sections": {
+      "basic": "מידע בסיסי",
+      "jobDetails": "פרטי עבודה",
+      "location": "מיקום עבודה",
+      "benefits": "הטבות ותנאים",
+      "review": "סקירה ושליחה"
+    },
+    "basicInfo": {
+      "title": "מידע בסיסי"
+    },
+    "jobDetails": {
+      "title": "פרטי עבודה"
+    },
+    "location": {
+      "title": "מיקום עבודה"
+    },
+    "benefits": {
+      "title": "הטבות ותנאים"
+    },
+    "review": {
+      "title": "סקירה ושליחה"
+    },
+    "fields": {
+      "title": "כותרת (אנגלית)",
+      "titleHe": "כותרת (עברית)",
+      "description": "תיאור (אנגלית)",
+      "descriptionHe": "תיאור (עברית)",
+      "jobCategory": "קטגוריית עבודה",
+      "specificTrade": "מקצוע ספציפי",
+      "numberOfWorkers": "מספר עובדים",
+      "experienceRequired": "ניסיון נדרש",
+      "qualifications": "הכשרות נדרשות",
+      "languagesRequired": "שפות נדרשות",
+      "salaryRange": "טווח שכר (ש\"ח)",
+      "contractDuration": "משך חוזה",
+      "startDate": "תאריך התחלה צפוי",
+      "workLocation": "מיקום עבודה (אנגלית)",
+      "workLocationHe": "מיקום עבודה (עברית)",
+      "accommodationProvided": "מגורים מסופקים",
+      "accommodationDetails": "פרטי מגורים",
+      "transportationProvided": "תחבורה מסופקת",
+      "otherBenefits": "הטבות אחרות (אנגלית)",
+      "otherBenefitsHe": "הטבות אחרות (עברית)"
+    }
+  }
+}
