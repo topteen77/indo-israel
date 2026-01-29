@@ -16,4 +16,5 @@ COPY . .
 # Backend listens on 0.0.0.0 via PORT
 EXPOSE 5000
 
-CMD ["node", "server.js"]
+# Seed DB if empty, then start server
+CMD ["sh", "-c", "node scripts/init-db.js && node server.js"]
