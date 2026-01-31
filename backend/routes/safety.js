@@ -73,25 +73,77 @@ router.post('/worker/:workerId/checkin', async (req, res) => {
 });
 
 // Get check-in history
-router.get('/worker/:workerId/checkins', (req, res) => {
-  const { workerId } = req.params;
-  const { startDate, endDate, limit = 50 } = req.query;
-  
-  const data = generateSafetyData(workerId);
-  
-  // Get emergency alerts for this worker
-  const emergencyAlerts = data.checkInHistory.filter(ci => ci.type === 'emergency' || ci.status === 'emergency');
-  
-  // Combine check-ins and emergency alerts, sorted by timestamp
-  const allHistory = [...data.checkInHistory].sort((a, b) => 
-    new Date(b.timestamp) - new Date(a.timestamp)
-  );
-  
-  res.json({
-    success: true,
-    data: allHistory,
-    emergencyCount: emergencyAlerts.length
-  });
+router.get('/worker/:workerId/checkins', async (req, res) => {
+  try {
+    const { workerId } = req.params;
+    const { startDate, endDate, limit = 50 } = req.query;
+    
+    // Fetch real check-ins and emergency alerts from database
+    const dbHistory = enhancedLocationService.getLocationHistory(workerId, {
+      startDate,
+      endDate,
+      limit: parseInt(limit),
+    });
+    
+    // Transform database history to check-in format
+    const dbCheckIns = dbHistory
+      .filter(item => item.eventType === 'checkin' || item.eventType === 'emergency')
+      .map(item => {
+        const metadata = item.metadata || {};
+        const location = enhancedLocationService.getCurrentLocation(workerId);
+        
+        return {
+          id: item.id,
+          workerId: item.workerId,
+          timestamp: item.timestamp,
+          status: item.eventType === 'emergency' ? 'emergency' : (metadata.status || 'safe'),
+          type: item.eventType,
+          latitude: item.latitude,
+          longitude: item.longitude,
+          notes: metadata.notes || '',
+          message: item.eventType === 'emergency' ? (metadata.message || 'Emergency assistance needed') : '',
+          location: location ? {
+            address: location.address || 'Location unknown',
+            city: location.city || '',
+            country: location.country || 'Israel'
+          } : {
+            address: 'Location unknown',
+            city: '',
+            country: 'Israel'
+          }
+        };
+      });
+    
+    // Get mock data for fallback/demo purposes
+    const mockData = generateSafetyData(workerId);
+    const mockCheckIns = mockData.checkInHistory || [];
+    
+    // Combine real and mock data, prioritizing real data
+    const allHistory = [...dbCheckIns, ...mockCheckIns]
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, parseInt(limit));
+    
+    // Get emergency alerts count
+    const emergencyAlerts = allHistory.filter(ci => ci.type === 'emergency' || ci.status === 'emergency');
+    
+    res.json({
+      success: true,
+      data: allHistory,
+      emergencyCount: emergencyAlerts.length
+    });
+  } catch (error) {
+    console.error('Error fetching check-in history:', error);
+    // Fallback to mock data on error
+    const data = generateSafetyData(req.params.workerId);
+    const allHistory = [...(data.checkInHistory || [])].sort((a, b) => 
+      new Date(b.timestamp) - new Date(a.timestamp)
+    );
+    res.json({
+      success: true,
+      data: allHistory,
+      emergencyCount: allHistory.filter(ci => ci.type === 'emergency' || ci.status === 'emergency').length
+    });
+  }
 });
 
 // Emergency alert
@@ -125,10 +177,10 @@ router.post('/worker/:workerId/emergency', async (req, res) => {
       workerId,
       latitude,
       longitude,
-      type: type || 'general',
+      type: 'emergency',
       message: message || 'Emergency assistance needed',
       timestamp: new Date().toISOString(),
-      status: 'active',
+      status: 'emergency',
       workerName: workerName || `Worker ${workerId}`,
       location: {
         latitude,

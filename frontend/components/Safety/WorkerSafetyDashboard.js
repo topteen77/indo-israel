@@ -304,19 +304,44 @@ const WorkerSafetyDashboard = ({ workerId = '1' }) => {
                               {checkIn.location?.address || 'Location unknown'}
                             </Typography>
                             {(checkIn.notes || checkIn.message) && (
-                              <Typography 
-                                component="span" 
-                                variant="body2" 
-                                color={isEmergency ? 'error.dark' : 'text.secondary'} 
+                              <Box 
                                 sx={{ 
-                                  display: 'block', 
-                                  mt: 0.5,
-                                  fontWeight: isEmergency ? 600 : 400,
-                                  fontStyle: isEmergency ? 'italic' : 'normal'
+                                  mt: 1, 
+                                  p: 1.5, 
+                                  borderRadius: 1, 
+                                  bgcolor: isEmergency ? 'rgba(211, 47, 47, 0.1)' : 'rgba(25, 118, 210, 0.1)', 
+                                  border: `1px solid ${isEmergency ? '#d32f2f' : '#1976d2'}`,
+                                  borderLeft: `4px solid ${isEmergency ? '#d32f2f' : '#1976d2'}`
                                 }}
                               >
-                                {checkIn.message || checkIn.notes}
-                              </Typography>
+                                <Typography 
+                                  variant="caption" 
+                                  sx={{ 
+                                    display: 'block', 
+                                    mb: 0.5,
+                                    fontWeight: 700,
+                                    color: isEmergency ? '#d32f2f' : '#1976d2',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: 0.5,
+                                    fontSize: '0.7rem'
+                                  }}
+                                >
+                                  {isEmergency ? '🚨 Emergency Message:' : '📝 Check-in Notes:'}
+                                </Typography>
+                                <Typography 
+                                  variant="body2" 
+                                  sx={{ 
+                                    color: isEmergency ? '#d32f2f' : 'text.primary',
+                                    fontWeight: isEmergency ? 600 : 500,
+                                    whiteSpace: 'pre-wrap',
+                                    wordBreak: 'break-word',
+                                    fontSize: '0.875rem',
+                                    lineHeight: 1.6
+                                  }}
+                                >
+                                  {checkIn.message || checkIn.notes}
+                                </Typography>
+                              </Box>
                             )}
                           </Box>
                         }
