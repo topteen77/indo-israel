@@ -670,7 +670,6 @@ For specific information, contact NSDC International.`;
             overflow: 'auto',
             p: 0,
             background: 'linear-gradient(240deg, rgba(237, 246, 255, 1) 0%, rgba(252, 246, 255, 1) 20%, rgba(255, 255, 255, 1) 40%, rgba(255, 255, 255, 1) 60%, rgba(248, 242, 255, 1) 80%, rgba(237, 246, 255, 1) 100%)',
-            margin: '0 7%',
           }}
         >
           {!consentGiven && (
