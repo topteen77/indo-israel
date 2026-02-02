@@ -1063,6 +1063,9 @@ export default function Home() {
             variant="contained"
             size="large"
             endIcon={<PlayArrow />}
+            onClick={() => {
+              window.open('http://43.204.127.118:8081/', '_blank', 'noopener,noreferrer');
+            }}
             sx={{
               background: 'linear-gradient(135deg, #7B0FF5 0%, #9D4EDD 100%)',
               borderRadius: '12px',
