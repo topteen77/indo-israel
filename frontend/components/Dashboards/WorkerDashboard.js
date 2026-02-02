@@ -18,8 +18,10 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import api from '../../utils/api';
+import { useTranslation } from 'react-i18next';
 
 const WorkerDashboard = ({ initialTab = 0 }) => {
+  const { t } = useTranslation();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -142,19 +144,19 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
     <Box p={3}>
       {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">My Dashboard</Typography>
+        <Typography variant="h4">{t('common.dashboard', 'My Dashboard')}</Typography>
         <Box display="flex" gap={2}>
           <Button
             variant="outlined"
             startIcon={<GetApp />}
           >
-            Download Report
+            {t('common.downloadReport', 'Download Report')}
           </Button>
           <Button
             variant="contained"
             startIcon={<Settings />}
           >
-            Settings
+            {t('common.settings', 'Settings')}
           </Button>
         </Box>
       </Box>
@@ -170,17 +172,17 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
                 </Avatar>
               </Grid>
               <Grid item xs>
-                <Typography variant="h4">Welcome back, {dashboardData.profile?.fullName || 'Worker'}!</Typography>
+                <Typography variant="h4">{t('common.welcomeBack', 'Welcome back')}, {dashboardData.profile?.fullName || 'Worker'}!</Typography>
                 <Typography variant="h6" sx={{ opacity: 0.9 }}>
-                  {dashboardData.profile?.skills?.length ?? 0} skills • {dashboardData.profile?.experience ?? 0} years experience
+                  {dashboardData.profile?.skills?.length ?? 0} {t('form.fields.languages', 'skills')} • {dashboardData.profile?.experience ?? 0} {t('common.yearsExperience', 'years experience')}
                 </Typography>
                 <Box display="flex" gap={2} mt={1}>
                   <Chip
-                    label={`${dashboardData.timeline?.overallProgress ?? 0}% Complete`}
+                    label={`${dashboardData.timeline?.overallProgress ?? 0}% ${t('common.complete', 'Complete')}`}
                     sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
                   />
                   <Chip
-                    label={`Skill Score: ${dashboardData.skills?.skillScore ?? 0}%`}
+                    label={`${t('common.skillScore', 'Skill Score')}: ${dashboardData.skills?.skillScore ?? 0}%`}
                     sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
                   />
                 </Box>
@@ -192,7 +194,7 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
                   startIcon={<Work />}
                   onClick={() => setActiveTab(2)}
                 >
-                  Find Jobs
+                  {t('common.findJobs', 'Find Jobs')}
                 </Button>
               </Grid>
             </Grid>
@@ -207,9 +209,9 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
             <CardContent sx={{ textAlign: 'center' }}>
               <Work color="primary" sx={{ fontSize: 40, mb: 1 }} />
               <Typography variant="h4">{dashboardData.applications?.active ?? 0}</Typography>
-              <Typography variant="body2" color="textSecondary">Active Applications</Typography>
+              <Typography variant="body2" color="textSecondary">{t('common.activeApplications', 'Active Applications')}</Typography>
               <Typography variant="caption" color="success.main">
-                {dashboardData.applications?.approved ?? 0} approved
+                {dashboardData.applications?.approved ?? 0} {t('common.approved', 'approved')}
               </Typography>
             </CardContent>
           </Card>
@@ -220,9 +222,9 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
             <CardContent sx={{ textAlign: 'center' }}>
               <Schedule color="info" sx={{ fontSize: 40, mb: 1 }} />
               <Typography variant="h4">{dashboardData.timeline?.currentStep?.replace('_', ' ') || 'Not Started'}</Typography>
-              <Typography variant="body2" color="textSecondary">Current Stage</Typography>
+              <Typography variant="body2" color="textSecondary">{t('common.currentStage', 'Current Stage')}</Typography>
               <Typography variant="caption" color="textSecondary">
-                {dashboardData.timeline?.overallProgress ?? 0}% complete
+                {dashboardData.timeline?.overallProgress ?? 0}% {t('common.complete', 'complete')}
               </Typography>
             </CardContent>
           </Card>
@@ -233,9 +235,9 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
             <CardContent sx={{ textAlign: 'center' }}>
               <CheckCircle color="success" sx={{ fontSize: 40, mb: 1 }} />
               <Typography variant="h4">{dashboardData.documents?.verified ?? 0}</Typography>
-              <Typography variant="body2" color="textSecondary">Verified Documents</Typography>
+              <Typography variant="body2" color="textSecondary">{t('common.verifiedDocuments', 'Verified Documents')}</Typography>
               <Typography variant="caption" color="warning.main">
-                {dashboardData.documents?.pending ?? 0} pending
+                {dashboardData.documents?.pending ?? 0} {t('common.pending', 'pending')}
               </Typography>
             </CardContent>
           </Card>
@@ -246,9 +248,9 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
             <CardContent sx={{ textAlign: 'center' }}>
               <TrendingUp color="warning" sx={{ fontSize: 40, mb: 1 }} />
               <Typography variant="h4">{dashboardData.skills?.skillScore ?? 0}%</Typography>
-              <Typography variant="body2" color="textSecondary">Skill Score</Typography>
+              <Typography variant="body2" color="textSecondary">{t('common.skillScore', 'Skill Score')}</Typography>
               <Typography variant="caption" color="textSecondary">
-                Market ready
+                {t('common.marketReady', 'Market ready')}
               </Typography>
             </CardContent>
           </Card>
@@ -265,13 +267,13 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
         variant="scrollable"
         scrollButtons="auto"
       >
-        <Tab label="Overview" icon={<Assessment />} />
-        <Tab label="My Applications" icon={<Work />} />
-        <Tab label="Find Jobs" icon={<Work />} />
-        <Tab label="Documents" icon={<GetApp />} />
-        <Tab label="Skills & Learning" icon={<School />} />
-        <Tab label="Safety & Welfare" icon={<VerifiedUser />} />
-        <Tab label="Timeline" icon={<Timeline />} />
+        <Tab label={t('common.overview', 'Overview')} icon={<Assessment />} />
+        <Tab label={t('common.myApplications', 'My Applications')} icon={<Work />} />
+        <Tab label={t('common.findJobs', 'Find Jobs')} icon={<Work />} />
+        <Tab label={t('common.documents', 'Documents')} icon={<GetApp />} />
+        <Tab label={t('common.skillsLearning', 'Skills & Learning')} icon={<School />} />
+        <Tab label={t('common.safetyWelfare', 'Safety & Welfare')} icon={<VerifiedUser />} />
+        <Tab label={t('common.timeline', 'Timeline')} icon={<Timeline />} />
       </Tabs>
 
       {/* Overview Tab */}
@@ -280,7 +282,7 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
           <Grid item xs={12} md={8}>
             <Card>
               <CardContent>
-                <Typography variant="h6" gutterBottom>Application Timeline</Typography>
+                <Typography variant="h6" gutterBottom>{t('common.applicationTimeline', 'Application Timeline')}</Typography>
                 <Stepper activeStep={dashboardData.timeline?.currentStepIndex ?? 0} orientation="vertical">
                   {(dashboardData.timeline?.milestones ?? []).map((milestone, index) => (
                     <Step key={index}>
@@ -305,7 +307,7 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
           <Grid item xs={12} md={4}>
             <Card>
               <CardContent>
-                <Typography variant="h6" gutterBottom>Recent Notifications</Typography>
+                <Typography variant="h6" gutterBottom>{t('common.recentNotifications', 'Recent Notifications')}</Typography>
                 {(dashboardData.notifications ?? []).slice(0, 5).map((notification, index) => (
                   <Box key={index} mb={2}>
                     <Typography variant="subtitle2">{notification.title}</Typography>
@@ -324,20 +326,20 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
       {activeTab === 1 && (
         <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom>My Applications</Typography>
+            <Typography variant="h6" gutterBottom>{t('common.myApplications', 'My Applications')}</Typography>
             {(dashboardData.applications?.applications ?? []).length === 0 ? (
               <Alert severity="info" sx={{ mt: 2 }}>
-                You have not submitted any applications yet. Go to the <strong>Find Jobs</strong> tab to browse and apply.
+                {t('common.youHaveNotSubmitted', 'You have not submitted any applications yet. Go to the')} <strong>{t('common.findJobs', 'Find Jobs')}</strong> {t('common.tabToBrowse', 'tab to browse and apply.')}
               </Alert>
             ) : (
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Job Title</TableCell>
-                    <TableCell>Company</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Progress</TableCell>
-                    <TableCell>Applied Date</TableCell>
+                    <TableCell>{t('common.jobTitle', 'Job Title')}</TableCell>
+                    <TableCell>{t('common.company', 'Company')}</TableCell>
+                    <TableCell>{t('common.status', 'Status')}</TableCell>
+                    <TableCell>{t('common.progress', 'Progress')}</TableCell>
+                    <TableCell>{t('common.appliedDate', 'Applied Date')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -381,10 +383,10 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
         <Box>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
             <Typography variant="h5" gutterBottom>
-              Find Jobs
+              {t('common.findJobs', 'Find Jobs')}
             </Typography>
             <Chip
-              label={`${jobs.length} jobs available`}
+              label={`${jobs.length} ${t('common.jobsAvailable', 'jobs available')}`}
               color="primary"
               variant="outlined"
             />
@@ -395,7 +397,7 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
               <CircularProgress />
             </Box>
           ) : jobs.length === 0 ? (
-            <Alert severity="info">No jobs available at the moment. Please check back later.</Alert>
+            <Alert severity="info">{t('common.noJobsAvailable', 'No jobs available at the moment. Please check back later.')}</Alert>
           ) : (
             <Grid container spacing={3}>
               {jobs.map((job) => (
@@ -515,11 +517,11 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
                               mb: 1,
                             }}
                           >
-                            {applicationStatuses.get(job.id.toString()) === 'submitted' ? 'Application Submitted' :
-                             applicationStatuses.get(job.id.toString()) === 'under_review' ? 'Under Review' :
-                             applicationStatuses.get(job.id.toString()) === 'approved' ? 'Approved' :
-                             applicationStatuses.get(job.id.toString()) === 'rejected' ? 'Rejected' :
-                             'Application Complete'}
+                            {applicationStatuses.get(job.id.toString()) === 'submitted' ? t('common.applicationSubmitted', 'Application Submitted') :
+                             applicationStatuses.get(job.id.toString()) === 'under_review' ? t('common.underReview', 'Under Review') :
+                             applicationStatuses.get(job.id.toString()) === 'approved' ? t('common.approved', 'Approved') :
+                             applicationStatuses.get(job.id.toString()) === 'rejected' ? t('common.rejected', 'Rejected') :
+                             t('common.applicationComplete', 'Application Complete')}
                           </Button>
                           <Typography variant="caption" color="text.secondary" align="center" display="block">
                             Status: {applicationStatuses.get(job.id.toString()) || 'submitted'}
@@ -537,7 +539,7 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
                             fontWeight: 600,
                           }}
                         >
-                          Apply Now
+                          {t('common.applyNow', 'Apply Now')}
                         </Button>
                       )}
                     </Box>
@@ -555,9 +557,9 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
           <Grid item xs={12}>
             <Card>
               <CardContent>
-                <Typography variant="h6" gutterBottom>Document Status</Typography>
+                <Typography variant="h6" gutterBottom>{t('common.documentStatus', 'Document Status')}</Typography>
                 <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-                  Documents uploaded with your applications. Stored and shown here.
+                  {t('common.documents', 'Documents')} uploaded with your applications. Stored and shown here.
                 </Typography>
                 <Grid container spacing={2}>
                   {(dashboardData.documents?.documents ?? []).map((doc, index) => (
@@ -580,7 +582,7 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
                                 startIcon={<CloudUpload />}
                                 onClick={() => window.location.href = '/apply'}
                               >
-                                Upload
+                                {t('common.upload', 'Upload')}
                               </Button>
                             )}
                             {doc.status === 'verified' && (
@@ -626,7 +628,7 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
           <Grid item xs={12} md={4}>
             <Card>
               <CardContent>
-                <Typography variant="h6" gutterBottom>Skill Assessment</Typography>
+                <Typography variant="h6" gutterBottom>{t('common.skillAssessment', 'Skill Assessment')}</Typography>
                 <Box display="flex" justifyContent="center" alignItems="center" flexDirection="column">
                   <CircularProgress
                     variant="determinate"
@@ -638,11 +640,11 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
                     {dashboardData.skills?.skillScore ?? 0}%
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
-                    Market Ready Score
+                    {t('common.marketReadyScore', 'Market Ready Score')}
                   </Typography>
                 </Box>
                 <Box mt={3}>
-                  <Typography variant="subtitle2" gutterBottom>Current Skills</Typography>
+                  <Typography variant="subtitle2" gutterBottom>{t('common.currentSkills', 'Current Skills')}</Typography>
                   {(dashboardData.skills?.currentSkills?.skills ?? []).slice(0, 5).map((skill, index) => (
                     <Chip key={index} label={skill} size="small" sx={{ mr: 1, mb: 1 }} />
                   ))}
@@ -654,14 +656,14 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
           <Grid item xs={12} md={8}>
             <Card>
               <CardContent>
-                <Typography variant="h6" gutterBottom>Recommended Learning</Typography>
+                <Typography variant="h6" gutterBottom>{t('common.recommendedLearning', 'Recommended Learning')}</Typography>
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Course</TableCell>
-                      <TableCell>Provider</TableCell>
-                      <TableCell>Duration</TableCell>
-                      <TableCell>Impact</TableCell>
+                      <TableCell>{t('common.course', 'Course')}</TableCell>
+                      <TableCell>{t('common.provider', 'Provider')}</TableCell>
+                      <TableCell>{t('common.duration', 'Duration')}</TableCell>
+                      <TableCell>{t('common.impact', 'Impact')}</TableCell>
                       <TableCell>Action</TableCell>
                     </TableRow>
                   </TableHead>
@@ -673,7 +675,7 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
                         <TableCell>{course.duration}</TableCell>
                         <TableCell>
                           <Chip
-                            label={`+${course.skillPoints} points`}
+                            label={`+${course.skillPoints} ${t('common.points', 'points')}`}
                             color="primary"
                             size="small"
                           />
@@ -683,7 +685,7 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
                             size="small"
                             variant="outlined"
                           >
-                            Enroll
+                            {t('common.enroll', 'Enroll')}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -707,7 +709,7 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
       {activeTab === 6 && (
         <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom>Application Timeline</Typography>
+            <Typography variant="h6" gutterBottom>{t('common.applicationTimeline', 'Application Timeline')}</Typography>
             <Stepper activeStep={dashboardData.timeline?.currentStepIndex ?? 0} alternativeLabel>
               {(dashboardData.timeline?.milestones ?? []).map((milestone, index) => (
                 <Step key={index}>

@@ -1,0 +1,199 @@
+{
+  "common": {
+    "home": "ਘਰ",
+    "dashboard": "ਡੈਸ਼ਬੋਰਡ",
+    "login": "ਲਾਗਇਨ",
+    "logout": "ਲਾਗਆਉਟ",
+    "language": "ਭਾਸ਼ਾ",
+    "selectLanguage": "ਭਾਸ਼ਾ ਚੁਣੋ",
+    "settings": "ਸੈਟਿੰਗਾਂ",
+    "downloadReport": "ਰਿਪੋਰਟ ਡਾਊਨਲੋਡ ਕਰੋ",
+    "welcomeBack": "ਵਾਪਸੀ 'ਤੇ ਸਵਾਗਤ",
+    "yearsExperience": "ਸਾਲਾਂ ਦਾ ਤਜਰਬਾ",
+    "complete": "ਪੂਰਾ",
+    "skillScore": "ਹੁਨਰ ਸਕੋਰ",
+    "findJobs": "ਨੌਕਰੀਆਂ ਲੱਭੋ",
+    "activeApplications": "ਸਰਗਰਮ ਅਰਜ਼ੀਆਂ",
+    "approved": "ਮਨਜ਼ੂਰ",
+    "currentStage": "ਮੌਜੂਦਾ ਪੜਾਅ",
+    "verifiedDocuments": "ਪੜਤਾਲੇ ਗਏ ਦਸਤਾਵੇਜ਼",
+    "pending": "ਲੰਬਿਤ",
+    "marketReady": "ਬਾਜ਼ਾਰ ਲਈ ਤਿਆਰ",
+    "overview": "ਸੰਖੇਪ ਜਾਣਕਾਰੀ",
+    "myApplications": "ਮੇਰੀਆਂ ਅਰਜ਼ੀਆਂ",
+    "documents": "ਦਸਤਾਵੇਜ਼",
+    "skillsLearning": "ਹੁਨਰ ਅਤੇ ਸਿੱਖਣਾ",
+    "safetyWelfare": "ਸੁਰੱਖਿਆ ਅਤੇ ਕਲਿਆਣ",
+    "timeline": "ਸਮਾਂ-ਰੇਖਾ",
+    "applicationTimeline": "ਅਰਜ਼ੀ ਸਮਾਂ-ਰੇਖਾ",
+    "recentNotifications": "ਹਾਲੀਆ ਸੂਚਨਾਵਾਂ",
+    "jobTitle": "ਨੌਕਰੀ ਦਾ ਸਿਰਲੇਖ",
+    "company": "ਕੰਪਨੀ",
+    "status": "ਸਥਿਤੀ",
+    "progress": "ਤਰੱਕੀ",
+    "appliedDate": "ਅਰਜ਼ੀ ਦੀ ਤਾਰੀਖ",
+    "jobsAvailable": "ਨੌਕਰੀਆਂ ਉਪਲਬਧ",
+    "noJobsAvailable": "ਇਸ ਸਮੇਂ ਕੋਈ ਨੌਕਰੀ ਉਪਲਬਧ ਨਹੀਂ ਹੈ। ਕਿਰਪਾ ਕਰਕੇ ਬਾਅਦ ਵਿੱਚ ਜਾਂਚ ਕਰੋ।",
+    "applyNow": "ਹੁਣੇ ਅਰਜ਼ੀ ਕਰੋ",
+    "applicationSubmitted": "ਅਰਜ਼ੀ ਜਮ੍ਹਾ ਕੀਤੀ ਗਈ",
+    "underReview": "ਸਮੀਖਿਆ ਅਧੀਨ",
+    "rejected": "ਅਸਵੀਕਾਰ",
+    "applicationComplete": "ਅਰਜ਼ੀ ਪੂਰੀ",
+    "documentStatus": "ਦਸਤਾਵੇਜ਼ ਸਥਿਤੀ",
+    "upload": "ਅਪਲੋਡ ਕਰੋ",
+    "viewDocument": "ਦਸਤਾਵੇਜ਼ ਦੇਖੋ",
+    "skillAssessment": "ਹੁਨਰ ਮੁਲਾਂਕਣ",
+    "marketReadyScore": "ਬਾਜ਼ਾਰ ਤਿਆਰ ਸਕੋਰ",
+    "currentSkills": "ਮੌਜੂਦਾ ਹੁਨਰ",
+    "recommendedLearning": "ਸਿਫਾਰਿਸ਼ੀ ਸਿੱਖਣਾ",
+    "course": "ਕੋਰਸ",
+    "provider": "ਪ੍ਰਦਾਤਾ",
+    "duration": "ਮਿਆਦ",
+    "impact": "ਪ੍ਰਭਾਵ",
+    "enroll": "ਦਾਖਲਾ ਲਓ",
+    "points": "ਅੰਕ",
+    "youHaveNotSubmitted": "ਤੁਸੀਂ ਅਜੇ ਤੱਕ ਕੋਈ ਅਰਜ਼ੀ ਜਮ੍ਹਾ ਨਹੀਂ ਕੀਤੀ ਹੈ। ਜਾਓ",
+    "tabToBrowse": "ਟੈਬ 'ਤੇ ਬ੍ਰਾਊਜ਼ ਕਰੋ ਅਤੇ ਅਰਜ਼ੀ ਕਰੋ।",
+    "posted": "ਪੋਸਟ ਕੀਤਾ"
+  },
+  "form": {
+    "sections": {
+      "personal": "ਵਿਅਕਤੀਗਤ ਵਿਵਰਣ",
+      "passport": "ਪਾਸਪੋਰਟ ਵਿਵਰਣ",
+      "job": "ਨੌਕਰੀ ਅਰਜ਼ੀ",
+      "skills": "ਹੁਨਰ ਅਤੇ ਭਾਸ਼ਾ",
+      "health": "ਸਿਹਤ ਅਤੇ ਕਾਨੂੰਨੀ",
+      "documents": "ਦਸਤਾਵੇਜ਼",
+      "declaration": "ਘੋਸ਼ਣਾ"
+    },
+    "personalDetails": {
+      "title": "ਵਿਅਕਤੀਗਤ ਜਾਣਕਾਰੀ"
+    },
+    "passportDetails": {
+      "title": "ਪਾਸਪੋਰਟ ਜਾਣਕਾਰੀ",
+      "mandatory": "ਜ਼ਰੂਰੀ",
+      "warning": "ਅਰਜ਼ੀ ਜਾਰੀ ਰੱਖਣ ਲਈ ਇੱਕ ਵੈਧ ਪਾਸਪੋਰਟ ਲੋੜੀਂਦਾ ਹੈ",
+      "noPassportMessage": "ਇਸ ਪਦ ਲਈ ਅਰਜ਼ੀ ਦੇਣ ਲਈ ਤੁਹਾਡੇ ਕੋਲ ਇੱਕ ਵੈਧ ਪਾਸਪੋਰਟ ਹੋਣਾ ਚਾਹੀਦਾ ਹੈ"
+    },
+    "jobApplication": {
+      "title": "ਨੌਕਰੀ ਅਰਜ਼ੀ ਵਿਵਰਣ",
+      "autoRoute": "ਸਵੈਚਾਲਿਤ ਰੂਟਿੰਗ ਸਮਰੱਥ"
+    },
+    "fields": {
+      "fullName": "ਪੂਰਾ ਨਾਮ",
+      "fullNameHelper": "ਆਪਣਾ ਪੂਰਾ ਨਾਮ ਦਰਜ ਕਰੋ ਜਿਵੇਂ ਕਿ ਤੁਹਾਡੇ ਪਾਸਪੋਰਟ 'ਤੇ ਦਿਖਾਈ ਦਿੰਦਾ ਹੈ",
+      "dateOfBirth": "ਜਨਮ ਮਿਤੀ",
+      "dateOfBirthHelper": "ਆਪਣੀ ਜਨਮ ਮਿਤੀ ਚੁਣੋ",
+      "gender": "ਲਿੰਗ",
+      "maritalStatus": "ਵਿਆਹੁਤਾ ਸਥਿਤੀ",
+      "mobileNumber": "ਮੋਬਾਈਲ ਨੰਬਰ",
+      "mobileNumberHelper": "ਆਪਣਾ 10 ਅੰਕਾਂ ਦਾ ਮੋਬਾਈਲ ਨੰਬਰ ਦਰਜ ਕਰੋ",
+      "email": "ਈਮੇਲ ਪਤਾ",
+      "permanentAddress": "ਸਥਾਈ ਪਤਾ",
+      "permanentAddressHelper": "ਆਪਣਾ ਪੂਰਾ ਸਥਾਈ ਪਤਾ ਦਰਜ ਕਰੋ",
+      "hasPassport": "ਕੀ ਤੁਹਾਡੇ ਕੋਲ ਵੈਧ ਪਾਸਪੋਰਟ ਹੈ?",
+      "passportNumber": "ਪਾਸਪੋਰਟ ਨੰਬਰ",
+      "passportNumberHelper": "ਆਪਣਾ ਪਾਸਪੋਰਟ ਨੰਬਰ ਦਰਜ ਕਰੋ (8-9 ਅੱਖਰ)",
+      "passportIssuePlace": "ਪਾਸਪੋਰਟ ਜਾਰੀ ਕਰਨ ਦੀ ਜਗ੍ਹਾ",
+      "passportIssueDate": "ਪਾਸਪੋਰਟ ਜਾਰੀ ਕਰਨ ਦੀ ਮਿਤੀ",
+      "passportExpiryDate": "ਪਾਸਪੋਰਟ ਮਿਆਦ ਪੁੱਗਣ ਦੀ ਮਿਤੀ",
+      "passportExpiryHelper": "ਪਾਸਪੋਰਟ ਘੱਟੋ-ਘੱਟ 12 ਮਹੀਨਿਆਂ ਲਈ ਵੈਧ ਹੋਣਾ ਚਾਹੀਦਾ ਹੈ",
+      "jobCategory": "ਨੌਕਰੀ ਸ਼੍ਰੇਣੀ",
+      "jobCategoryHelper": "ਉਹ ਸ਼੍ਰੇਣੀ ਚੁਣੋ ਜੋ ਤੁਹਾਡੇ ਹੁਨਰ ਨਾਲ ਸਭ ਤੋਂ ਵਧੀਆ ਮੇਲ ਖਾਂਦੀ ਹੈ",
+      "specificTrade": "ਵਿਸ਼ੇਸ਼ ਵਪਾਰ",
+      "experienceYears": "ਅਨੁਭਵ ਦੇ ਸਾਲ",
+      "workedAbroad": "ਕੀ ਤੁਸੀਂ ਪਹਿਲਾਂ ਵਿਦੇਸ਼ ਵਿੱਚ ਕੰਮ ਕੀਤਾ ਹੈ?",
+      "countriesWorked": "ਜਿਨ੍ਹਾਂ ਦੇਸ਼ਾਂ ਵਿੱਚ ਕੰਮ ਕੀਤਾ",
+      "hasCertificate": "ਕੀ ਤੁਹਾਡੇ ਕੋਲ ਪੇਸ਼ੇਵਰ ਸਰਟੀਫਿਕੇਟ ਹਨ?",
+      "certificateDetails": "ਸਰਟੀਫਿਕੇਟ ਵਿਵਰਣ",
+      "canReadDrawings": "ਕੀ ਤੁਸੀਂ ਤਕਨੀਕੀ ਡਰਾਇੰਗ ਪੜ੍ਹ ਸਕਦੇ ਹੋ?",
+      "languages": "ਬੋਲੀਆਂ ਜਾਣ ਵਾਲੀਆਂ ਭਾਸ਼ਾਵਾਂ",
+      "medicalCondition": "ਕੀ ਤੁਹਾਨੂੰ ਕੋਈ ਡਾਕਟਰੀ ਸਥਿਤੀ ਹੈ?",
+      "medicalDetails": "ਡਾਕਟਰੀ ਸਥਿਤੀ ਵਿਵਰਣ",
+      "criminalCase": "ਕੀ ਤੁਹਾਡੇ ਕੋਲ ਕੋਈ ਲੰਬੇ ਫੜੇ ਫੌਜਦਾਰੀ ਮਾਮਲੇ ਹਨ?",
+      "criminalDetails": "ਫੌਜਦਾਰੀ ਮਾਮਲਾ ਵਿਵਰਣ"
+    },
+    "options": {
+      "yes": "ਹਾਂ",
+      "no": "ਨਹੀਂ",
+      "male": "ਮਰਦ",
+      "female": "ਮਹਿਲਾ",
+      "other": "ਹੋਰ",
+      "single": "ਅਵਿਵਾਹਿਤ",
+      "married": "ਵਿਆਹੁਤਾ",
+      "divorced": "ਤਲਾਕਸ਼ੁਦਾ",
+      "widowed": "ਵਿਧਵਾ",
+      "construction": "ਨਿਰਮਾਣ",
+      "caregiving": "ਦੇਖਭਾਲ",
+      "agriculture": "ਖੇਤੀਬਾੜੀ",
+      "manufacturing": "ਉਤਪਾਦਨ",
+      "hospitality": "ਮਹਿਮਾਨ ਨਵਾਜ਼ੀ",
+      "expertSpecialist": "ਮਾਹਿਰ/ਵਿਸ਼ੇਸ਼ਜ"
+    },
+    "buttons": {
+      "next": "ਅਗਲਾ",
+      "back": "ਵਾਪਸ",
+      "submit": "ਅਰਜ਼ੀ ਜਮ੍ਹਾ ਕਰੋ",
+      "save": "ਡਰਾਫਟ ਸੁਰੱਖਿਅਤ ਕਰੋ",
+      "preview": "ਪੂਰਵ-ਝਲਕ"
+    },
+    "messages": {
+      "submissionSuccess": "ਅਰਜ਼ੀ ਸਫਲਤਾਪੂਰਵਕ ਜਮ੍ਹਾ ਕੀਤੀ ਗਈ!",
+      "submissionError": "ਅਰਜ਼ੀ ਜਮ੍ਹਾ ਕਰਨ ਵਿੱਚ ਅਸਫਲ। ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+      "requiredFields": "ਕਿਰਪਾ ਕਰਕੇ ਸਾਰੇ ਲੋੜੀਂਦੇ ਖੇਤਰ ਭਰੋ",
+      "signatureRequired": "ਡਿਜੀਟਲ ਹਸਤਾਖਰ ਲੋੜੀਂਦਾ ਹੈ"
+    }
+  },
+  "validation": {
+    "required": "ਇਹ ਖੇਤਰ ਲੋੜੀਂਦਾ ਹੈ",
+    "invalidPhone": "ਕਿਰਪਾ ਕਰਕੇ ਇੱਕ ਵੈਧ ਫੋਨ ਨੰਬਰ ਦਰਜ ਕਰੋ (10-13 ਅੰਕ)",
+    "invalidEmail": "ਕਿਰਪਾ ਕਰਕੇ ਇੱਕ ਵੈਧ ਈਮੇਲ ਪਤਾ ਦਰਜ ਕਰੋ",
+    "invalidPassport": "ਕਿਰਪਾ ਕਰਕੇ ਇੱਕ ਵੈਧ ਪਾਸਪੋਰਟ ਨੰਬਰ ਦਰਜ ਕਰੋ"
+  },
+  "merf": {
+    "sections": {
+      "basic": "ਮੂਲ ਜਾਣਕਾਰੀ",
+      "jobDetails": "ਨੌਕਰੀ ਵਿਵਰਣ",
+      "location": "ਕੰਮ ਦੀ ਜਗ੍ਹਾ",
+      "benefits": "ਲਾਭ ਅਤੇ ਸ਼ਰਤਾਂ",
+      "review": "ਸਮੀਖਿਆ ਅਤੇ ਜਮ੍ਹਾ ਕਰੋ"
+    },
+    "basicInfo": {
+      "title": "ਮੂਲ ਜਾਣਕਾਰੀ"
+    },
+    "jobDetails": {
+      "title": "ਨੌਕਰੀ ਵਿਵਰਣ"
+    },
+    "location": {
+      "title": "ਕੰਮ ਦੀ ਜਗ੍ਹਾ"
+    },
+    "benefits": {
+      "title": "ਲਾਭ ਅਤੇ ਸ਼ਰਤਾਂ"
+    },
+    "review": {
+      "title": "ਸਮੀਖਿਆ ਅਤੇ ਜਮ੍ਹਾ ਕਰੋ"
+    },
+    "fields": {
+      "title": "ਸਿਰਲੇਖ (ਅੰਗਰੇਜ਼ੀ)",
+      "titleHe": "ਸਿਰਲੇਖ (ਹਿਬਰੂ)",
+      "description": "ਵਰਣਨ (ਅੰਗਰੇਜ਼ੀ)",
+      "descriptionHe": "ਵਰਣਨ (ਹਿਬਰੂ)",
+      "jobCategory": "ਨੌਕਰੀ ਸ਼੍ਰੇਣੀ",
+      "specificTrade": "ਵਿਸ਼ੇਸ਼ ਵਪਾਰ",
+      "numberOfWorkers": "ਕਾਮਿਆਂ ਦੀ ਸੰਖਿਆ",
+      "experienceRequired": "ਲੋੜੀਂਦਾ ਅਨੁਭਵ",
+      "qualifications": "ਲੋੜੀਂਦੀਆਂ ਯੋਗਤਾਵਾਂ",
+      "languagesRequired": "ਲੋੜੀਂਦੀਆਂ ਭਾਸ਼ਾਵਾਂ",
+      "salaryRange": "ਤਨਖਾਹ ਸੀਮਾ (ILS)",
+      "contractDuration": "ਇਕਰਾਰਨਾਮਾ ਮਿਆਦ",
+      "startDate": "ਅਪੇਖਿਤ ਸ਼ੁਰੂਆਤ ਮਿਤੀ",
+      "workLocation": "ਕੰਮ ਦੀ ਜਗ੍ਹਾ (ਅੰਗਰੇਜ਼ੀ)",
+      "workLocationHe": "ਕੰਮ ਦੀ ਜਗ੍ਹਾ (ਹਿਬਰੂ)",
+      "accommodationProvided": "ਰਿਹਾਇਸ਼ ਪ੍ਰਦਾਨ ਕੀਤੀ ਗਈ",
+      "accommodationDetails": "ਰਿਹਾਇਸ਼ ਵਿਵਰਣ",
+      "transportationProvided": "ਆਵਾਜਾਈ ਪ੍ਰਦਾਨ ਕੀਤੀ ਗਈ",
+      "otherBenefits": "ਹੋਰ ਲਾਭ (ਅੰਗਰੇਜ਼ੀ)",
+      "otherBenefitsHe": "ਹੋਰ ਲਾਭ (ਹਿਬਰੂ)"
+    }
+  }
+}

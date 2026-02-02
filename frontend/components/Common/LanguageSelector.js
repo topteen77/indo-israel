@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   FormControl,
   Select,
@@ -13,30 +13,69 @@ import { useTranslation } from 'react-i18next';
 
 const LanguageSelector = ({ variant = 'outlined', size = 'medium' }) => {
   const { i18n } = useTranslation();
+  const [mounted, setMounted] = useState(false);
+  const [currentLanguage, setCurrentLanguage] = useState('en');
 
   const languages = [
-    { code: 'en', label: 'English', flag: '🇬🇧' },
-    { code: 'he', label: 'עברית', flag: '🇮🇱' },
+    { code: 'en', label: 'English', flag: '🇬🇧', nativeLabel: 'English' },
+    { code: 'he', label: 'עברית', flag: '🇮🇱', nativeLabel: 'עברית' },
+    { code: 'hi', label: 'हिन्दी', flag: '🇮🇳', nativeLabel: 'हिन्दी' },
+    { code: 'pa', label: 'ਪੰਜਾਬੀ', flag: '🇮🇳', nativeLabel: 'ਪੰਜਾਬੀ' },
   ];
+
+  useEffect(() => {
+    setMounted(true);
+    // Get the current language from i18n (which should match localStorage)
+    const lang = i18n.language || 'en';
+    setCurrentLanguage(lang);
+  }, [i18n.language]);
 
   const handleLanguageChange = (event) => {
     const newLang = event.target.value;
-    i18n.changeLanguage(newLang);
     
-    // Update document direction for Hebrew (RTL)
-    if (newLang === 'he') {
-      document.documentElement.dir = 'rtl';
-    } else {
-      document.documentElement.dir = 'ltr';
-    }
+    // Save language preference to localStorage first
+    localStorage.setItem('preferredLanguage', newLang);
+    
+    // Change language
+    i18n.changeLanguage(newLang).then(() => {
+      // Update document direction for RTL languages (Hebrew)
+      if (newLang === 'he') {
+        document.documentElement.dir = 'rtl';
+      } else {
+        document.documentElement.dir = 'ltr';
+      }
+      
+      // Reload page to apply language change to all components
+      // This ensures components that don't use useTranslation hook also update
+      window.location.reload();
+    });
   };
+
+  // Prevent hydration mismatch by using consistent default on server and client
+  if (!mounted) {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Language color="action" />
+        <FormControl variant={variant} size={size} sx={{ minWidth: 120 }}>
+          <Select value="en" displayEmpty disabled>
+            <MenuItem value="en">
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <span>🇬🇧</span>
+                <Typography>English</Typography>
+              </Box>
+            </MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
       <Language color="action" />
       <FormControl variant={variant} size={size} sx={{ minWidth: 120 }}>
         <Select
-          value={i18n.language || 'en'}
+          value={currentLanguage}
           onChange={handleLanguageChange}
           displayEmpty
         >

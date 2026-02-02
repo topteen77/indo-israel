@@ -1,0 +1,199 @@
+{
+  "common": {
+    "home": "होम",
+    "dashboard": "डैशबोर्ड",
+    "login": "लॉगिन",
+    "logout": "लॉगआउट",
+    "language": "भाषा",
+    "selectLanguage": "भाषा चुनें",
+    "settings": "सेटिंग्स",
+    "downloadReport": "रिपोर्ट डाउनलोड करें",
+    "welcomeBack": "वापसी पर स्वागत है",
+    "yearsExperience": "वर्षों का अनुभव",
+    "complete": "पूर्ण",
+    "skillScore": "कौशल स्कोर",
+    "findJobs": "नौकरियां खोजें",
+    "activeApplications": "सक्रिय आवेदन",
+    "approved": "अनुमोदित",
+    "currentStage": "वर्तमान चरण",
+    "verifiedDocuments": "सत्यापित दस्तावेज़",
+    "pending": "लंबित",
+    "marketReady": "बाजार के लिए तैयार",
+    "overview": "अवलोकन",
+    "myApplications": "मेरे आवेदन",
+    "documents": "दस्तावेज़",
+    "skillsLearning": "कौशल और सीखना",
+    "safetyWelfare": "सुरक्षा और कल्याण",
+    "timeline": "समयरेखा",
+    "applicationTimeline": "आवेदन समयरेखा",
+    "recentNotifications": "हाल की सूचनाएं",
+    "jobTitle": "नौकरी का शीर्षक",
+    "company": "कंपनी",
+    "status": "स्थिति",
+    "progress": "प्रगति",
+    "appliedDate": "आवेदन की तारीख",
+    "jobsAvailable": "नौकरियां उपलब्ध",
+    "noJobsAvailable": "इस समय कोई नौकरी उपलब्ध नहीं है। कृपया बाद में जांचें।",
+    "applyNow": "अभी आवेदन करें",
+    "applicationSubmitted": "आवेदन जमा किया गया",
+    "underReview": "समीक्षा के अधीन",
+    "rejected": "अस्वीकृत",
+    "applicationComplete": "आवेदन पूर्ण",
+    "documentStatus": "दस्तावेज़ स्थिति",
+    "upload": "अपलोड करें",
+    "viewDocument": "दस्तावेज़ देखें",
+    "skillAssessment": "कौशल मूल्यांकन",
+    "marketReadyScore": "बाजार तैयार स्कोर",
+    "currentSkills": "वर्तमान कौशल",
+    "recommendedLearning": "अनुशंसित सीखना",
+    "course": "कोर्स",
+    "provider": "प्रदाता",
+    "duration": "अवधि",
+    "impact": "प्रभाव",
+    "enroll": "नामांकन करें",
+    "points": "अंक",
+    "youHaveNotSubmitted": "आपने अभी तक कोई आवेदन जमा नहीं किया है। जाने के लिए",
+    "tabToBrowse": "टैब पर ब्राउज़ करें और आवेदन करें।",
+    "posted": "पोस्ट किया गया"
+  },
+  "form": {
+    "sections": {
+      "personal": "व्यक्तिगत विवरण",
+      "passport": "पासपोर्ट विवरण",
+      "job": "नौकरी आवेदन",
+      "skills": "कौशल और भाषा",
+      "health": "स्वास्थ्य और कानूनी",
+      "documents": "दस्तावेज़",
+      "declaration": "घोषणा"
+    },
+    "personalDetails": {
+      "title": "व्यक्तिगत जानकारी"
+    },
+    "passportDetails": {
+      "title": "पासपोर्ट जानकारी",
+      "mandatory": "अनिवार्य",
+      "warning": "आवेदन जारी रखने के लिए एक वैध पासपोर्ट आवश्यक है",
+      "noPassportMessage": "इस पद के लिए आवेदन करने के लिए आपके पास एक वैध पासपोर्ट होना चाहिए"
+    },
+    "jobApplication": {
+      "title": "नौकरी आवेदन विवरण",
+      "autoRoute": "स्वचालित रूटिंग सक्षम"
+    },
+    "fields": {
+      "fullName": "पूरा नाम",
+      "fullNameHelper": "अपना पूरा नाम दर्ज करें जैसा कि आपके पासपोर्ट पर दिखाई देता है",
+      "dateOfBirth": "जन्म तिथि",
+      "dateOfBirthHelper": "अपनी जन्म तिथि चुनें",
+      "gender": "लिंग",
+      "maritalStatus": "वैवाहिक स्थिति",
+      "mobileNumber": "मोबाइल नंबर",
+      "mobileNumberHelper": "अपना 10 अंकों का मोबाइल नंबर दर्ज करें",
+      "email": "ईमेल पता",
+      "permanentAddress": "स्थायी पता",
+      "permanentAddressHelper": "अपना पूरा स्थायी पता दर्ज करें",
+      "hasPassport": "क्या आपके पास वैध पासपोर्ट है?",
+      "passportNumber": "पासपोर्ट नंबर",
+      "passportNumberHelper": "अपना पासपोर्ट नंबर दर्ज करें (8-9 अक्षर)",
+      "passportIssuePlace": "पासपोर्ट जारी करने का स्थान",
+      "passportIssueDate": "पासपोर्ट जारी करने की तिथि",
+      "passportExpiryDate": "पासपोर्ट समाप्ति तिथि",
+      "passportExpiryHelper": "पासपोर्ट कम से कम 12 महीने के लिए वैध होना चाहिए",
+      "jobCategory": "नौकरी श्रेणी",
+      "jobCategoryHelper": "वह श्रेणी चुनें जो आपके कौशल से सबसे अच्छी तरह मेल खाती है",
+      "specificTrade": "विशिष्ट व्यापार",
+      "experienceYears": "अनुभव के वर्ष",
+      "workedAbroad": "क्या आपने पहले विदेश में काम किया है?",
+      "countriesWorked": "जिन देशों में काम किया",
+      "hasCertificate": "क्या आपके पास पेशेवर प्रमाणपत्र हैं?",
+      "certificateDetails": "प्रमाणपत्र विवरण",
+      "canReadDrawings": "क्या आप तकनीकी चित्र पढ़ सकते हैं?",
+      "languages": "बोली जाने वाली भाषाएं",
+      "medicalCondition": "क्या आपको कोई चिकित्सा स्थिति है?",
+      "medicalDetails": "चिकित्सा स्थिति विवरण",
+      "criminalCase": "क्या आपके पास कोई लंबित आपराधिक मामले हैं?",
+      "criminalDetails": "आपराधिक मामले विवरण"
+    },
+    "options": {
+      "yes": "हाँ",
+      "no": "नहीं",
+      "male": "पुरुष",
+      "female": "महिला",
+      "other": "अन्य",
+      "single": "अविवाहित",
+      "married": "विवाहित",
+      "divorced": "तलाकशुदा",
+      "widowed": "विधवा",
+      "construction": "निर्माण",
+      "caregiving": "देखभाल",
+      "agriculture": "कृषि",
+      "manufacturing": "विनिर्माण",
+      "hospitality": "आतिथ्य",
+      "expertSpecialist": "विशेषज्ञ/विशेषज्ञ"
+    },
+    "buttons": {
+      "next": "अगला",
+      "back": "वापस",
+      "submit": "आवेदन जमा करें",
+      "save": "ड्राफ्ट सहेजें",
+      "preview": "पूर्वावलोकन"
+    },
+    "messages": {
+      "submissionSuccess": "आवेदन सफलतापूर्वक जमा किया गया!",
+      "submissionError": "आवेदन जमा करने में विफल। कृपया पुनः प्रयास करें।",
+      "requiredFields": "कृपया सभी आवश्यक फ़ील्ड भरें",
+      "signatureRequired": "डिजिटल हस्ताक्षर आवश्यक है"
+    }
+  },
+  "validation": {
+    "required": "यह फ़ील्ड आवश्यक है",
+    "invalidPhone": "कृपया एक वैध फ़ोन नंबर दर्ज करें (10-13 अंक)",
+    "invalidEmail": "कृपया एक वैध ईमेल पता दर्ज करें",
+    "invalidPassport": "कृपया एक वैध पासपोर्ट नंबर दर्ज करें"
+  },
+  "merf": {
+    "sections": {
+      "basic": "मूल जानकारी",
+      "jobDetails": "नौकरी विवरण",
+      "location": "काम का स्थान",
+      "benefits": "लाभ और शर्तें",
+      "review": "समीक्षा और जमा करें"
+    },
+    "basicInfo": {
+      "title": "मूल जानकारी"
+    },
+    "jobDetails": {
+      "title": "नौकरी विवरण"
+    },
+    "location": {
+      "title": "काम का स्थान"
+    },
+    "benefits": {
+      "title": "लाभ और शर्तें"
+    },
+    "review": {
+      "title": "समीक्षा और जमा करें"
+    },
+    "fields": {
+      "title": "शीर्षक (अंग्रेजी)",
+      "titleHe": "शीर्षक (हिब्रू)",
+      "description": "विवरण (अंग्रेजी)",
+      "descriptionHe": "विवरण (हिब्रू)",
+      "jobCategory": "नौकरी श्रेणी",
+      "specificTrade": "विशिष्ट व्यापार",
+      "numberOfWorkers": "श्रमिकों की संख्या",
+      "experienceRequired": "आवश्यक अनुभव",
+      "qualifications": "आवश्यक योग्यता",
+      "languagesRequired": "आवश्यक भाषाएं",
+      "salaryRange": "वेतन सीमा (ILS)",
+      "contractDuration": "अनुबंध अवधि",
+      "startDate": "अपेक्षित प्रारंभ तिथि",
+      "workLocation": "काम का स्थान (अंग्रेजी)",
+      "workLocationHe": "काम का स्थान (हिब्रू)",
+      "accommodationProvided": "आवास प्रदान किया गया",
+      "accommodationDetails": "आवास विवरण",
+      "transportationProvided": "परिवहन प्रदान किया गया",
+      "otherBenefits": "अन्य लाभ (अंग्रेजी)",
+      "otherBenefitsHe": "अन्य लाभ (हिब्रू)"
+    }
+  }
+}

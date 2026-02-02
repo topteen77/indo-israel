@@ -16,18 +16,32 @@ import {
   Login,
 } from '@mui/icons-material';
 import IndiaIsraelRecruitmentChatbot from '../Chatbot/IndiaIsraelRecruitmentChatbot';
+import LanguageSelector from '../Common/LanguageSelector';
 import api from '../../utils/api';
+import { useTranslation } from 'react-i18next';
 
 const MainLayout = ({ children }) => {
   const router = useRouter();
+  const { t, i18n } = useTranslation();
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const [user, setUser] = useState({});
   const [mounted, setMounted] = useState(false);
+  const [languageReady, setLanguageReady] = useState(false);
 
   // Load user from localStorage, then sync from API when token exists (dynamic DB data)
   useEffect(() => {
     setMounted(true);
     if (typeof window === 'undefined') return;
+    
+    // Wait for i18n to be ready
+    if (i18n.isInitialized) {
+      setLanguageReady(true);
+    } else {
+      i18n.on('initialized', () => {
+        setLanguageReady(true);
+      });
+    }
+    
     const token = localStorage.getItem('token');
     try {
       const localUser = JSON.parse(localStorage.getItem('user') || '{}');
@@ -49,7 +63,7 @@ const MainLayout = ({ children }) => {
       console.error('Error loading user:', e);
       setUser({});
     }
-  }, []);
+  }, [i18n]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -72,12 +86,13 @@ const MainLayout = ({ children }) => {
             Apravas Recruitment Platform
           </Typography>
           <Box display="flex" gap={1} alignItems="center">
+            <LanguageSelector variant="standard" size="small" />
             <Button
               color="inherit"
               startIcon={<Home />}
               onClick={() => router.push('/')}
             >
-              Home
+              {languageReady ? t('common.home', 'Home') : 'Home'}
             </Button>
             {mounted && (user?.id || localStorage.getItem('token')) ? (
               <>
@@ -89,14 +104,14 @@ const MainLayout = ({ children }) => {
                   startIcon={<Dashboard />}
                   onClick={() => router.push(getDashboardPath())}
                 >
-                  Dashboard
+                  {languageReady ? t('common.dashboard', 'Dashboard') : 'Dashboard'}
                 </Button>
                 <Button
                   color="inherit"
                   startIcon={<Logout />}
                   onClick={handleLogout}
                 >
-                  Logout
+                  {languageReady ? t('common.logout', 'Logout') : 'Logout'}
                 </Button>
               </>
             ) : (
@@ -105,7 +120,7 @@ const MainLayout = ({ children }) => {
                 startIcon={<Login />}
                 onClick={() => router.push('/login')}
               >
-                Login
+                {languageReady ? t('common.login', 'Login') : 'Login'}
               </Button>
             )}
           </Box>
