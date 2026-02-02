@@ -531,13 +531,68 @@ router.get('/admin/all-workers', (req, res) => {
 });
 
 // Admin: Get emergency alerts
-router.get('/admin/emergencies', (req, res) => {
-  const { status = 'all' } = req.query;
-  const data = generateSafetyData(null, true);
-  res.json({
-    success: true,
-    data: data.emergencyAlerts
-  });
+router.get('/admin/emergencies', async (req, res) => {
+  try {
+    const { status = 'all' } = req.query;
+    const data = generateSafetyData(null, true);
+    
+    // Get real emergency alerts from database for all workers
+    const allWorkers = data.allWorkersStatus || [];
+    const realEmergencies = [];
+    
+    for (const worker of allWorkers) {
+      const dbHistory = enhancedLocationService.getLocationHistory(worker.id, {
+        limit: 50,
+      });
+      
+      const workerEmergencies = dbHistory
+        .filter(item => item.eventType === 'emergency')
+        .map(item => {
+          const metadata = item.metadata || {};
+          const location = enhancedLocationService.getCurrentLocation(worker.id);
+          
+          return {
+            id: item.id,
+            workerId: worker.id,
+            workerName: worker.name,
+            type: 'emergency',
+            message: metadata.message || 'Emergency assistance needed',
+            timestamp: item.timestamp,
+            location: location ? {
+              address: location.address || 'Location unknown',
+              city: location.city || '',
+              country: location.country || 'Israel'
+            } : {
+              address: 'Location unknown',
+              city: '',
+              country: 'Israel'
+            },
+            status: 'active'
+          };
+        });
+      
+      realEmergencies.push(...workerEmergencies);
+    }
+    
+    // Combine mock and real emergencies, prioritizing real ones
+    const allEmergencies = [...realEmergencies, ...data.emergencyAlerts]
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    res.json({
+      success: true,
+      data: allEmergencies
+    });
+  } catch (error) {
+    console.error('Error fetching emergencies:', error);
+    // Fallback to mock data
+    const data = generateSafetyData(null, true);
+    const sortedEmergencies = [...(data.emergencyAlerts || [])]
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    res.json({
+      success: true,
+      data: sortedEmergencies
+    });
+  }
 });
 
 // Family: Get worker safety status (Enhanced with location sharing)

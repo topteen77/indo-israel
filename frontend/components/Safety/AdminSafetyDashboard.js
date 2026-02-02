@@ -140,7 +140,9 @@ const AdminSafetyDashboard = () => {
               Active Emergency Alerts
             </Typography>
             <List>
-              {emergencies.map((alert) => (
+              {[...emergencies]
+                .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                .map((alert) => (
                 <ListItem key={alert.id}>
                   <ListItemIcon>
                     <Avatar sx={{ bgcolor: 'error.main' }}>

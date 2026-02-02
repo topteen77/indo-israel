@@ -252,7 +252,10 @@ const WorkerSafetyDashboard = ({ workerId = '1' }) => {
           </Box>
           <List>
             {checkIns && Array.isArray(checkIns) && checkIns.length > 0 ? (
-              checkIns.slice(0, 10).map((checkIn, index) => {
+              [...checkIns]
+                .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                .slice(0, 10)
+                .map((checkIn, index) => {
                 const isEmergency = checkIn.type === 'emergency' || checkIn.status === 'emergency';
                 const isWarning = checkIn.status === 'warning' && !isEmergency;
                 const isSafe = checkIn.status === 'safe';
