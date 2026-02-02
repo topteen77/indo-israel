@@ -55,14 +55,30 @@ const LanguageSelector = ({ variant = 'outlined', size = 'medium' }) => {
   if (!mounted) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Language color="action" />
+        <Language sx={{ color: 'white' }} />
         <FormControl variant={variant} size={size} sx={{ minWidth: 120 }}>
-          <Select value="en" displayEmpty disabled>
+          <Select 
+            value="en" 
+            displayEmpty 
+            disabled
+            sx={{
+              color: 'white',
+              '& .MuiSelect-icon': {
+                color: 'white',
+              },
+              '&::before': {
+                borderColor: 'rgba(255, 255, 255, 0.42)',
+              },
+              '&::after': {
+                borderColor: 'white',
+              },
+              '&:hover:not(.Mui-disabled)::before': {
+                borderColor: 'rgba(255, 255, 255, 0.87)',
+              },
+            }}
+          >
             <MenuItem value="en">
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <span>🇬🇧</span>
-                <Typography>English</Typography>
-              </Box>
+              <Typography sx={{ color: 'black' }}>English</Typography>
             </MenuItem>
           </Select>
         </FormControl>
@@ -72,19 +88,44 @@ const LanguageSelector = ({ variant = 'outlined', size = 'medium' }) => {
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-      <Language color="action" />
+      <Language sx={{ color: 'white' }} />
       <FormControl variant={variant} size={size} sx={{ minWidth: 120 }}>
         <Select
           value={currentLanguage}
           onChange={handleLanguageChange}
           displayEmpty
+          MenuProps={{
+            PaperProps: {
+              sx: {
+                bgcolor: 'white',
+                '& .MuiMenuItem-root': {
+                  color: 'black',
+                  '&:hover': {
+                    bgcolor: 'rgba(0, 0, 0, 0.04)',
+                  },
+                },
+              },
+            },
+          }}
+          sx={{
+            color: 'white',
+            '& .MuiSelect-icon': {
+              color: 'white',
+            },
+            '&::before': {
+              borderColor: 'rgba(255, 255, 255, 0.42)',
+            },
+            '&::after': {
+              borderColor: 'white',
+            },
+            '&:hover:not(.Mui-disabled)::before': {
+              borderColor: 'rgba(255, 255, 255, 0.87)',
+            },
+          }}
         >
           {languages.map((lang) => (
             <MenuItem key={lang.code} value={lang.code}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <span>{lang.flag}</span>
-                <Typography>{lang.label}</Typography>
-              </Box>
+              <Typography sx={{ color: 'black' }}>{lang.label}</Typography>
             </MenuItem>
           ))}
         </Select>

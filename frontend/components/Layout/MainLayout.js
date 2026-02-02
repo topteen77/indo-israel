@@ -85,8 +85,10 @@ const MainLayout = ({ children }) => {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Apravas Recruitment Platform
           </Typography>
-          <Box display="flex" gap={1} alignItems="center">
+          <Box display="flex" gap={1} alignItems="center" sx={{ flexGrow: 1, justifyContent: 'center' }}>
             <LanguageSelector variant="standard" size="small" />
+          </Box>
+          <Box display="flex" gap={1} alignItems="center">
             <Button
               color="inherit"
               startIcon={<Home />}
@@ -96,7 +98,7 @@ const MainLayout = ({ children }) => {
             </Button>
             {mounted && (user?.id || localStorage.getItem('token')) ? (
               <>
-                <Typography variant="body2" sx={{ mr: 1 }}>
+                <Typography variant="body2" sx={{ mr: 1, color: 'white' }}>
                   {user?.name || user?.fullName || 'User'}
                 </Typography>
                 <Button
