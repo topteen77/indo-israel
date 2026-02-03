@@ -51,6 +51,23 @@ const IsraeliEmployerDashboard = () => {
   useEffect(() => {
     fetchDashboardData();
     const interval = setInterval(fetchDashboardData, 120000); // 2 min refresh
+    
+    // Check if we should open the post job dialog (from homepage)
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const shouldOpenPostJob = urlParams.get('openPostJob') === 'true' || 
+                                sessionStorage.getItem('openPostJob') === 'true';
+      
+      if (shouldOpenPostJob) {
+        setPostJobDialogOpen(true);
+        // Clear the flag
+        sessionStorage.removeItem('openPostJob');
+        // Clean up URL
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
+    }
+    
     return () => clearInterval(interval);
   }, []);
 

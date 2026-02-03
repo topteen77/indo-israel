@@ -106,10 +106,18 @@ export default function Home() {
         localStorage.setItem('user', JSON.stringify(data.user));
         setUser(data.user);
 
+        // Check if we need to open post job dialog (from homepage button)
+        const shouldOpenPostJob = typeof window !== 'undefined' && 
+          sessionStorage.getItem('openPostJob') === 'true';
+        
         if (data.user.role === 'admin') {
           router.push('/dashboard/admin');
         } else if (data.user.role === 'employer') {
-          router.push('/dashboard/employer');
+          if (shouldOpenPostJob) {
+            router.push('/dashboard/employer?openPostJob=true');
+          } else {
+            router.push('/dashboard/employer');
+          }
         } else if (data.user.role === 'worker') {
           router.push('/dashboard/worker');
         }
@@ -908,7 +916,21 @@ export default function Home() {
                     <Button
                       variant="contained"
                       endIcon={<ArrowForward />}
-                      onClick={() => quickLogin('employer')}
+                      onClick={async () => {
+                        // Check if user is already logged in as employer
+                        const token = localStorage.getItem('token');
+                        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+                        
+                        if (token && storedUser.role === 'employer') {
+                          // Already logged in as employer, navigate directly
+                          router.push('/dashboard/employer?openPostJob=true');
+                        } else {
+                          // Set flag to open post job dialog after login
+                          sessionStorage.setItem('openPostJob', 'true');
+                          // Login as employer
+                          await quickLogin('employer');
+                        }
+                      }}
                       sx={{
                         bgcolor: '#2e7d32',
                         color: 'white',
