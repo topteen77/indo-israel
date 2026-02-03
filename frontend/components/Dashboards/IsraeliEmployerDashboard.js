@@ -231,6 +231,19 @@ const IsraeliEmployerDashboard = () => {
           </Button>
           <Button
             variant="contained"
+            startIcon={<AutoAwesome />}
+            onClick={() => setAiGeneratorOpen(true)}
+            sx={{
+              bgcolor: '#9c27b0',
+              '&:hover': {
+                bgcolor: '#7b1fa2',
+              },
+            }}
+          >
+            AI Job Generator
+          </Button>
+          <Button
+            variant="contained"
             startIcon={<Add />}
             onClick={() => setPostJobDialogOpen(true)}
             sx={{
@@ -815,6 +828,74 @@ const IsraeliEmployerDashboard = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* AI Job Generator Dialog */}
+      <Dialog
+        open={aiGeneratorOpen}
+        onClose={() => setAiGeneratorOpen(false)}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            maxHeight: '90vh',
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          pb: 2,
+          borderBottom: '1px solid #E0E0E0',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <AutoAwesome />
+            <Typography variant="h5" sx={{ fontWeight: 700 }}>
+              AI Job Post Generator
+            </Typography>
+          </Box>
+          <IconButton 
+            onClick={() => setAiGeneratorOpen(false)} 
+            size="small"
+            sx={{ color: 'white' }}
+          >
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3, bgcolor: '#f5f5f5' }}>
+          <AIJobGenerator
+            onGenerated={(jobData) => {
+              // Populate the job form with generated data
+              setJobForm({
+                title: jobData.title || '',
+                company: jobData.company || dashboardData?.profile?.companyName || '',
+                location: jobData.location || '',
+                salary: jobData.salary || '',
+                experience: jobData.experience || '',
+                type: jobData.type || 'Full-time',
+                description: jobData.description || '',
+                requirements: Array.isArray(jobData.requirements) 
+                  ? jobData.requirements.join(', ') 
+                  : (jobData.requirements || ''),
+                category: jobData.category || '',
+                openings: jobData.openings || 1,
+              });
+              // Close AI generator and open the post job dialog
+              setAiGeneratorOpen(false);
+              setPostJobDialogOpen(true);
+              setSnackbar({
+                open: true,
+                message: 'Job generated successfully! Please review and submit.',
+                severity: 'success'
+              });
+            }}
+            onClose={() => setAiGeneratorOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };
