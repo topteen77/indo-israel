@@ -21,6 +21,13 @@ import {
   Grow,
   IconButton,
   InputAdornment,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Snackbar,
+  Alert,
+  CircularProgress,
 } from '@mui/material';
 import {
   Work,
@@ -48,6 +55,8 @@ import {
   Flight,
   Home as HomeIcon,
   ArrowUpward,
+  Close,
+  Send,
 } from '@mui/icons-material';
 import IndiaIsraelRecruitmentChatbot from '../components/Chatbot/IndiaIsraelRecruitmentChatbot';
 import { API_BASE_URL } from '../utils/api';
@@ -60,6 +69,17 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [user, setUser] = useState(null);
   const [mounted, setMounted] = useState(false);
+  const [enquiryDialogOpen, setEnquiryDialogOpen] = useState(false);
+  const [enquiryForm, setEnquiryForm] = useState({
+    fullName: '',
+    email: '',
+    country: 'India',
+    countryCode: '+91',
+    phone: '',
+    city: '',
+    query: '',
+  });
+  const [enquirySnackbar, setEnquirySnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
     setMounted(true);
@@ -1292,20 +1312,15 @@ export default function Home() {
             >
               Have questions? We&apos;re here to help! Reach out to our team for support, partnerships, or general inquiries.
             </Typography>
-            <Stack 
-              direction={{ xs: 'column', sm: 'row' }} 
-              spacing={3} 
-              justifyContent="center" 
-              alignItems="center"
-              sx={{ mt: 4 }}
-            >
+            <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
               <Button
                 variant="contained"
-                startIcon={<PhoneAndroid />}
+                startIcon={<Send />}
+                onClick={() => setEnquiryDialogOpen(true)}
                 sx={{
                   background: 'linear-gradient(135deg, #7B0FF5 0%, #9D4EDD 100%)',
                   color: 'white',
-                  px: 5,
+                  px: 6,
                   py: 2,
                   borderRadius: '12px',
                   fontSize: '1rem',
@@ -1320,33 +1335,9 @@ export default function Home() {
                   },
                 }}
               >
-                Call Us
+                Enquiry Now
               </Button>
-              <Button
-                variant="outlined"
-                startIcon={<Download />}
-                sx={{
-                  borderColor: '#7B0FF5',
-                  color: '#7B0FF5',
-                  borderWidth: 2,
-                  px: 5,
-                  py: 2,
-                  borderRadius: '12px',
-                  fontSize: '1rem',
-                  fontWeight: 700,
-                  textTransform: 'none',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    borderWidth: 2,
-                    bgcolor: 'rgba(123, 15, 245, 0.1)',
-                    transform: 'translateY(-4px)',
-                    boxShadow: '0 8px 24px rgba(123, 15, 245, 0.3)',
-                  },
-                }}
-              >
-                Download App
-              </Button>
-            </Stack>
+            </Box>
           </Box>
         </Box>
       </Container>
@@ -1425,6 +1416,242 @@ export default function Home() {
           </Typography>
         </Container>
       </Box>
+
+      {/* Enquiry Form Dialog */}
+      <Dialog
+        open={enquiryDialogOpen}
+        onClose={() => setEnquiryDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          pb: 2,
+          borderBottom: '1px solid #E0E0E0',
+        }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: '#1A1A1A' }}>
+            Fill your Information
+          </Typography>
+          <IconButton 
+            onClick={() => setEnquiryDialogOpen(false)} 
+            size="small"
+            sx={{ color: '#666' }}
+          >
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <TextField
+              fullWidth
+              label="Full Name"
+              required
+              value={enquiryForm.fullName}
+              onChange={(e) => setEnquiryForm({ ...enquiryForm, fullName: e.target.value })}
+              placeholder="Full Name *"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '12px',
+                },
+              }}
+            />
+            <TextField
+              fullWidth
+              label="Email Address"
+              type="email"
+              required
+              value={enquiryForm.email}
+              onChange={(e) => setEnquiryForm({ ...enquiryForm, email: e.target.value })}
+              placeholder="Email Address *"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '12px',
+                },
+              }}
+            />
+            <FormControl fullWidth>
+              <InputLabel>Country</InputLabel>
+              <Select
+                value={enquiryForm.country}
+                label="Country"
+                onChange={(e) => {
+                  const country = e.target.value;
+                  const countryCodes = {
+                    'India': '+91',
+                    'Israel': '+972',
+                    'USA': '+1',
+                    'UK': '+44',
+                  };
+                  setEnquiryForm({ 
+                    ...enquiryForm, 
+                    country,
+                    countryCode: countryCodes[country] || '+91'
+                  });
+                }}
+                sx={{
+                  borderRadius: '12px',
+                }}
+              >
+                <MenuItem value="India">India</MenuItem>
+                <MenuItem value="Israel">Israel</MenuItem>
+                <MenuItem value="USA">USA</MenuItem>
+                <MenuItem value="UK">UK</MenuItem>
+                <MenuItem value="Other">Other</MenuItem>
+              </Select>
+            </FormControl>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <FormControl sx={{ minWidth: 120 }}>
+                <InputLabel>Code</InputLabel>
+                <Select
+                  value={enquiryForm.countryCode}
+                  label="Code"
+                  onChange={(e) => setEnquiryForm({ ...enquiryForm, countryCode: e.target.value })}
+                  sx={{
+                    borderRadius: '12px',
+                  }}
+                >
+                  <MenuItem value="+91">(+91)</MenuItem>
+                  <MenuItem value="+972">(+972)</MenuItem>
+                  <MenuItem value="+1">(+1)</MenuItem>
+                  <MenuItem value="+44">(+44)</MenuItem>
+                </Select>
+              </FormControl>
+              <TextField
+                fullWidth
+                label="Phone Number"
+                type="tel"
+                value={enquiryForm.phone}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  setEnquiryForm({ ...enquiryForm, phone: value });
+                }}
+                placeholder="Enter 10-digit number"
+                inputProps={{ maxLength: 10 }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '12px',
+                  },
+                }}
+              />
+            </Box>
+            <TextField
+              fullWidth
+              label="Select City"
+              required
+              value={enquiryForm.city}
+              onChange={(e) => setEnquiryForm({ ...enquiryForm, city: e.target.value })}
+              placeholder="Select City *"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '12px',
+                },
+              }}
+            />
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              label="Your Query"
+              value={enquiryForm.query}
+              onChange={(e) => setEnquiryForm({ ...enquiryForm, query: e.target.value })}
+              placeholder="Your Query"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '12px',
+                },
+              }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 2, borderTop: '1px solid #E0E0E0' }}>
+          <Button 
+            onClick={() => setEnquiryDialogOpen(false)} 
+            sx={{ color: '#666' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={async () => {
+              // Validate required fields
+              if (!enquiryForm.fullName || !enquiryForm.email || !enquiryForm.city) {
+                setEnquirySnackbar({
+                  open: true,
+                  message: 'Please fill in all required fields',
+                  severity: 'error'
+                });
+                return;
+              }
+              
+              try {
+                // Here you can add API call to submit the enquiry
+                // For now, just show success message
+                setEnquirySnackbar({
+                  open: true,
+                  message: 'Successfully submitted! Thank you for your enquiry. We will get back to you soon.',
+                  severity: 'success'
+                });
+                setEnquiryDialogOpen(false);
+                // Reset form
+                setEnquiryForm({
+                  fullName: '',
+                  email: '',
+                  country: 'India',
+                  countryCode: '+91',
+                  phone: '',
+                  city: '',
+                  query: '',
+                });
+              } catch (error) {
+                console.error('Error submitting enquiry:', error);
+                setEnquirySnackbar({
+                  open: true,
+                  message: 'Failed to submit enquiry. Please try again.',
+                  severity: 'error'
+                });
+              }
+            }}
+            variant="contained"
+            startIcon={<Send />}
+            sx={{
+              background: 'linear-gradient(135deg, #7B0FF5 0%, #9D4EDD 100%)',
+              color: 'white',
+              borderRadius: '12px',
+              px: 4,
+              py: 1.5,
+              fontWeight: 700,
+              textTransform: 'none',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #9D4EDD 0%, #7B0FF5 100%)',
+              },
+            }}
+          >
+            Submit Application
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Enquiry Success Snackbar */}
+      <Snackbar
+        open={enquirySnackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setEnquirySnackbar({ ...enquirySnackbar, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setEnquirySnackbar({ ...enquirySnackbar, open: false })} 
+          severity={enquirySnackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {enquirySnackbar.message}
+        </Alert>
+      </Snackbar>
 
       {/* Chatbot Component */}
       <IndiaIsraelRecruitmentChatbot
