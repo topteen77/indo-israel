@@ -325,7 +325,7 @@ export default function Home() {
           <Fade in timeout={800}>
             <Box sx={{ position: 'relative', zIndex: 1 }}>
               <Chip
-                label="🇮🇳 🇮🇱 Trusted by 50,000+ Workers"
+                label="🇮🇳 🇮🇱 Trusted by 50,000+ Workers."
                 sx={{
                   mb: 3,
                   px: 3,
