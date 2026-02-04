@@ -4,6 +4,12 @@
  */
 
 const https = require('https');
+let db;
+try {
+  db = require('../database/db');
+} catch (e) {
+  db = null;
+}
 
 // Interakt API Configuration (only channel used for WhatsApp)
 const INTERAKT_API_KEY = process.env.INTERAKT_API_KEY;
@@ -19,6 +25,63 @@ function interaktOnlyError(phoneNumber, reason) {
     message: reason || 'WhatsApp message could not be sent via Interakt API',
     phoneNumber: phoneNumber || null,
   };
+}
+
+/** Mask phone for logs: show last 4 digits only (e.g. ***7890) */
+function maskPhone(phoneNumber) {
+  if (!phoneNumber) return '***';
+  const s = String(phoneNumber).replace(/\D/g, '');
+  if (s.length <= 4) return '****';
+  return '***' + s.slice(-4);
+}
+
+// Ensure whatsapp_log table exists (in case DB was created before this table was added)
+let _whatsappLogTableEnsured = false;
+function ensureWhatsAppLogTable() {
+  if (!db || _whatsappLogTableEnsured) return;
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS whatsapp_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        type TEXT NOT NULL,
+        phoneMasked TEXT NOT NULL,
+        success INTEGER NOT NULL,
+        messageId TEXT,
+        errorDetail TEXT,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    _whatsappLogTableEnsured = true;
+  } catch (e) {
+    console.error('WhatsApp log: could not ensure table:', e.message);
+  }
+}
+
+/**
+ * Track every WhatsApp send outcome: console log + persist to DB for admin dashboard.
+ * View in production: docker compose logs backend | grep WHATSAPP_TRACK
+ */
+function trackWhatsAppSend(type, phoneNumber, result) {
+  const ts = new Date().toISOString();
+  const to = maskPhone(phoneNumber);
+  const success = result && result.success;
+  const messageId = result && result.messageId ? result.messageId : '';
+  const error = result && !result.success && result.message ? String(result.message).substring(0, 500) : '';
+  const line = `[WHATSAPP_TRACK] ${ts} type=${type} to=${to} success=${success}${messageId ? ' messageId=' + messageId : ''}${error ? ' error=' + error.replace(/\s+/g, ' ').substring(0, 100) : ''}`;
+  console.log(line);
+
+  if (!db) {
+    console.warn('[WHATSAPP_TRACK] DB not available, log not persisted to dashboard');
+    return;
+  }
+  try {
+    ensureWhatsAppLogTable();
+    db.prepare(
+      `INSERT INTO whatsapp_log (type, phoneMasked, success, messageId, errorDetail) VALUES (?, ?, ?, ?, ?)`
+    ).run(type, to, success ? 1 : 0, messageId || null, error || null);
+  } catch (e) {
+    console.error('Failed to persist WhatsApp log:', e.message);
+  }
 }
 
 /**
@@ -69,18 +132,24 @@ const formatPhoneNumber = (phoneNumber) => {
 const sendWhatsAppViaInterakt = async (phoneNumber, message, options = {}) => {
   const { countryCode, phoneNumber: cleanPhone } = formatPhoneNumber(phoneNumber);
   
+  const trackType = options.trackType || options.type || 'unknown';
+
   if (!INTERAKT_API_KEY) {
     console.error('❌ Interakt API key not configured. Set INTERAKT_API_KEY in .env');
-    return interaktOnlyError(phoneNumber, 'Interakt API not configured');
+    const result = interaktOnlyError(phoneNumber, 'Interakt API not configured');
+    trackWhatsAppSend(trackType, phoneNumber, result);
+    return result;
   }
 
   const templateName = options.templateName || EMERGENCY_TEMPLATE_NAME;
 
   if (!templateName) {
     console.error('❌ No WhatsApp template configured. Set EMERGENCY_TEMPLATE_NAME (or application templates) in .env');
-    return interaktOnlyError(phoneNumber, 'No Interakt template configured');
+    const result = interaktOnlyError(phoneNumber, 'No Interakt template configured');
+    trackWhatsAppSend(trackType, phoneNumber, result);
+    return result;
   }
-  
+
   console.log(`📤 Attempting to send via Interakt API with template: ${templateName}`);
   
   // If template is provided, try to use Interakt API
@@ -180,9 +249,7 @@ const sendWhatsAppViaInterakt = async (phoneNumber, message, options = {}) => {
     });
     
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      console.log(`✅ WhatsApp message sent successfully via Interakt to ${countryCode}${cleanPhone}`);
-      console.log(`✅ Message ID: ${response.data?.messageId || response.data?.id || 'unknown'}`);
-      return {
+      const successResult = {
         success: true,
         message: 'WhatsApp message sent successfully via Interakt',
         phoneNumber: `${countryCode}${cleanPhone}`,
@@ -190,6 +257,9 @@ const sendWhatsAppViaInterakt = async (phoneNumber, message, options = {}) => {
         response: response.data,
         method: 'interakt_api',
       };
+      console.log(`✅ WhatsApp message sent successfully via Interakt to ${countryCode}${cleanPhone}`);
+      trackWhatsAppSend(trackType, phoneNumber, successResult);
+      return successResult;
     } else {
       const errorDetails = JSON.stringify(response.data);
       console.error(`❌ Interakt API Error - Status: ${response.statusCode}`);
@@ -202,7 +272,9 @@ const sendWhatsAppViaInterakt = async (phoneNumber, message, options = {}) => {
       console.error('❌ Template not found or not approved. Create/approve template at https://app.interakt.ai/templates/list');
       console.error('   Template attempted: ' + templateName);
     }
-    return interaktOnlyError(phoneNumber, apiError.message || 'Interakt API request failed');
+    const failResult = interaktOnlyError(phoneNumber, apiError.message || 'Interakt API request failed');
+    trackWhatsAppSend(trackType, phoneNumber, failResult);
+    return failResult;
   }
 };
 
@@ -213,18 +285,26 @@ const sendWhatsAppMessage = async (phoneNumber, message, options = {}) => {
   try {
     const { countryCode, phoneNumber: cleanPhone } = formatPhoneNumber(phoneNumber);
 
+    const trackType = options.trackType || options.type || 'unknown';
+
     if (!cleanPhone || cleanPhone.length < 10) {
-      return { success: false, message: 'Invalid phone number format', phoneNumber };
+      const result = { success: false, message: 'Invalid phone number format', phoneNumber };
+      trackWhatsAppSend(trackType, phoneNumber, result);
+      return result;
     }
 
     if (!INTERAKT_API_KEY) {
-      return interaktOnlyError(phoneNumber, 'Interakt API not configured');
+      const result = interaktOnlyError(phoneNumber, 'Interakt API not configured');
+      trackWhatsAppSend(trackType, phoneNumber, result);
+      return result;
     }
 
     if (options.type === 'emergency' || options.priority === 'critical') {
       const templateName = options.templateName || EMERGENCY_TEMPLATE_NAME;
       if (!templateName) {
-        return interaktOnlyError(phoneNumber, 'Set EMERGENCY_TEMPLATE_NAME in .env for emergency alerts');
+        const result = interaktOnlyError(phoneNumber, 'Set EMERGENCY_TEMPLATE_NAME in .env for emergency alerts');
+        trackWhatsAppSend(trackType, phoneNumber, result);
+        return result;
       }
       console.log('🚨 Sending emergency alert via Interakt...');
       let templateData = options.templateData;
@@ -238,19 +318,24 @@ const sendWhatsAppMessage = async (phoneNumber, message, options = {}) => {
       }
       return await sendWhatsAppViaInterakt(phoneNumber, message, {
         ...options,
+        trackType: trackType,
         templateName,
         templateData
       });
     }
 
     if (options.templateName || EMERGENCY_TEMPLATE_NAME) {
-      return await sendWhatsAppViaInterakt(phoneNumber, message, options);
+      return await sendWhatsAppViaInterakt(phoneNumber, message, { ...options, trackType });
     }
 
-    return interaktOnlyError(phoneNumber, 'No template configured for this message type');
+    const result = interaktOnlyError(phoneNumber, 'No template configured for this message type');
+    trackWhatsAppSend(trackType, phoneNumber, result);
+    return result;
   } catch (error) {
     console.error('❌ WhatsApp Service Error:', error);
-    return interaktOnlyError(phoneNumber, error.message);
+    const result = interaktOnlyError(phoneNumber, error.message);
+    trackWhatsAppSend(options.trackType || options.type || 'unknown', phoneNumber, result);
+    return result;
   }
 };
 
@@ -287,6 +372,7 @@ const sendApplicationConfirmationWhatsApp = async (applicationData) => {
   const message = `Application submitted. Dear ${applicantName}, Application ID: ${applicationId}. Track: ${trackUrl}`;
 
   return await sendWhatsAppMessage(phoneNumber, message, {
+    trackType: 'application_confirmation',
     templateName: APPLICATION_CONFIRMATION_TEMPLATE,
     templateData: {
       bodyValues: [applicantName, applicationId, trackUrl],
@@ -312,6 +398,7 @@ const sendRejectionWhatsApp = async (applicationData, rejectionReason) => {
   const message = `Application update. Dear ${applicantName}, Application ${applicationId} was not selected. ${reasonText}`;
 
   return await sendWhatsAppMessage(phoneNumber, message, {
+    trackType: 'application_rejection',
     templateName: APPLICATION_REJECTION_TEMPLATE,
     templateData: {
       bodyValues: [applicantName, applicationId, reasonText],

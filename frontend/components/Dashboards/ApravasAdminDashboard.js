@@ -3,12 +3,12 @@ import {
   Grid, Card, CardContent, Typography, Box, Chip,
   LinearProgress, CircularProgress, Button, Avatar,
   Table, TableBody, TableCell, TableHead, TableRow,
-  Alert,
+  Alert, FormControl, InputLabel, Select, MenuItem,
 } from '@mui/material';
 import {
   TrendingUp, TrendingDown, People, Work, AttachMoney,
   Speed, CheckCircle, Schedule, Assessment,
-  Visibility, Download, FilterList, Refresh, SafetyCheck,
+  Visibility, Download, FilterList, Refresh, SafetyCheck, Chat,
 } from '@mui/icons-material';
 import AdminSafetyDashboard from '../Safety/AdminSafetyDashboard';
 import { Tab, Tabs } from '@mui/material';
@@ -25,6 +25,9 @@ const ApravasAdminDashboard = () => {
   const [dateRange, setDateRange] = useState('30d');
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
+  const [whatsappLog, setWhatsappLog] = useState({ items: [], total: 0 });
+  const [whatsappLogLoading, setWhatsappLogLoading] = useState(false);
+  const [whatsappLogFilter, setWhatsappLogFilter] = useState({ status: '', type: '' });
 
   useEffect(() => {
     fetchAnalytics();
@@ -56,6 +59,26 @@ const ApravasAdminDashboard = () => {
       setRefreshing(false);
     }
   };
+
+  const fetchWhatsAppLog = async () => {
+    setWhatsappLogLoading(true);
+    try {
+      const params = new URLSearchParams({ limit: 100 });
+      if (whatsappLogFilter.status) params.set('status', whatsappLogFilter.status);
+      if (whatsappLogFilter.type) params.set('type', whatsappLogFilter.type);
+      const res = await api.get(`/analytics/whatsapp-log?${params}`);
+      setWhatsappLog(res.data.data || { items: [], total: 0 });
+    } catch (err) {
+      console.error('Failed to fetch WhatsApp log:', err);
+      setWhatsappLog({ items: [], total: 0 });
+    } finally {
+      setWhatsappLogLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 2) fetchWhatsAppLog();
+  }, [activeTab, whatsappLogFilter]);
 
   const MetricCard = ({ title, value, change, icon, color = 'primary' }) => (
     <Card elevation={2}>
@@ -161,6 +184,7 @@ const ApravasAdminDashboard = () => {
       >
         <Tab label="Analytics" icon={<Assessment />} />
         <Tab label="Safety & Welfare" icon={<SafetyCheck />} />
+        <Tab label="WhatsApp Log" icon={<Chat />} />
       </Tabs>
 
       {/* Analytics Tab */}
@@ -382,6 +406,105 @@ const ApravasAdminDashboard = () => {
       {/* Safety & Welfare Tab */}
       {activeTab === 1 && (
         <AdminSafetyDashboard />
+      )}
+
+      {/* WhatsApp Log Tab */}
+      {activeTab === 2 && (
+        <Card>
+          <CardContent>
+            <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2} mb={2}>
+              <Typography variant="h6">Interakt WhatsApp Messages</Typography>
+              <Box display="flex" gap={1} alignItems="center" flexWrap="wrap">
+                <Chip
+                  label="All"
+                  onClick={() => setWhatsappLogFilter((f) => ({ ...f, status: '' }))}
+                  color={whatsappLogFilter.status === '' ? 'primary' : 'default'}
+                  variant={whatsappLogFilter.status === '' ? 'filled' : 'outlined'}
+                />
+                <Chip
+                  label="Sent"
+                  onClick={() => setWhatsappLogFilter((f) => ({ ...f, status: 'sent' }))}
+                  color={whatsappLogFilter.status === 'sent' ? 'success' : 'default'}
+                  variant={whatsappLogFilter.status === 'sent' ? 'filled' : 'outlined'}
+                />
+                <Chip
+                  label="Failed"
+                  onClick={() => setWhatsappLogFilter((f) => ({ ...f, status: 'fail' }))}
+                  color={whatsappLogFilter.status === 'fail' ? 'error' : 'default'}
+                  variant={whatsappLogFilter.status === 'fail' ? 'filled' : 'outlined'}
+                />
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <InputLabel>Type</InputLabel>
+                  <Select
+                    value={whatsappLogFilter.type || ''}
+                    label="Type"
+                    onChange={(e) => setWhatsappLogFilter((f) => ({ ...f, type: e.target.value || '' }))}
+                  >
+                    <MenuItem value="">All types</MenuItem>
+                    <MenuItem value="application_confirmation">Application confirmation</MenuItem>
+                    <MenuItem value="application_rejection">Application rejection</MenuItem>
+                    <MenuItem value="emergency">Emergency</MenuItem>
+                  </Select>
+                </FormControl>
+                <Button
+                  size="small"
+                  startIcon={whatsappLogLoading ? <CircularProgress size={16} /> : <Refresh />}
+                  onClick={fetchWhatsAppLog}
+                  disabled={whatsappLogLoading}
+                >
+                  Refresh
+                </Button>
+              </Box>
+            </Box>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell><strong>Date</strong></TableCell>
+                  <TableCell><strong>Type</strong></TableCell>
+                  <TableCell><strong>To</strong></TableCell>
+                  <TableCell><strong>Status</strong></TableCell>
+                  <TableCell><strong>Message ID</strong></TableCell>
+                  <TableCell><strong>Error detail</strong></TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {whatsappLogLoading && whatsappLog.items.length === 0 ? (
+                  <TableRow><TableCell colSpan={6} align="center">Loading…</TableCell></TableRow>
+                ) : whatsappLog.items.length === 0 ? (
+                  <TableRow><TableCell colSpan={6} align="center">No WhatsApp messages logged yet.</TableCell></TableRow>
+                ) : (
+                  whatsappLog.items.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell>{new Date(row.createdAt).toLocaleString()}</TableCell>
+                      <TableCell>{row.type}</TableCell>
+                      <TableCell>{row.phoneMasked}</TableCell>
+                      <TableCell>
+                        {row.success ? (
+                          <Chip label="Sent" color="success" size="small" />
+                        ) : (
+                          <Chip label="Failed" color="error" size="small" />
+                        )}
+                      </TableCell>
+                      <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{row.messageId || '—'}</TableCell>
+                      <TableCell sx={{ maxWidth: 280 }} title={row.errorDetail || ''}>
+                        {row.errorDetail ? (
+                          <Typography variant="body2" color="error" noWrap sx={{ maxWidth: 280 }}>
+                            {row.errorDetail}
+                          </Typography>
+                        ) : '—'}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+            {whatsappLog.total > 0 && (
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                Showing {whatsappLog.items.length} of {whatsappLog.total}
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
       )}
     </Box>
   );

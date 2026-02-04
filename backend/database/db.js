@@ -351,8 +351,24 @@ function initializeDatabase() {
     )
   `);
 
+  // WhatsApp send log (Interakt) - for admin dashboard
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS whatsapp_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      phoneMasked TEXT NOT NULL,
+      success INTEGER NOT NULL,
+      messageId TEXT,
+      errorDetail TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // Create indexes for better performance
   db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_whatsapp_log_createdAt ON whatsapp_log(createdAt);
+    CREATE INDEX IF NOT EXISTS idx_whatsapp_log_type ON whatsapp_log(type);
+    CREATE INDEX IF NOT EXISTS idx_whatsapp_log_success ON whatsapp_log(success);
     CREATE INDEX IF NOT EXISTS idx_jobs_category ON jobs(category);
     CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
     CREATE INDEX IF NOT EXISTS idx_applications_userId ON applications(userId);

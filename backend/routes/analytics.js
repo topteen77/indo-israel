@@ -106,4 +106,47 @@ router.get('/realtime', getUserFromToken, requireAdmin, (req, res) => {
   }
 });
 
+// WhatsApp send log (Interakt) - admin only, for dashboard
+router.get('/whatsapp-log', getUserFromToken, requireAdmin, (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+    const offset = parseInt(req.query.offset, 10) || 0;
+    const status = req.query.status; // 'sent' | 'fail'
+    const type = req.query.type;    // application_confirmation | application_rejection | emergency
+
+    let where = [];
+    let params = [];
+    if (status === 'sent') {
+      where.push('success = 1');
+    } else if (status === 'fail') {
+      where.push('success = 0');
+    }
+    if (type) {
+      where.push('type = ?');
+      params.push(type);
+    }
+    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+
+    const total = db.prepare(
+      `SELECT COUNT(*) as c FROM whatsapp_log ${whereClause}`
+    ).get(...params);
+    const items = db.prepare(
+      `SELECT id, type, phoneMasked, success, messageId, errorDetail, createdAt FROM whatsapp_log ${whereClause} ORDER BY createdAt DESC LIMIT ? OFFSET ?`
+    ).all(...params, limit, offset);
+
+    res.json({
+      success: true,
+      data: {
+        items,
+        total: total.c,
+        limit,
+        offset,
+      },
+    });
+  } catch (err) {
+    console.error('WhatsApp log error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
