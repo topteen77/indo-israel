@@ -4,6 +4,8 @@ import {
   LinearProgress, Chip, Avatar, Stepper, Step, StepLabel,
   Table, TableBody, TableCell, TableHead, TableRow,
   Badge, Alert, Tab, Tabs, CircularProgress,
+  List, ListItem, ListItemIcon, ListItemText, Divider,
+  TextField,
 } from '@mui/material';
 import {
   Work, School, Schedule, CheckCircle, Warning,
@@ -25,6 +27,16 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [profileForm, setProfileForm] = useState({
+    fullName: '',
+    phone: '',
+    location: '',
+    emergencyContactName: '',
+    emergencyContactPhone: '',
+  });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaveError, setProfileSaveError] = useState('');
+  const [profileSaveSuccess, setProfileSaveSuccess] = useState('');
   const [jobs, setJobs] = useState([]);
   const [jobsLoading, setJobsLoading] = useState(false);
   const [appliedJobIds, setAppliedJobIds] = useState(new Set());
@@ -59,6 +71,48 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
       console.error('Failed to fetch worker dashboard:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Keep profile form in sync with fetched dashboard profile
+  useEffect(() => {
+    const p = dashboardData?.profile;
+    if (!p) return;
+    setProfileForm({
+      fullName: p.fullName || '',
+      phone: p.phone || '',
+      location: p.location || '',
+      emergencyContactName: p.emergencyContactName || '',
+      emergencyContactPhone: p.emergencyContactPhone || '',
+    });
+  }, [dashboardData?.profile]);
+
+  const saveProfile = async () => {
+    try {
+      setProfileSaving(true);
+      setProfileSaveError('');
+      setProfileSaveSuccess('');
+
+      // Update core user fields in users table
+      await api.put('/auth/me', {
+        fullName: profileForm.fullName,
+        phone: profileForm.phone,
+        address: profileForm.location,
+      });
+
+      // Store emergency contact in worker_profiles JSON (merge on server)
+      await api.put('/auth/worker-profile', {
+        emergencyContactName: profileForm.emergencyContactName,
+        emergencyContactPhone: profileForm.emergencyContactPhone,
+      });
+
+      setProfileSaveSuccess('Profile updated successfully');
+      await fetchDashboardData();
+    } catch (e) {
+      console.error('Failed to save profile:', e);
+      setProfileSaveError(e?.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setProfileSaving(false);
     }
   };
 
@@ -273,6 +327,7 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
         <Tab label={t('common.documents', 'Documents')} icon={<GetApp />} />
         <Tab label={t('common.skillsLearning', 'Skills & Learning')} icon={<School />} />
         <Tab label={t('common.safetyWelfare', 'Safety & Welfare')} icon={<VerifiedUser />} />
+        <Tab label={t('common.myProfile', 'My Profile')} icon={<Avatar />} />
         <Tab label={t('common.timeline', 'Timeline')} icon={<Timeline />} />
       </Tabs>
 
@@ -705,8 +760,126 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
         </Box>
       )}
 
-      {/* Timeline Tab */}
+      {/* My Profile Tab */}
       {activeTab === 6 && (
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>{t('common.personalInformation', 'Personal Information')}</Typography>
+                <Box display="flex" flexDirection="column" gap={2} mt={1}>
+                  <TextField
+                    label={t('form.fields.fullName', 'Full Name')}
+                    value={profileForm.fullName}
+                    onChange={(e) => setProfileForm((s) => ({ ...s, fullName: e.target.value }))}
+                    fullWidth
+                  />
+                  <TextField
+                    label={t('form.fields.email', 'Email')}
+                    value={dashboardData.profile?.email || ''}
+                    fullWidth
+                    disabled
+                  />
+                  <TextField
+                    label={t('form.fields.phone', 'Phone')}
+                    value={profileForm.phone}
+                    onChange={(e) => setProfileForm((s) => ({ ...s, phone: e.target.value }))}
+                    fullWidth
+                  />
+                  <TextField
+                    label={t('form.fields.location', 'Location')}
+                    value={profileForm.location}
+                    onChange={(e) => setProfileForm((s) => ({ ...s, location: e.target.value }))}
+                    fullWidth
+                  />
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>{t('common.emergencyContact', 'Emergency Contact')}</Typography>
+                <Box display="flex" flexDirection="column" gap={2} mt={1}>
+                  <TextField
+                    label={t('common.contactName', 'Contact Name')}
+                    value={profileForm.emergencyContactName}
+                    onChange={(e) => setProfileForm((s) => ({ ...s, emergencyContactName: e.target.value }))}
+                    fullWidth
+                  />
+                  <TextField
+                    label={t('common.contactPhone', 'Contact Phone')}
+                    value={profileForm.emergencyContactPhone}
+                    onChange={(e) => setProfileForm((s) => ({ ...s, emergencyContactPhone: e.target.value }))}
+                    fullWidth
+                  />
+                </Box>
+
+                <Divider sx={{ my: 3 }} />
+
+                <Typography variant="h6" gutterBottom>{t('common.professionalInformation', 'Professional Information')}</Typography>
+                <Box display="flex" gap={1} flexWrap="wrap" mb={2}>
+                  <Chip
+                    icon={<Schedule />}
+                    label={`${t('common.yearsExperience', 'Years Experience')}: ${dashboardData.profile?.experience ?? 0}`}
+                    variant="outlined"
+                  />
+                  <Chip
+                    icon={<Assessment />}
+                    label={`${t('common.skillScore', 'Skill Score')}: ${dashboardData.skills?.skillScore ?? 0}%`}
+                    variant="outlined"
+                  />
+                </Box>
+
+                <Typography variant="subtitle2" gutterBottom>{t('common.skills', 'Skills')}</Typography>
+                <Box>
+                  {(dashboardData.profile?.skills ?? []).length > 0 ? (
+                    (dashboardData.profile?.skills ?? []).map((skill, index) => (
+                      <Chip key={index} label={skill} size="small" sx={{ mr: 1, mb: 1 }} />
+                    ))
+                  ) : (
+                    <Typography variant="body2" color="textSecondary">—</Typography>
+                  )}
+                </Box>
+
+                <Box display="flex" justifyContent="flex-end" gap={1} mt={3}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => {
+                      const p = dashboardData?.profile;
+                      setProfileSaveError('');
+                      setProfileSaveSuccess('');
+                      setProfileForm({
+                        fullName: p?.fullName || '',
+                        phone: p?.phone || '',
+                        location: p?.location || '',
+                        emergencyContactName: p?.emergencyContactName || '',
+                        emergencyContactPhone: p?.emergencyContactPhone || '',
+                      });
+                    }}
+                    disabled={profileSaving}
+                  >
+                    {t('common.reset', 'Reset')}
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={saveProfile}
+                    disabled={profileSaving}
+                  >
+                    {profileSaving ? t('common.saving', 'Saving...') : t('common.save', 'Save')}
+                  </Button>
+                </Box>
+                {profileSaveError && <Alert severity="error" sx={{ mt: 2 }}>{profileSaveError}</Alert>}
+                {profileSaveSuccess && <Alert severity="success" sx={{ mt: 2 }}>{profileSaveSuccess}</Alert>}
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
+
+      {/* Timeline Tab */}
+      {activeTab === 7 && (
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>{t('common.applicationTimeline', 'Application Timeline')}</Typography>

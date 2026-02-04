@@ -206,6 +206,15 @@ function getWorkerDashboard(userId) {
     return getEmptyDashboard(userId);
   }
 
+  // Optional extra profile fields stored as JSON (used for worker self-service profile fields)
+  let workerProfileData = {};
+  try {
+    const row = db.prepare('SELECT profileData FROM worker_profiles WHERE userId = ?').get(uid);
+    workerProfileData = row?.profileData ? JSON.parse(row.profileData) : {};
+  } catch (_) {
+    workerProfileData = {};
+  }
+
   const appRows = db.prepare(
     'SELECT * FROM applications WHERE userId = ? ORDER BY createdAt DESC'
   ).all(uid);
@@ -233,6 +242,8 @@ function getWorkerDashboard(userId) {
     experience: experienceYears || 0,
     skills: skillsList.length ? skillsList : [],
     location: user.address || '',
+    emergencyContactName: workerProfileData.emergencyContactName || '',
+    emergencyContactPhone: workerProfileData.emergencyContactPhone || '',
   };
 
   const jobIds = [...new Set(appRows.map((a) => a.jobId).filter(Boolean))];

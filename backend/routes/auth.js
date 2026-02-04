@@ -263,8 +263,21 @@ router.put('/worker-profile', (req, res) => {
       }
       if (!userId) return res.status(401).json({ success: false, message: 'Invalid token' });
     }
-    const profileData = typeof req.body === 'object' ? req.body : (req.body.profileData ? JSON.parse(req.body.profileData) : {});
-    const json = JSON.stringify(profileData);
+    // Merge with existing profileData so partial updates (like emergency contact) don't wipe prior fields
+    const incoming = typeof req.body === 'object'
+      ? req.body
+      : (req.body.profileData ? JSON.parse(req.body.profileData) : {});
+
+    let existing = {};
+    try {
+      const row = db.prepare('SELECT profileData FROM worker_profiles WHERE userId = ?').get(userId);
+      existing = row?.profileData ? JSON.parse(row.profileData) : {};
+    } catch (_) {
+      existing = {};
+    }
+
+    const merged = { ...(existing || {}), ...(incoming || {}) };
+    const json = JSON.stringify(merged);
     db.prepare(`
       INSERT INTO worker_profiles (userId, profileData, updatedAt) VALUES (?, ?, CURRENT_TIMESTAMP)
       ON CONFLICT(userId) DO UPDATE SET profileData = excluded.profileData, updatedAt = CURRENT_TIMESTAMP

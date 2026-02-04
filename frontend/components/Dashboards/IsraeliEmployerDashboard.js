@@ -34,6 +34,10 @@ const IsraeliEmployerDashboard = () => {
   const [aiGeneratorOpen, setAiGeneratorOpen] = useState(false);
   const [jobPostTab, setJobPostTab] = useState(0); // 0 = manual, 1 = AI generator
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [viewJobDialogOpen, setViewJobDialogOpen] = useState(false);
+  const [editJobDialogOpen, setEditJobDialogOpen] = useState(false);
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [loadingJob, setLoadingJob] = useState(false);
   const [jobForm, setJobForm] = useState({
     title: '',
     company: '',
@@ -187,6 +191,109 @@ const IsraeliEmployerDashboard = () => {
   const handleCloseDialog = () => {
     setPostJobDialogOpen(false);
     setFormErrors({});
+  };
+
+  const handleViewJob = async (jobId) => {
+    try {
+      setLoadingJob(true);
+      const response = await api.get(`/jobs/${jobId}`);
+      if (response.data.success) {
+        setSelectedJob(response.data.data);
+        setViewJobDialogOpen(true);
+      }
+    } catch (error) {
+      console.error('Error fetching job:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to load job details',
+        severity: 'error'
+      });
+    } finally {
+      setLoadingJob(false);
+    }
+  };
+
+  const handleEditJob = async (jobId) => {
+    try {
+      setLoadingJob(true);
+      const response = await api.get(`/jobs/${jobId}`);
+      if (response.data.success) {
+        const job = response.data.data;
+        setSelectedJob(job);
+        setJobForm({
+          title: job.title || '',
+          company: job.company || '',
+          location: job.location || '',
+          salary: job.salary || '',
+          experience: job.experience || '',
+          type: job.type || 'Full-time',
+          description: job.description || '',
+          requirements: Array.isArray(job.requirements) 
+            ? job.requirements.join(', ') 
+            : (job.requirements || ''),
+          category: job.category || '',
+          openings: job.openings || 1,
+        });
+        setEditJobDialogOpen(true);
+      }
+    } catch (error) {
+      console.error('Error fetching job:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to load job details',
+        severity: 'error'
+      });
+    } finally {
+      setLoadingJob(false);
+    }
+  };
+
+  const handleUpdateJob = async () => {
+    if (!validateForm() || !selectedJob) {
+      setSnackbar({
+        open: true,
+        message: 'Please fill in all required fields',
+        severity: 'error'
+      });
+      return;
+    }
+
+    try {
+      const requirementsArray = jobForm.requirements
+        ? jobForm.requirements.split(',').map(r => r.trim()).filter(r => r)
+        : [];
+
+      const response = await api.put(`/jobs/${selectedJob.id}`, {
+        title: jobForm.title,
+        company: jobForm.company,
+        location: jobForm.location,
+        salary: jobForm.salary,
+        experience: jobForm.experience,
+        type: jobForm.type,
+        description: jobForm.description,
+        requirements: requirementsArray,
+        category: jobForm.category,
+        openings: parseInt(jobForm.openings) || 1,
+      });
+
+      if (response.data.success) {
+        setSnackbar({
+          open: true,
+          message: 'Job updated successfully!',
+          severity: 'success'
+        });
+        setEditJobDialogOpen(false);
+        setSelectedJob(null);
+        fetchDashboardData(); // Refresh dashboard
+      }
+    } catch (error) {
+      console.error('Error updating job:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to update job. Please try again.',
+        severity: 'error'
+      });
+    }
   };
 
   if (loading) {
@@ -421,12 +528,24 @@ const IsraeliEmployerDashboard = () => {
                         />
                       </TableCell>
                       <TableCell>
-                        <IconButton size="small">
-                          <Visibility />
-                        </IconButton>
-                        <IconButton size="small">
-                          <Edit />
-                        </IconButton>
+                        <Tooltip title="View Job Details">
+                          <IconButton 
+                            size="small"
+                            onClick={() => handleViewJob(job.id)}
+                            disabled={loadingJob}
+                          >
+                            <Visibility />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Edit Job">
+                          <IconButton 
+                            size="small"
+                            onClick={() => handleEditJob(job.id)}
+                            disabled={loadingJob}
+                          >
+                            <Edit />
+                          </IconButton>
+                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -895,6 +1014,357 @@ const IsraeliEmployerDashboard = () => {
             onClose={() => setAiGeneratorOpen(false)}
           />
         </DialogContent>
+      </Dialog>
+
+      {/* View Job Dialog */}
+      <Dialog
+        open={viewJobDialogOpen}
+        onClose={() => {
+          setViewJobDialogOpen(false);
+          setSelectedJob(null);
+        }}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          pb: 2,
+          borderBottom: '1px solid #E0E0E0',
+        }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: '#1A1A1A' }}>
+            Job Details
+          </Typography>
+          <IconButton onClick={() => {
+            setViewJobDialogOpen(false);
+            setSelectedJob(null);
+          }} size="small">
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          {selectedJob ? (
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <Typography variant="h6" gutterBottom>
+                  {selectedJob.title}
+                </Typography>
+                <Chip
+                  label={selectedJob.status}
+                  color={getStatusColor(selectedJob.status)}
+                  size="small"
+                  sx={{ mb: 2 }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                  Company
+                </Typography>
+                <Typography variant="body1">{selectedJob.company}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                  Location
+                </Typography>
+                <Typography variant="body1">{selectedJob.location}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                  Salary
+                </Typography>
+                <Typography variant="body1">{selectedJob.salary}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                  Experience
+                </Typography>
+                <Typography variant="body1">{selectedJob.experience || 'Not specified'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                  Job Type
+                </Typography>
+                <Typography variant="body1">{selectedJob.type}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                  Category
+                </Typography>
+                <Typography variant="body1">{selectedJob.category}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                  Openings
+                </Typography>
+                <Typography variant="body1">{selectedJob.openings}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                  Applications
+                </Typography>
+                <Typography variant="body1">{selectedJob.applications || 0}</Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                  Description
+                </Typography>
+                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {selectedJob.description}
+                </Typography>
+              </Grid>
+              {selectedJob.requirements && Array.isArray(selectedJob.requirements) && selectedJob.requirements.length > 0 && (
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                    Requirements
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {selectedJob.requirements.map((req, index) => (
+                      <Chip key={index} label={req} size="small" variant="outlined" />
+                    ))}
+                  </Box>
+                </Grid>
+              )}
+              <Grid item xs={12}>
+                <Typography variant="caption" color="textSecondary">
+                  Posted: {new Date(selectedJob.created_at).toLocaleString()}
+                  {selectedJob.updated_at && selectedJob.updated_at !== selectedJob.created_at && (
+                    <> | Updated: {new Date(selectedJob.updated_at).toLocaleString()}</>
+                  )}
+                </Typography>
+              </Grid>
+            </Grid>
+          ) : (
+            <Box display="flex" justifyContent="center" p={3}>
+              <CircularProgress />
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 2, borderTop: '1px solid #E0E0E0' }}>
+          <Button 
+            onClick={() => {
+              setViewJobDialogOpen(false);
+              setSelectedJob(null);
+            }}
+            sx={{ color: '#666' }}
+          >
+            Close
+          </Button>
+          {selectedJob && (
+            <Button
+              variant="contained"
+              startIcon={<Edit />}
+              onClick={() => {
+                setViewJobDialogOpen(false);
+                handleEditJob(selectedJob.id);
+              }}
+              sx={{
+                bgcolor: '#7B0FF5',
+                '&:hover': {
+                  bgcolor: '#9D4EDD',
+                },
+              }}
+            >
+              Edit Job
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Job Dialog */}
+      <Dialog
+        open={editJobDialogOpen}
+        onClose={() => {
+          setEditJobDialogOpen(false);
+          setSelectedJob(null);
+          setFormErrors({});
+        }}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          pb: 2,
+          borderBottom: '1px solid #E0E0E0',
+        }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: '#1A1A1A' }}>
+            Edit Job
+          </Typography>
+          <IconButton onClick={() => {
+            setEditJobDialogOpen(false);
+            setSelectedJob(null);
+            setFormErrors({});
+          }} size="small">
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Job Title *"
+                value={jobForm.title}
+                onChange={(e) => handleInputChange('title', e.target.value)}
+                error={!!formErrors.title}
+                helperText={formErrors.title}
+                placeholder="e.g., Construction Worker"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Company Name *"
+                value={jobForm.company}
+                onChange={(e) => handleInputChange('company', e.target.value)}
+                error={!!formErrors.company}
+                helperText={formErrors.company}
+                placeholder="Your company name"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Location *"
+                value={jobForm.location}
+                onChange={(e) => handleInputChange('location', e.target.value)}
+                error={!!formErrors.location}
+                helperText={formErrors.location}
+                placeholder="e.g., Tel Aviv, Israel"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Salary Range *"
+                value={jobForm.salary}
+                onChange={(e) => handleInputChange('salary', e.target.value)}
+                error={!!formErrors.salary}
+                helperText={formErrors.salary}
+                placeholder="e.g., ₹80,000 - ₹1,20,000"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Experience Required"
+                value={jobForm.experience}
+                onChange={(e) => handleInputChange('experience', e.target.value)}
+                placeholder="e.g., 2-5 years"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Job Type</InputLabel>
+                <Select
+                  value={jobForm.type}
+                  label="Job Type"
+                  onChange={(e) => handleInputChange('type', e.target.value)}
+                >
+                  <MenuItem value="Full-time">Full-time</MenuItem>
+                  <MenuItem value="Part-time">Part-time</MenuItem>
+                  <MenuItem value="Contract">Contract</MenuItem>
+                  <MenuItem value="Remote">Remote</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth error={!!formErrors.category}>
+                <InputLabel>Category *</InputLabel>
+                <Select
+                  value={jobForm.category}
+                  label="Category *"
+                  onChange={(e) => handleInputChange('category', e.target.value)}
+                >
+                  <MenuItem value="Construction">Construction</MenuItem>
+                  <MenuItem value="Healthcare">Healthcare</MenuItem>
+                  <MenuItem value="Agriculture">Agriculture</MenuItem>
+                  <MenuItem value="Hospitality">Hospitality</MenuItem>
+                  <MenuItem value="IT Support">IT Support</MenuItem>
+                  <MenuItem value="Nursing">Nursing</MenuItem>
+                  <MenuItem value="Plumber">Plumber</MenuItem>
+                  <MenuItem value="Electrician">Electrician</MenuItem>
+                  <MenuItem value="Carpenter">Carpenter</MenuItem>
+                  <MenuItem value="Driver">Driver</MenuItem>
+                  <MenuItem value="Security Guard">Security Guard</MenuItem>
+                </Select>
+                {formErrors.category && <FormHelperText>{formErrors.category}</FormHelperText>}
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Number of Openings"
+                value={jobForm.openings}
+                onChange={(e) => handleInputChange('openings', e.target.value)}
+                inputProps={{ min: 1 }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                multiline
+                rows={4}
+                label="Job Description *"
+                value={jobForm.description}
+                onChange={(e) => handleInputChange('description', e.target.value)}
+                error={!!formErrors.description}
+                helperText={formErrors.description}
+                placeholder="Describe the job role, responsibilities, and what you're looking for..."
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                label="Requirements (comma-separated)"
+                value={jobForm.requirements}
+                onChange={(e) => handleInputChange('requirements', e.target.value)}
+                placeholder="e.g., Minimum 2 years experience, Valid work permit, Physical fitness certificate"
+                helperText="Separate multiple requirements with commas"
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 2, borderTop: '1px solid #E0E0E0' }}>
+          <Button 
+            onClick={() => {
+              setEditJobDialogOpen(false);
+              setSelectedJob(null);
+              setFormErrors({});
+            }}
+            sx={{ color: '#666' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleUpdateJob}
+            variant="contained"
+            startIcon={<Edit />}
+            sx={{
+              bgcolor: '#7B0FF5',
+              '&:hover': {
+                bgcolor: '#9D4EDD',
+              },
+            }}
+          >
+            Update Job
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

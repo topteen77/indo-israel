@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
+const db = require('../database/db');
 const { generateSafetyData } = require('../services/safetyService');
 const { sendEmergencySMS } = require('../services/smsService');
 const { sendWhatsAppMessage } = require('../services/whatsappService');
+const { reverseGeocode } = require('../services/reverseGeocodeService');
 const enhancedLocationService = require('../services/enhancedLocationService');
 const locationService = require('../services/locationService');
 
@@ -150,14 +152,23 @@ router.get('/worker/:workerId/checkins', async (req, res) => {
 router.post('/worker/:workerId/emergency', async (req, res) => {
   try {
     const { workerId } = req.params;
-    const { latitude, longitude, type, message, workerName } = req.body;
+    const { latitude, longitude, accuracy, type, message, workerName, timestamp } = req.body;
+    const workerIdNum = parseInt(workerId, 10);
     
-    // Store emergency location
+    // Use current date/time (from request if provided, otherwise use server time)
+    const currentTimestamp = timestamp || new Date().toISOString();
+    const currentDate = new Date(currentTimestamp);
+    
+    console.log(`🚨 Emergency alert received at ${currentDate.toLocaleString()}`);
+    console.log(`📍 Location: ${latitude}, ${longitude} (accuracy: ${accuracy || 'unknown'}m)`);
+    
+    // Store emergency location with current timestamp
     if (latitude && longitude) {
       await enhancedLocationService.storeLocation(workerId, {
         latitude,
         longitude,
-        timestamp: new Date().toISOString(),
+        accuracy,
+        timestamp: currentTimestamp,
         source: 'emergency',
       });
 
@@ -165,52 +176,190 @@ router.post('/worker/:workerId/emergency', async (req, res) => {
       await enhancedLocationService.addToHistory(workerId, {
         latitude,
         longitude,
-        timestamp: new Date().toISOString(),
+        timestamp: currentTimestamp,
         source: 'emergency',
         eventType: 'emergency',
-        metadata: { type, message },
+        metadata: { type, message, accuracy },
       });
     }
+    
+    // Get worker information for better emergency message
+    const user = db.prepare('SELECT id, fullName, name, phone FROM users WHERE id = ? AND role = ?').get(workerIdNum || workerId, 'worker');
+    const finalWorkerName = workerName || user?.fullName || user?.name || `Worker ${workerId}`;
+    
+    // Prefer a place name derived from the provided live coordinates (reverse geocode).
+    // Always fall back to coordinates if reverse geocoding fails.
+    let addressText = 'Location unknown';
+    if (typeof latitude === 'number' && typeof longitude === 'number') {
+      addressText = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+      try {
+        const placeName = await reverseGeocode(latitude, longitude);
+        if (placeName) addressText = placeName;
+      } catch (e) {
+        // ignore and keep coordinates fallback
+      }
+    }
+    
+    // Format date and time for display
+    const formattedDateTime = currentDate.toLocaleString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Jerusalem' // Israel timezone
+    });
     
     const emergency = {
       id: Date.now(),
       workerId,
       latitude,
       longitude,
+      accuracy,
       type: 'emergency',
       message: message || 'Emergency assistance needed',
-      timestamp: new Date().toISOString(),
+      timestamp: currentTimestamp,
+      formattedDateTime: formattedDateTime,
       status: 'emergency',
-      workerName: workerName || `Worker ${workerId}`,
+      workerName: finalWorkerName,
       location: {
         latitude,
         longitude,
-        address: 'Tel Aviv, Israel',
-        city: 'Tel Aviv',
-        country: 'Israel'
+        address: addressText,
+        city: '',
+        country: ''
       }
     };
     
     // Trigger emergency notifications (will log to console until services are configured)
     sendEmergencySMS(emergency, []).catch(err => console.error('Emergency SMS error:', err));
     
-    // Send WhatsApp emergency notification
-    const emergencyMessage = `🚨 EMERGENCY! Worker ${emergency.workerName} requires immediate assistance.
-Location: ${latitude}, ${longitude}
-Time: ${emergency.timestamp}
-Contact emergency: ${process.env.ISRAEL_EMERGENCY_NUMBER || '100'}
-ID: ${workerId}`;
+    // Emergency contact number: prefer worker's saved emergency contact from My Profile (worker_profiles.profileData)
+    const DEFAULT_EMERGENCY_RELATIVE_NUMBER = process.env.DEFAULT_EMERGENCY_CONTACT_PHONE || '9896098472'; // fallback only
+    let EMERGENCY_RELATIVE_NUMBER = DEFAULT_EMERGENCY_RELATIVE_NUMBER;
+    try {
+      const row = db.prepare('SELECT profileData FROM worker_profiles WHERE userId = ?').get(workerIdNum || workerId);
+      const profileData = row?.profileData ? JSON.parse(row.profileData) : {};
+      const saved = profileData?.emergencyContactPhone;
+      if (saved && typeof saved === 'string') {
+        // keep digits/+ only, remove spaces and punctuation
+        const normalized = saved.replace(/[^0-9+]/g, '');
+        if (normalized.length >= 10) {
+          EMERGENCY_RELATIVE_NUMBER = normalized;
+        }
+      }
+    } catch (e) {
+      // ignore and fallback
+    }
+    console.log(`📞 Emergency contact number used: ${EMERGENCY_RELATIVE_NUMBER}${EMERGENCY_RELATIVE_NUMBER === DEFAULT_EMERGENCY_RELATIVE_NUMBER ? ' (fallback)' : ' (from worker profile)'}`);
     
+    // Send WhatsApp emergency notification to recruitment/authorities
+    const emergencyMessage = `🚨 EMERGENCY ALERT! 🚨
+
+Worker Name: ${finalWorkerName}
+Worker ID: ${workerId}
+Location: ${addressText}
+Coordinates: ${latitude || 'N/A'}, ${longitude || 'N/A'}
+Time: ${new Date(emergency.timestamp).toLocaleString()}
+Message: ${message || 'Emergency assistance needed'}
+
+Emergency Contact: ${process.env.ISRAEL_EMERGENCY_NUMBER || '100'}
+
+Please respond immediately!`;
+    
+    // Send to recruitment/authorities
     sendWhatsAppMessage(
       process.env.RECRUITMENT_WHATSAPP || '+91 11 4747 4700',
       emergencyMessage,
       { priority: 'critical', type: 'emergency' }
-    ).catch(err => console.error('Emergency WhatsApp error:', err));
+    ).catch(err => console.error('Emergency WhatsApp error (authorities):', err));
+    
+    // Prepare template data for Interakt API
+    // Template structure (approved template: emergency_alert):
+    // Header: "EMERGENCY ALERT" (static, no variables)
+    // Body variables:
+    //   {{1}} = Location
+    //   {{2}} = Coordinates
+    //   {{3}} = Time
+    //   {{4}} = Message
+    //   {{5}} = Recruitment Contact
+    const templateData = {
+      bodyValues: [
+        addressText,                                                        // {{1}} - Location
+        `${latitude ? latitude.toFixed(6) : 'N/A'}, ${longitude ? longitude.toFixed(6) : 'N/A'}`, // {{2}} - Coordinates (formatted)
+        formattedDateTime,                                                  // {{3}} - Time (formatted with date and time)
+        message || 'Emergency assistance needed',                           // {{4}} - Message
+        process.env.RECRUITMENT_PHONE || process.env.RECRUITMENT_WHATSAPP || '+91 11 4747 4700' // {{5}} - Recruitment Contact
+      ],
+      headerValues: [], // Header is static text "EMERGENCY ALERT" (no variables needed)
+      buttonValues: {}  // No buttons in template
+    };
+    
+    console.log(`📋 Template variables prepared for 'emergency_alert' template:`);
+    console.log(`   {{1}} Location: ${addressText}`);
+    console.log(`   {{2}} Coordinates: ${latitude ? latitude.toFixed(6) : 'N/A'}, ${longitude ? longitude.toFixed(6) : 'N/A'}`);
+    console.log(`   {{3}} Time: ${formattedDateTime}`);
+    console.log(`   {{4}} Message: ${message || 'Emergency assistance needed'}`);
+    console.log(`   {{5}} Recruitment Contact: ${process.env.RECRUITMENT_PHONE || process.env.RECRUITMENT_WHATSAPP || '+91 11 4747 4700'}`);
+    
+    // Send WhatsApp to relative emergency number using Interakt template
+    console.log(`\n📱 Attempting to send WhatsApp to ${EMERGENCY_RELATIVE_NUMBER}...`);
+    console.log(`📋 Using template: emergency_alert`);
+    console.log(`📝 Template variables:`, templateData.bodyValues);
+    
+    const relativeResult = await sendWhatsAppMessage(
+      EMERGENCY_RELATIVE_NUMBER,
+      '', // Message text not needed when using template
+      { 
+        priority: 'critical', 
+        type: 'emergency',
+        templateName: 'emergency_alert',
+        templateData: templateData
+      }
+    ).catch(err => {
+      console.error(`❌ Emergency WhatsApp error (relative ${EMERGENCY_RELATIVE_NUMBER}):`, err);
+      return { success: false, error: err.message };
+    });
+    
+    const relativeSuccess = relativeResult?.success || false;
+    const methodUsed = relativeResult?.method || 'unknown';
+    
+    console.log(`\n${relativeSuccess ? '✅' : '❌'} Emergency alert to relative (${EMERGENCY_RELATIVE_NUMBER}): ${relativeSuccess ? 'SUCCESS' : 'FAILED'}`);
+    console.log(`📱 Method used: ${methodUsed}`);
+    
+    if (relativeResult?.whatsappLink) {
+      console.log(`\n🔗 WhatsApp Link Generated: ${relativeResult.whatsappLink}`);
+      console.log(`📋 Copy this link and open it in a browser to send the message manually`);
+      console.log(`💡 Or use browser automation to open this link automatically\n`);
+    }
+    
+    if (relativeResult?.error) {
+      console.error(`❌ Error details:`, relativeResult.error);
+    }
+    
+    if (relativeResult?.messageId) {
+      console.log(`✅ WhatsApp Message ID: ${relativeResult.messageId}`);
+    }
     
     res.json({
       success: true,
       message: 'Emergency alert sent successfully',
-      data: emergency
+      data: {
+        ...emergency,
+        notifications: {
+          authorities: true,
+          relative: {
+            number: EMERGENCY_RELATIVE_NUMBER,
+            successful: relativeSuccess,
+            method: methodUsed,
+            whatsappLink: relativeResult?.whatsappLink || null,
+            messageId: relativeResult?.messageId || null,
+            error: relativeResult?.error || null
+          }
+        }
+      }
     });
   } catch (error) {
     console.error('Error handling emergency:', error);

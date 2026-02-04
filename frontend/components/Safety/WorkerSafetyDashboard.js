@@ -36,6 +36,8 @@ const WorkerSafetyDashboard = ({ workerId = '1' }) => {
   const [emergencyDialog, setEmergencyDialog] = useState(false);
   const [checkInNotes, setCheckInNotes] = useState('');
   const [emergencyMessage, setEmergencyMessage] = useState('');
+  const [liveLocationPreview, setLiveLocationPreview] = useState(null);
+  const [liveLocationStatus, setLiveLocationStatus] = useState({ loading: false, error: null, source: null });
 
   const loadSafetyData = useCallback(async () => {
     try {
@@ -60,6 +62,69 @@ const WorkerSafetyDashboard = ({ workerId = '1' }) => {
       setLoading(false);
     }
   }, [workerId]);
+
+  const captureLiveLocation = useCallback(async () => {
+    setLiveLocationStatus({ loading: true, error: null, source: null });
+
+    // Default fallback: stored location or Tel Aviv coordinates
+    const storedLocation = safetyData?.location?.currentLocation || {
+      latitude: 32.0853,
+      longitude: 34.7818,
+      address: 'Tel Aviv, Israel',
+    };
+
+    const fallback = {
+      latitude: storedLocation.latitude,
+      longitude: storedLocation.longitude,
+      accuracy: null,
+      timestamp: new Date().toISOString(),
+      source: 'fallback',
+      address: storedLocation.address,
+    };
+
+    if (!navigator.geolocation) {
+      setLiveLocationPreview(fallback);
+      setLiveLocationStatus({ loading: false, error: 'Geolocation not supported', source: 'fallback' });
+      return fallback;
+    }
+
+    try {
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          resolve,
+          reject,
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0,
+          }
+        );
+      });
+
+      const live = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+        timestamp: new Date().toISOString(),
+        source: 'gps',
+        address: null, // We don't reverse-geocode on the client
+      };
+
+      setLiveLocationPreview(live);
+      setLiveLocationStatus({ loading: false, error: null, source: 'gps' });
+      return live;
+    } catch (err) {
+      const msg =
+        err?.code === 1
+          ? 'Location permission denied. Using last known/stored location.'
+          : 'Failed to get GPS location. Using last known/stored location.';
+
+      console.error('Error getting GPS location:', err);
+      setLiveLocationPreview(fallback);
+      setLiveLocationStatus({ loading: false, error: msg, source: 'fallback' });
+      return fallback;
+    }
+  }, [safetyData]);
 
   useEffect(() => {
     loadSafetyData();
@@ -91,16 +156,18 @@ const WorkerSafetyDashboard = ({ workerId = '1' }) => {
 
   const handleEmergency = async () => {
     try {
-      const location = safetyData?.location?.currentLocation || {
-        latitude: 32.0853,
-        longitude: 34.7818
-      };
+      // Capture live location again right before sending (best effort)
+      const liveLocation = await captureLiveLocation();
+      console.log('📍 Live location used for emergency:', liveLocation);
 
+      // Send emergency alert with live location and current timestamp
       await api.post(`/safety/worker/${workerId}/emergency`, {
-        latitude: location.latitude,
-        longitude: location.longitude,
+        latitude: liveLocation.latitude,
+        longitude: liveLocation.longitude,
+        accuracy: liveLocation.accuracy,
         type: 'emergency',
-        message: emergencyMessage || 'Emergency assistance needed'
+        message: emergencyMessage || 'Emergency assistance needed',
+        timestamp: liveLocation.timestamp // Current date/time
       });
 
       setEmergencyDialog(false);
@@ -109,6 +176,7 @@ const WorkerSafetyDashboard = ({ workerId = '1' }) => {
       alert('Emergency alert sent! Help is on the way.');
     } catch (error) {
       console.error('Error sending emergency alert:', error);
+      alert('Failed to send emergency alert. Please try again.');
     }
   };
 
@@ -203,7 +271,11 @@ const WorkerSafetyDashboard = ({ workerId = '1' }) => {
             color="error"
             size="large"
             startIcon={<ReportProblem />}
-            onClick={() => setEmergencyDialog(true)}
+            onClick={async () => {
+              setEmergencyDialog(true);
+              // Fetch live location preview when dialog opens
+              await captureLiveLocation();
+            }}
             sx={{ py: 2 }}
           >
             Emergency Alert
@@ -420,9 +492,40 @@ const WorkerSafetyDashboard = ({ workerId = '1' }) => {
             placeholder="Describe your emergency situation..."
             required
           />
-          {location?.currentLocation && (
-            <Alert severity="info" sx={{ mt: 2 }}>
-              Your location will be shared: {location.currentLocation.address}
+          <Alert severity="info" sx={{ mt: 2 }}>
+            {liveLocationStatus.loading ? (
+              <>Getting your current live location…</>
+            ) : (
+              <>
+                Your location will be shared:{' '}
+                {liveLocationPreview?.source === 'gps' ? (
+                  <>
+                    Live GPS ({liveLocationPreview.latitude.toFixed(6)}, {liveLocationPreview.longitude.toFixed(6)})
+                    {typeof liveLocationPreview.accuracy === 'number' ? ` (±${Math.round(liveLocationPreview.accuracy)}m)` : ''}
+                  </>
+                ) : (
+                  <>
+                    {liveLocationPreview?.address || location?.currentLocation?.address || 'Unknown'}
+                    {liveLocationPreview?.latitude && liveLocationPreview?.longitude ? (
+                      <> ({liveLocationPreview.latitude.toFixed(6)}, {liveLocationPreview.longitude.toFixed(6)})</>
+                    ) : null}
+                  </>
+                )}
+              </>
+            )}
+          </Alert>
+          {liveLocationPreview?.source === 'gps' &&
+            typeof liveLocationPreview.accuracy === 'number' &&
+            liveLocationPreview.accuracy > 2000 && (
+              <Alert severity="warning" sx={{ mt: 2 }}>
+                Location accuracy is very low (±{Math.round(liveLocationPreview.accuracy)}m). This can happen if device
+                location services are off, you’re on VPN, or the browser can’t access GPS. Try enabling “Precise
+                location” and retry.
+              </Alert>
+            )}
+          {liveLocationStatus.error && (
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              {liveLocationStatus.error}
             </Alert>
           )}
         </DialogContent>
