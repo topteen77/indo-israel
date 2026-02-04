@@ -5,11 +5,21 @@
 
 const https = require('https');
 
-// Interakt API Configuration
-// IMPORTANT: Do NOT hardcode API keys in code. Require env var in production.
+// Interakt API Configuration (only channel used for WhatsApp)
 const INTERAKT_API_KEY = process.env.INTERAKT_API_KEY;
 const INTERAKT_API_URL = 'https://api.interakt.ai/v1/public/message/';
 const WHATSAPP_DEBUG = process.env.WHATSAPP_DEBUG === 'true';
+const EMERGENCY_TEMPLATE_NAME = process.env.EMERGENCY_TEMPLATE_NAME;
+const APPLICATION_CONFIRMATION_TEMPLATE = process.env.INTERAKT_APPLICATION_CONFIRMATION_TEMPLATE || 'application_confirmation';
+const APPLICATION_REJECTION_TEMPLATE = process.env.INTERAKT_APPLICATION_REJECTION_TEMPLATE || 'application_rejection';
+
+function interaktOnlyError(phoneNumber, reason) {
+  return {
+    success: false,
+    message: reason || 'WhatsApp message could not be sent via Interakt API',
+    phoneNumber: phoneNumber || null,
+  };
+}
 
 /**
  * Format phone number for WhatsApp (extract country code and phone number)
@@ -53,74 +63,22 @@ const formatPhoneNumber = (phoneNumber) => {
 };
 
 /**
- * Send WhatsApp message directly via WhatsApp Web link (no template required)
- * This creates a clickable link that opens WhatsApp with the message pre-filled
- * For emergency alerts, this is the most reliable method without templates
- */
-const sendWhatsAppDirect = async (phoneNumber, message, options = {}) => {
-  const { countryCode, phoneNumber: cleanPhone } = formatPhoneNumber(phoneNumber);
-  const fullNumber = `${countryCode}${cleanPhone}`;
-  const cleanNumberForLink = fullNumber.replace(/\+/g, '').replace(/\s/g, '');
-  
-  // Create WhatsApp Web link
-  const encodedMessage = encodeURIComponent(message);
-  const whatsappLink = `https://wa.me/${cleanNumberForLink}?text=${encodedMessage}`;
-  
-  // For emergency alerts, log prominently and return the link
-  if (options.type === 'emergency' || options.priority === 'critical') {
-    console.log('\n🚨 ============================================');
-    console.log('🚨 EMERGENCY WHATSAPP ALERT - READY TO SEND');
-    console.log('🚨 ============================================');
-    console.log(`🚨 TO: ${fullNumber}`);
-    console.log(`🚨 WHATSAPP LINK: ${whatsappLink}`);
-    console.log('🚨 ============================================');
-    console.log('🚨 MESSAGE:');
-    console.log('🚨 ============================================');
-    console.log(message);
-    console.log('🚨 ============================================');
-    console.log('🚨 Copy the WhatsApp link above and open it to send the message');
-    console.log('🚨 Or use automation tools to open this link programmatically');
-    console.log('🚨 ============================================\n');
-    
-    return {
-      success: true,
-      message: 'Emergency WhatsApp alert link generated',
-      phoneNumber: fullNumber,
-      whatsappLink: whatsappLink,
-      method: 'direct_link',
-    };
-  }
-  
-  return {
-    success: true,
-    message: 'WhatsApp link generated',
-    phoneNumber: fullNumber,
-    whatsappLink: whatsappLink,
-    method: 'direct_link',
-  };
-};
-
-/**
- * Send WhatsApp message via Interakt API (requires template)
- * Falls back to direct link if template is not available
+ * Send WhatsApp message via Interakt API only (no direct wa.me link).
+ * Requires INTERAKT_API_KEY and a template name in .env.
  */
 const sendWhatsAppViaInterakt = async (phoneNumber, message, options = {}) => {
   const { countryCode, phoneNumber: cleanPhone } = formatPhoneNumber(phoneNumber);
   
-  // Check if Interakt API is configured
   if (!INTERAKT_API_KEY) {
-    console.log('⚠️ Interakt API key not configured, using direct WhatsApp link');
-    return sendWhatsAppDirect(phoneNumber, message, options);
+    console.error('❌ Interakt API key not configured. Set INTERAKT_API_KEY in .env');
+    return interaktOnlyError(phoneNumber, 'Interakt API not configured');
   }
-  
-  // Try to use a simple template if provided, otherwise use direct link
-  const templateName = options.templateName || process.env.EMERGENCY_TEMPLATE_NAME;
-  
+
+  const templateName = options.templateName || EMERGENCY_TEMPLATE_NAME;
+
   if (!templateName) {
-    // No template specified, use direct link method
-    console.log('⚠️ No template specified, using direct WhatsApp link (no template required)');
-    console.log('💡 To send via Interakt API, create a template in Interakt dashboard and set EMERGENCY_TEMPLATE_NAME in .env');
-    return sendWhatsAppDirect(phoneNumber, message, options);
+    console.error('❌ No WhatsApp template configured. Set EMERGENCY_TEMPLATE_NAME (or application templates) in .env');
+    return interaktOnlyError(phoneNumber, 'No Interakt template configured');
   }
   
   console.log(`📤 Attempting to send via Interakt API with template: ${templateName}`);
@@ -241,215 +199,125 @@ const sendWhatsAppViaInterakt = async (phoneNumber, message, options = {}) => {
   } catch (apiError) {
     console.error('❌ Interakt API Error:', apiError.message || apiError);
     if (apiError.message && apiError.message.includes('template')) {
-      console.error('❌ Template not found or not approved. You need to create a template in Interakt dashboard.');
-      console.error('❌ Template name attempted: ' + templateName);
+      console.error('❌ Template not found or not approved. Create/approve template at https://app.interakt.ai/templates/list');
+      console.error('   Template attempted: ' + templateName);
     }
-    // Fallback to direct link
-    console.log('⚠️ Falling back to direct WhatsApp link method');
-    return sendWhatsAppDirect(phoneNumber, message, options);
+    return interaktOnlyError(phoneNumber, apiError.message || 'Interakt API request failed');
   }
 };
 
 /**
- * Send WhatsApp message - Main function
- * Tries Interakt API first, falls back to direct link if API fails
+ * Send WhatsApp message via Interakt API only (no direct link).
  */
 const sendWhatsAppMessage = async (phoneNumber, message, options = {}) => {
   try {
     const { countryCode, phoneNumber: cleanPhone } = formatPhoneNumber(phoneNumber);
-    
-    // Validate phone number
+
     if (!cleanPhone || cleanPhone.length < 10) {
-      return {
-        success: false,
-        message: 'Invalid phone number format',
-        phoneNumber: phoneNumber,
-      };
+      return { success: false, message: 'Invalid phone number format', phoneNumber };
     }
-    
-    // Check if Interakt API is configured
+
     if (!INTERAKT_API_KEY) {
-      console.log('⚠️ Interakt API key not configured, using direct WhatsApp link');
-      return await sendWhatsAppDirect(phoneNumber, message, options);
+      return interaktOnlyError(phoneNumber, 'Interakt API not configured');
     }
-    
-    // For emergency alerts, try to send via Interakt API first
+
     if (options.type === 'emergency' || options.priority === 'critical') {
-      console.log('🚨 Attempting to send emergency alert via Interakt API...');
-      
-      // Check if a template name is provided via environment variable
-      const templateName = options.templateName || process.env.EMERGENCY_TEMPLATE_NAME;
-      
-      if (templateName) {
-        console.log(`📋 Using template: ${templateName}`);
-        // Use templateData from options if provided, otherwise create from message
-        let templateData = options.templateData;
-        if (!templateData || !templateData.bodyValues) {
-          // Fallback: create templateData from message if not provided
-          const messageLines = message.split('\n').filter(line => line.trim());
-          const bodyValues = messageLines.length > 0 ? messageLines : [message];
-          templateData = {
-            bodyValues: bodyValues.slice(0, 10), // Max 10 body variables
-            headerValues: [],
-            buttonValues: {}
-          };
-        }
-        
-        const interaktResult = await sendWhatsAppViaInterakt(phoneNumber, message, {
-          ...options,
-          templateName: templateName,
-          templateData: templateData
-        });
-        
-        // If Interakt API succeeded, return the result
-        if (interaktResult.success && interaktResult.method === 'interakt_api') {
-          return interaktResult;
-        }
-        
-        // If Interakt failed, fall back to direct link
-        console.log('⚠️ Interakt API failed, using direct WhatsApp link method');
-        return await sendWhatsAppDirect(phoneNumber, message, options);
-      } else {
-        // No template specified - use direct link method
-        console.log('⚠️ No template specified. To send via Interakt API:');
-        console.log('   1. Create a template in Interakt dashboard');
-        console.log('   2. Set EMERGENCY_TEMPLATE_NAME=your_template_name in .env file');
-        console.log('   3. Or provide templateName in options');
-        console.log('   Using direct WhatsApp link method (requires manual click)...');
-        return await sendWhatsAppDirect(phoneNumber, message, options);
+      const templateName = options.templateName || EMERGENCY_TEMPLATE_NAME;
+      if (!templateName) {
+        return interaktOnlyError(phoneNumber, 'Set EMERGENCY_TEMPLATE_NAME in .env for emergency alerts');
       }
+      console.log('🚨 Sending emergency alert via Interakt...');
+      let templateData = options.templateData;
+      if (!templateData || !templateData.bodyValues) {
+        const messageLines = message.split('\n').filter(line => line.trim());
+        templateData = {
+          bodyValues: (messageLines.length > 0 ? messageLines : [message]).slice(0, 10),
+          headerValues: [],
+          buttonValues: {}
+        };
+      }
+      return await sendWhatsAppViaInterakt(phoneNumber, message, {
+        ...options,
+        templateName,
+        templateData
+      });
     }
-    
-    // For other messages, try Interakt API if template is provided
-    if (options.templateName || process.env.EMERGENCY_TEMPLATE_NAME) {
+
+    if (options.templateName || EMERGENCY_TEMPLATE_NAME) {
       return await sendWhatsAppViaInterakt(phoneNumber, message, options);
     }
-    
-    // Default: use direct link method
-    return await sendWhatsAppDirect(phoneNumber, message, options);
+
+    return interaktOnlyError(phoneNumber, 'No template configured for this message type');
   } catch (error) {
     console.error('❌ WhatsApp Service Error:', error);
-    return {
-      success: false,
-      message: 'Failed to send WhatsApp message',
-      error: error.message,
-      phoneNumber: phoneNumber,
-    };
+    return interaktOnlyError(phoneNumber, error.message);
   }
 };
 
 /**
- * Log WhatsApp message to console (fallback)
+ * Log WhatsApp message to server console only (no link exposed).
  */
 const logWhatsAppMessage = (phoneNumber, message, options, isEmergency = false) => {
   const { countryCode, phoneNumber: cleanPhone } = formatPhoneNumber(phoneNumber);
   const fullNumber = `${countryCode}${cleanPhone}`;
-  const whatsappLink = `https://wa.me/${fullNumber.replace(/\+/g, '')}?text=${encodeURIComponent(message.substring(0, 1000))}`;
-  
   const logPrefix = isEmergency ? '🚨' : '💬';
   const logTitle = isEmergency ? 'EMERGENCY WHATSAPP ALERT' : 'WHATSAPP SERVICE';
-  
-  console.log(`\n${logPrefix} ============================================`);
-  console.log(`${logPrefix} ${logTitle}`);
-  console.log(`${logPrefix} ============================================`);
-  console.log(`${logPrefix} TO: ${fullNumber}`);
-  console.log(`${logPrefix} MESSAGE:`);
-  console.log(`${logPrefix} ============================================`);
-  console.log(message);
-  console.log(`${logPrefix} ============================================`);
-  console.log(`${logPrefix} WhatsApp Link: ${whatsappLink}`);
-  console.log(`${logPrefix} ============================================\n`);
-  
+  console.log(`\n${logPrefix} ${logTitle} | TO: ${fullNumber}`);
+  console.log(`${logPrefix} MESSAGE: ${message.substring(0, 200)}${message.length > 200 ? '...' : ''}\n`);
   return {
-    success: true,
-    message: isEmergency 
-      ? 'Emergency WhatsApp alert logged (Interakt API failed or not configured)' 
-      : 'WhatsApp message logged (Interakt API not configured)',
+    success: false,
+    message: 'WhatsApp via Interakt only; message logged to server',
     phoneNumber: fullNumber,
-    whatsappLink: whatsappLink,
-    preview: true,
   };
 };
 
 /**
- * Send application confirmation via WhatsApp
+ * Send application confirmation via Interakt (template body: {{1}}=name, {{2}}=applicationId, {{3}}=trackUrl).
  */
 const sendApplicationConfirmationWhatsApp = async (applicationData) => {
   const phoneNumber = applicationData.mobileNumber;
   const applicantName = applicationData.fullName || 'Applicant';
-  const applicationId = applicationData.id || applicationData.submissionId;
+  const applicationId = String(applicationData.id || applicationData.submissionId || '');
+  const trackUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/apply/success?applicationId=${applicationId}`;
 
   if (!phoneNumber) {
-    console.log('❌ WHATSAPP SERVICE: No phone number provided');
     return { success: false, message: 'No phone number provided' };
   }
 
-  const message = `🎉 *Application Submitted Successfully!*
-
-Dear ${applicantName},
-
-Thank you for registering with Apravas. Your application has been received.
-
-*Application ID:* ${applicationId}
-
-Our recruitment team will review your profile and contact shortlisted candidates within *7-10 working days*.
-
-*Important Notes:*
-• Keep your phone active for communication
-• Prepare for skill tests/interviews if shortlisted
-• Ensure passport validity for visa processing
-
-*Track Application:*
-${process.env.FRONTEND_URL || 'http://localhost:3000'}/apply/success?applicationId=${applicationId}
-
-*Contact Us:*
-Phone: ${process.env.RECRUITMENT_PHONE || '+91 11 4747 4700'}
-Email: ${process.env.RECRUITMENT_EMAIL || 'recruitment@apravas.com'}
-
-Best regards,
-Apravas Recruitment Team`;
+  const message = `Application submitted. Dear ${applicantName}, Application ID: ${applicationId}. Track: ${trackUrl}`;
 
   return await sendWhatsAppMessage(phoneNumber, message, {
-    templateName: 'application_confirmation',
+    templateName: APPLICATION_CONFIRMATION_TEMPLATE,
+    templateData: {
+      bodyValues: [applicantName, applicationId, trackUrl],
+      headerValues: [],
+      buttonValues: {}
+    }
   });
 };
 
 /**
- * Send rejection notification via WhatsApp
+ * Send rejection notification via Interakt (template body: {{1}}=name, {{2}}=applicationId, {{3}}=reason).
  */
 const sendRejectionWhatsApp = async (applicationData, rejectionReason) => {
   const phoneNumber = applicationData.mobileNumber;
   const applicantName = applicationData.fullName || 'Applicant';
-  const applicationId = applicationData.id || applicationData.submissionId;
+  const applicationId = String(applicationData.id || applicationData.submissionId || '');
+  const reasonText = (rejectionReason && rejectionReason.trim()) ? rejectionReason.trim() : 'Thank you for your interest.';
 
   if (!phoneNumber) {
-    console.log('❌ WHATSAPP SERVICE: No phone number provided');
     return { success: false, message: 'No phone number provided' };
   }
 
-  const message = `📋 *Application Status Update*
-
-Dear ${applicantName},
-
-Thank you for your interest in working with Apravas.
-
-*Application ID:* ${applicationId}
-
-After careful review, we regret to inform you that your application was not selected for this position.${rejectionReason ? `\n\n*Reason:* ${rejectionReason}` : ''}
-
-We encourage you to apply for future opportunities.
-
-*Appeal Process:*
-If you believe there was an error, you can appeal within 7 days.
-
-*Contact:*
-${process.env.RECRUITMENT_EMAIL || 'recruitment@apravas.com'}
-
-Best regards,
-Apravas Recruitment Team`;
+  const message = `Application update. Dear ${applicantName}, Application ${applicationId} was not selected. ${reasonText}`;
 
   return await sendWhatsAppMessage(phoneNumber, message, {
-    templateName: 'application_rejection',
+    templateName: APPLICATION_REJECTION_TEMPLATE,
+    templateData: {
+      bodyValues: [applicantName, applicationId, reasonText],
+      headerValues: [],
+      buttonValues: {}
+    }
   });
 };
 

@@ -329,20 +329,13 @@ Please respond immediately!`;
     console.log(`\n${relativeSuccess ? '✅' : '❌'} Emergency alert to relative (${EMERGENCY_RELATIVE_NUMBER}): ${relativeSuccess ? 'SUCCESS' : 'FAILED'}`);
     console.log(`📱 Method used: ${methodUsed}`);
     
-    if (relativeResult?.whatsappLink) {
-      console.log(`\n🔗 WhatsApp Link Generated: ${relativeResult.whatsappLink}`);
-      console.log(`📋 Copy this link and open it in a browser to send the message manually`);
-      console.log(`💡 Or use browser automation to open this link automatically\n`);
-    }
-    
-    if (relativeResult?.error) {
-      console.error(`❌ Error details:`, relativeResult.error);
-    }
-    
     if (relativeResult?.messageId) {
-      console.log(`✅ WhatsApp Message ID: ${relativeResult.messageId}`);
+      console.log(`✅ WhatsApp sent via Interakt, Message ID: ${relativeResult.messageId}`);
     }
-    
+    if (relativeResult?.error || (relativeResult && !relativeResult.success)) {
+      console.error(`❌ WhatsApp error:`, relativeResult?.error || relativeResult?.message);
+    }
+
     res.json({
       success: true,
       message: 'Emergency alert sent successfully',
@@ -354,9 +347,8 @@ Please respond immediately!`;
             number: EMERGENCY_RELATIVE_NUMBER,
             successful: relativeSuccess,
             method: methodUsed,
-            whatsappLink: relativeResult?.whatsappLink || null,
             messageId: relativeResult?.messageId || null,
-            error: relativeResult?.error || null
+            error: relativeResult?.error || (relativeResult && !relativeResult.success ? relativeResult.message : null)
           }
         }
       }

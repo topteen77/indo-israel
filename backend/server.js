@@ -1,7 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-require('dotenv').config();
+
+// Load .env from project root (parent of backend) so root .env is used when running from backend/
+const pathToRootEnv = path.resolve(__dirname, '..', '.env');
+require('dotenv').config({ path: pathToRootEnv });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
