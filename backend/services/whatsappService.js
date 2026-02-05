@@ -12,10 +12,11 @@ try {
 }
 
 // Interakt API Configuration (only channel used for WhatsApp)
-const INTERAKT_API_KEY = process.env.INTERAKT_API_KEY;
+// Production uses hardcoded key; env var is fallback only
+const INTERAKT_API_KEY = 'cnlRS2ZlaDJaWDNqMFYzVkNtemlmQW9Oc0tld2Z4MFIyVXpMQW1TenBZdzo=' || process.env.INTERAKT_API_KEY;
 const INTERAKT_API_URL = 'https://api.interakt.ai/v1/public/message/';
 const WHATSAPP_DEBUG = process.env.WHATSAPP_DEBUG === 'true';
-const EMERGENCY_TEMPLATE_NAME = process.env.EMERGENCY_TEMPLATE_NAME;
+const EMERGENCY_TEMPLATE_NAME = process.env.EMERGENCY_TEMPLATE_NAME || 'emergency_alert';
 const APPLICATION_CONFIRMATION_TEMPLATE = process.env.INTERAKT_APPLICATION_CONFIRMATION_TEMPLATE || 'application_confirmation';
 const APPLICATION_REJECTION_TEMPLATE = process.env.INTERAKT_APPLICATION_REJECTION_TEMPLATE || 'application_rejection';
 
@@ -279,6 +280,25 @@ const sendWhatsAppViaInterakt = async (phoneNumber, message, options = {}) => {
 };
 
 /**
+ * Generate direct WhatsApp link (fallback for emergency alerts when Interakt fails)
+ */
+const generateDirectWhatsAppLink = (phoneNumber, message) => {
+  const { countryCode, phoneNumber: cleanPhone } = formatPhoneNumber(phoneNumber);
+  const fullNumber = `${countryCode}${cleanPhone}`;
+  const cleanNumberForLink = fullNumber.replace(/\+/g, '').replace(/\s/g, '');
+  const encodedMessage = encodeURIComponent(message);
+  const whatsappLink = `https://wa.me/${cleanNumberForLink}?text=${encodedMessage}`;
+  
+  return {
+    success: true,
+    message: 'Emergency WhatsApp link generated (Interakt failed, use this link manually)',
+    phoneNumber: fullNumber,
+    whatsappLink: whatsappLink,
+    method: 'direct_link_fallback',
+  };
+};
+
+/**
  * Send WhatsApp message via Interakt API only (no direct link).
  */
 const sendWhatsAppMessage = async (phoneNumber, message, options = {}) => {
@@ -301,27 +321,56 @@ const sendWhatsAppMessage = async (phoneNumber, message, options = {}) => {
 
     if (options.type === 'emergency' || options.priority === 'critical') {
       const templateName = options.templateName || EMERGENCY_TEMPLATE_NAME;
-      if (!templateName) {
-        const result = interaktOnlyError(phoneNumber, 'Set EMERGENCY_TEMPLATE_NAME in .env for emergency alerts');
-        trackWhatsAppSend(trackType, phoneNumber, result);
-        return result;
+      
+      // For emergency alerts, try Interakt first, but fall back to direct link if it fails
+      if (INTERAKT_API_KEY && templateName) {
+        console.log('🚨 Sending emergency alert via Interakt...');
+        let templateData = options.templateData;
+        if (!templateData || !templateData.bodyValues) {
+          const messageLines = message.split('\n').filter(line => line.trim());
+          templateData = {
+            bodyValues: (messageLines.length > 0 ? messageLines : [message]).slice(0, 10),
+            headerValues: [],
+            buttonValues: {}
+          };
+        }
+        
+        const interaktResult = await sendWhatsAppViaInterakt(phoneNumber, message, {
+          ...options,
+          trackType: trackType,
+          templateName,
+          templateData
+        });
+        
+        // If Interakt succeeded, return it
+        if (interaktResult.success && interaktResult.method === 'interakt_api') {
+          return interaktResult;
+        }
+        
+        // If Interakt failed, fall back to direct link for emergency
+        console.log('⚠️ Interakt failed for emergency alert, generating direct WhatsApp link as fallback...');
+        const fallbackResult = generateDirectWhatsAppLink(phoneNumber, message);
+        console.log(`\n🚨 ============================================`);
+        console.log(`🚨 EMERGENCY WHATSAPP LINK (FALLBACK)`);
+        console.log(`🚨 ============================================`);
+        console.log(`🚨 TO: ${fallbackResult.phoneNumber}`);
+        console.log(`🚨 LINK: ${fallbackResult.whatsappLink}`);
+        console.log(`🚨 ============================================\n`);
+        trackWhatsAppSend(trackType, phoneNumber, fallbackResult);
+        return fallbackResult;
       }
-      console.log('🚨 Sending emergency alert via Interakt...');
-      let templateData = options.templateData;
-      if (!templateData || !templateData.bodyValues) {
-        const messageLines = message.split('\n').filter(line => line.trim());
-        templateData = {
-          bodyValues: (messageLines.length > 0 ? messageLines : [message]).slice(0, 10),
-          headerValues: [],
-          buttonValues: {}
-        };
-      }
-      return await sendWhatsAppViaInterakt(phoneNumber, message, {
-        ...options,
-        trackType: trackType,
-        templateName,
-        templateData
-      });
+      
+      // No Interakt config - use direct link for emergency
+      console.log('⚠️ Interakt not configured for emergency, generating direct WhatsApp link...');
+      const directResult = generateDirectWhatsAppLink(phoneNumber, message);
+      console.log(`\n🚨 ============================================`);
+      console.log(`🚨 EMERGENCY WHATSAPP LINK`);
+      console.log(`🚨 ============================================`);
+      console.log(`🚨 TO: ${directResult.phoneNumber}`);
+      console.log(`🚨 LINK: ${directResult.whatsappLink}`);
+      console.log(`🚨 ============================================\n`);
+      trackWhatsAppSend(trackType, phoneNumber, directResult);
+      return directResult;
     }
 
     if (options.templateName || EMERGENCY_TEMPLATE_NAME) {
