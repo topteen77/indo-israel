@@ -66,6 +66,9 @@ const LanguageSelector = ({ variant = 'outlined', size = 'medium' }) => {
               '& .MuiSelect-icon': {
                 color: 'white',
               },
+              '& .MuiTypography-root': {
+                color: 'white !important',
+              },
               '&::before': {
                 borderColor: 'rgba(255, 255, 255, 0.42)',
               },
@@ -111,6 +114,9 @@ const LanguageSelector = ({ variant = 'outlined', size = 'medium' }) => {
             color: 'white',
             '& .MuiSelect-icon': {
               color: 'white',
+            },
+            '& .MuiTypography-root': {
+              color: 'white !important',
             },
             '&::before': {
               borderColor: 'rgba(255, 255, 255, 0.42)',
