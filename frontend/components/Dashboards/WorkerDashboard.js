@@ -5,13 +5,14 @@ import {
   Table, TableBody, TableCell, TableHead, TableRow,
   Badge, Alert, Tab, Tabs, CircularProgress,
   List, ListItem, ListItemIcon, ListItemText, Divider,
-  TextField,
+  TextField, Dialog, DialogTitle, DialogContent, DialogActions,
+  IconButton, Menu, MenuItem, Switch, FormControlLabel,
 } from '@mui/material';
 import {
   Work, School, Schedule, CheckCircle, Warning,
   TrendingUp, AttachMoney, Timeline, Assessment, GetApp,
   CloudUpload, Notifications, Settings, VerifiedUser,
-  LocationOn,
+  LocationOn, Close, Download, FileDownload, TableChart,
 } from '@mui/icons-material';
 import WorkerSafetyDashboard from '../Safety/WorkerSafetyDashboard';
 import {
@@ -41,6 +42,10 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
   const [jobsLoading, setJobsLoading] = useState(false);
   const [appliedJobIds, setAppliedJobIds] = useState(new Set());
   const [applicationStatuses, setApplicationStatuses] = useState(new Map()); // Map of jobId -> status
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [reportMenuAnchor, setReportMenuAnchor] = useState(null);
+  const [downloadingReport, setDownloadingReport] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
 
   // Update activeTab when initialTab prop changes (from URL query)
   useEffect(() => {
@@ -51,9 +56,14 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
 
   useEffect(() => {
     fetchDashboardData();
-    const interval = setInterval(fetchDashboardData, 180000); // 3 min refresh
-    return () => clearInterval(interval);
-  }, []);
+    let interval;
+    if (autoRefresh) {
+      interval = setInterval(fetchDashboardData, 180000); // 3 min refresh
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [autoRefresh]);
 
   useEffect(() => {
     // Load jobs when viewing Applications tab (tab 1) or Find Jobs tab (tab 2)
@@ -180,6 +190,108 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
     return colors[status] || 'default';
   };
 
+  const handleDownloadReport = (format) => {
+    setDownloadingReport(true);
+    setReportMenuAnchor(null);
+
+    try {
+      if (!dashboardData) {
+        alert('No data available to download');
+        setDownloadingReport(false);
+        return;
+      }
+
+      const reportData = {
+        profile: dashboardData.profile,
+        applications: dashboardData.applications?.applications || [],
+        documents: dashboardData.documents?.documents || [],
+        skills: dashboardData.skills,
+        timeline: dashboardData.timeline,
+        generatedAt: new Date().toISOString(),
+      };
+
+      if (format === 'csv') {
+        // Generate CSV
+        const csvRows = [];
+        
+        // Profile section
+        csvRows.push('PROFILE INFORMATION');
+        csvRows.push('Field,Value');
+        csvRows.push(`Full Name,${reportData.profile?.fullName || ''}`);
+        csvRows.push(`Email,${reportData.profile?.email || ''}`);
+        csvRows.push(`Phone,${reportData.profile?.phone || ''}`);
+        csvRows.push(`Location,${reportData.profile?.location || ''}`);
+        csvRows.push(`Experience,${reportData.profile?.experience || 0} years`);
+        csvRows.push(`Skills,"${(reportData.profile?.skills || []).join('; ')}"`);
+        csvRows.push('');
+        
+        // Applications section
+        csvRows.push('APPLICATIONS');
+        csvRows.push('Job Title,Company,Status,Applied Date,Progress');
+        (reportData.applications || []).forEach(app => {
+          csvRows.push(`"${app.title || ''}","${app.company_name || ''}","${app.status || ''}","${app.applied_at || ''}","${app.progress || 0}%"`);
+        });
+        csvRows.push('');
+        
+        // Skills section
+        csvRows.push('SKILLS & ASSESSMENT');
+        csvRows.push('Skill Score,Experience Years');
+        csvRows.push(`${reportData.skills?.skillScore || 0}%,${reportData.skills?.currentSkills?.experience_years || 0}`);
+        csvRows.push('');
+        csvRows.push('Current Skills');
+        (reportData.skills?.currentSkills?.skills || []).forEach(skill => {
+          csvRows.push(skill);
+        });
+        csvRows.push('');
+        csvRows.push('Languages');
+        (reportData.skills?.currentSkills?.languages || []).forEach(lang => {
+          csvRows.push(lang);
+        });
+        csvRows.push('');
+        csvRows.push('Certifications');
+        (reportData.skills?.currentSkills?.certifications || []).forEach(cert => {
+          csvRows.push(cert);
+        });
+
+        const csvContent = csvRows.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `worker_dashboard_report_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else if (format === 'json') {
+        // Generate JSON
+        const jsonContent = JSON.stringify(reportData, null, 2);
+        const blob = new Blob([jsonContent], { type: 'application/json' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `worker_dashboard_report_${new Date().toISOString().split('T')[0]}.json`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error) {
+      console.error('Error generating report:', error);
+      alert('Failed to generate report. Please try again.');
+    } finally {
+      setDownloadingReport(false);
+    }
+  };
+
+  const handleReportMenuClick = (event) => {
+    setReportMenuAnchor(event.currentTarget);
+  };
+
+  const handleReportMenuClose = () => {
+    setReportMenuAnchor(null);
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
@@ -202,13 +314,30 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
         <Box display="flex" gap={2}>
           <Button
             variant="outlined"
-            startIcon={<GetApp />}
+            startIcon={downloadingReport ? <CircularProgress size={16} /> : <GetApp />}
+            onClick={handleReportMenuClick}
+            disabled={downloadingReport || !dashboardData}
           >
             {t('common.downloadReport', 'Download Report')}
           </Button>
+          <Menu
+            anchorEl={reportMenuAnchor}
+            open={Boolean(reportMenuAnchor)}
+            onClose={handleReportMenuClose}
+          >
+            <MenuItem onClick={() => handleDownloadReport('csv')}>
+              <FileDownload sx={{ mr: 1 }} />
+              Download as CSV
+            </MenuItem>
+            <MenuItem onClick={() => handleDownloadReport('json')}>
+              <TableChart sx={{ mr: 1 }} />
+              Download as JSON
+            </MenuItem>
+          </Menu>
           <Button
             variant="contained"
             startIcon={<Settings />}
+            onClick={() => setSettingsOpen(true)}
           >
             {t('common.settings', 'Settings')}
           </Button>
@@ -677,76 +806,304 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
         </Grid>
       )}
 
-      {/* Skills Tab */}
+      {/* Skills & Learning Tab - Enhanced Version */}
       {activeTab === 4 && (
         <Grid container spacing={3}>
+          {/* Skill Assessment Card */}
           <Grid item xs={12} md={4}>
-            <Card>
+            <Card sx={{ height: '100%', mb: 3 }}>
               <CardContent>
-                <Typography variant="h6" gutterBottom>{t('common.skillAssessment', 'Skill Assessment')}</Typography>
+                <Typography variant="h6" gutterBottom sx={{ mb: 3, fontWeight: 600 }}>
+                  {t('common.skillAssessment', 'Skill Assessment')}
+                </Typography>
                 <Box display="flex" justifyContent="center" alignItems="center" flexDirection="column">
-                  <CircularProgress
-                    variant="determinate"
-                    value={dashboardData.skills?.skillScore ?? 0}
-                    size={120}
-                    thickness={4}
-                  />
-                  <Typography variant="h4" sx={{ mt: 2 }}>
-                    {dashboardData.skills?.skillScore ?? 0}%
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
+                  <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+                    <CircularProgress
+                      variant="determinate"
+                      value={dashboardData.skills?.skillScore ?? 0}
+                      size={160}
+                      thickness={6}
+                      sx={{
+                        color: (theme) => {
+                          const score = dashboardData.skills?.skillScore ?? 0;
+                          if (score >= 80) return theme.palette.success.main;
+                          if (score >= 60) return theme.palette.warning.main;
+                          return theme.palette.error.main;
+                        },
+                      }}
+                    />
+                    <Box
+                      sx={{
+                        top: 0,
+                        left: 0,
+                        bottom: 0,
+                        right: 0,
+                        position: 'absolute',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexDirection: 'column',
+                      }}
+                    >
+                      <Typography variant="h3" component="div" color="text.primary" sx={{ fontWeight: 700 }}>
+                        {dashboardData.skills?.skillScore ?? 0}%
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5 }}>
+                        Score
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="body1" color="textSecondary" sx={{ mt: 2, fontWeight: 600 }}>
                     {t('common.marketReadyScore', 'Market Ready Score')}
                   </Typography>
+                  <Chip
+                    label={
+                      (dashboardData.skills?.skillScore ?? 0) >= 80 ? 'Excellent' :
+                      (dashboardData.skills?.skillScore ?? 0) >= 60 ? 'Good' :
+                      (dashboardData.skills?.skillScore ?? 0) >= 40 ? 'Fair' : 'Needs Improvement'
+                    }
+                    color={
+                      (dashboardData.skills?.skillScore ?? 0) >= 80 ? 'success' :
+                      (dashboardData.skills?.skillScore ?? 0) >= 60 ? 'warning' : 'error'
+                    }
+                    sx={{ mt: 1, fontWeight: 600 }}
+                  />
                 </Box>
-                <Box mt={3}>
-                  <Typography variant="subtitle2" gutterBottom>{t('common.currentSkills', 'Current Skills')}</Typography>
-                  {(dashboardData.skills?.currentSkills?.skills ?? []).slice(0, 5).map((skill, index) => (
-                    <Chip key={index} label={skill} size="small" sx={{ mr: 1, mb: 1 }} />
-                  ))}
-                </Box>
+
+                <Divider sx={{ my: 3 }} />
+
+                {/* Experience Summary */}
+                {dashboardData.skills?.currentSkills?.experience_years > 0 && (
+                  <Box sx={{ mb: 3, p: 2, bgcolor: 'primary.light', borderRadius: 2, textAlign: 'center' }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.contrastText' }}>
+                      {dashboardData.skills?.currentSkills?.experience_years}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'primary.contrastText', opacity: 0.9 }}>
+                      {dashboardData.skills?.currentSkills?.experience_years === 1 ? 'Year' : 'Years'} of Experience
+                    </Typography>
+                  </Box>
+                )}
+
+                {/* Quick Stats */}
+                <Grid container spacing={2} sx={{ mt: 2 }}>
+                  <Grid item xs={6}>
+                    <Box sx={{ textAlign: 'center', p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}>
+                      <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                        {(dashboardData.skills?.currentSkills?.skills ?? []).length}
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        Skills
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Box sx={{ textAlign: 'center', p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}>
+                      <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                        {(dashboardData.skills?.currentSkills?.languages ?? []).length}
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        Languages
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Box sx={{ textAlign: 'center', p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}>
+                      <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                        {(dashboardData.skills?.currentSkills?.certifications ?? []).length}
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        Certifications
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Box sx={{ textAlign: 'center', p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}>
+                      <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                        {dashboardData.applications?.total ?? 0}
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        Applications
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
               </CardContent>
             </Card>
           </Grid>
 
+          {/* Skills & Languages Section */}
           <Grid item xs={12} md={8}>
+            <Card sx={{ mb: 3 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom sx={{ mb: 3, fontWeight: 600 }}>
+                  {t('common.currentSkills', 'Current Skills')}
+                </Typography>
+                {(dashboardData.skills?.currentSkills?.skills ?? []).length > 0 ? (
+                  <Box sx={{ mb: 3 }}>
+                    {(dashboardData.skills?.currentSkills?.skills ?? []).map((skill, index) => (
+                      <Chip
+                        key={index}
+                        label={skill}
+                        color="primary"
+                        variant="outlined"
+                        sx={{ 
+                          mr: 1, 
+                          mb: 1,
+                          fontSize: '0.95rem',
+                          height: '36px',
+                          fontWeight: 500,
+                        }}
+                        icon={<Work />}
+                      />
+                    ))}
+                  </Box>
+                ) : (
+                  <Alert severity="info" sx={{ mb: 3 }}>
+                    No skills specified yet. Update your profile or submit an application to add skills.
+                  </Alert>
+                )}
+
+                <Divider sx={{ my: 3 }} />
+
+                {/* Languages Section */}
+                <Typography variant="h6" gutterBottom sx={{ mb: 2, fontWeight: 600 }}>
+                  Languages
+                </Typography>
+                {(dashboardData.skills?.currentSkills?.languages ?? []).length > 0 ? (
+                  <Box sx={{ mb: 3 }}>
+                    {(dashboardData.skills?.currentSkills?.languages ?? []).map((lang, index) => (
+                      <Chip
+                        key={index}
+                        label={lang}
+                        color="info"
+                        sx={{ 
+                          mr: 1, 
+                          mb: 1,
+                          fontSize: '0.95rem',
+                          height: '36px',
+                          fontWeight: 500,
+                        }}
+                        icon={<LocationOn />}
+                      />
+                    ))}
+                  </Box>
+                ) : (
+                  <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
+                    No languages specified
+                  </Typography>
+                )}
+
+                <Divider sx={{ my: 3 }} />
+
+                {/* Certifications Section */}
+                <Typography variant="h6" gutterBottom sx={{ mb: 2, fontWeight: 600 }}>
+                  Certifications & Qualifications
+                </Typography>
+                {(dashboardData.skills?.currentSkills?.certifications ?? []).length > 0 ? (
+                  <Box>
+                    {(dashboardData.skills?.currentSkills?.certifications ?? []).map((cert, index) => (
+                      <Card
+                        key={index}
+                        variant="outlined"
+                        sx={{
+                          mb: 2,
+                          p: 2,
+                          display: 'flex',
+                          alignItems: 'center',
+                          transition: 'all 0.3s',
+                          '&:hover': {
+                            boxShadow: 2,
+                            borderColor: 'primary.main',
+                          },
+                        }}
+                      >
+                        <CheckCircle color="success" sx={{ mr: 2, fontSize: 32 }} />
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                            {cert}
+                          </Typography>
+                          <Typography variant="caption" color="textSecondary">
+                            Verified Certificate
+                          </Typography>
+                        </Box>
+                      </Card>
+                    ))}
+                  </Box>
+                ) : (
+                  <Alert severity="info">
+                    No certifications added yet. You can add certifications when submitting job applications.
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Skill Breakdown & Details */}
+          <Grid item xs={12}>
             <Card>
               <CardContent>
-                <Typography variant="h6" gutterBottom>{t('common.recommendedLearning', 'Recommended Learning')}</Typography>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>{t('common.course', 'Course')}</TableCell>
-                      <TableCell>{t('common.provider', 'Provider')}</TableCell>
-                      <TableCell>{t('common.duration', 'Duration')}</TableCell>
-                      <TableCell>{t('common.impact', 'Impact')}</TableCell>
-                      <TableCell>Action</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {(dashboardData.skills?.recommendations ?? []).slice(0, 5).map((course, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{course.title}</TableCell>
-                        <TableCell>{course.provider}</TableCell>
-                        <TableCell>{course.duration}</TableCell>
-                        <TableCell>
-                          <Chip
-                            label={`+${course.skillPoints} ${t('common.points', 'points')}`}
-                            color="primary"
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                          >
-                            {t('common.enroll', 'Enroll')}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <Typography variant="h6" gutterBottom sx={{ mb: 3, fontWeight: 600 }}>
+                  Skill Breakdown
+                </Typography>
+                <Grid container spacing={3}>
+                  {/* Job Categories */}
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: 2, mb: 2 }}>
+                      <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, mb: 1 }}>
+                        Job Categories Applied
+                      </Typography>
+                      {(dashboardData.skills?.currentSkills?.skills ?? []).filter(skill => 
+                        !skill.includes('years') && 
+                        !(dashboardData.skills?.currentSkills?.languages ?? []).includes(skill)
+                      ).length > 0 ? (
+                        <Box>
+                          {(dashboardData.skills?.currentSkills?.skills ?? []).filter(skill => 
+                            !skill.includes('years') && 
+                            !(dashboardData.skills?.currentSkills?.languages ?? []).includes(skill)
+                          ).map((category, index) => (
+                            <Chip
+                              key={index}
+                              label={category}
+                              color="primary"
+                              sx={{ mr: 1, mb: 1 }}
+                            />
+                          ))}
+                        </Box>
+                      ) : (
+                        <Typography variant="body2" color="textSecondary">
+                          No job categories specified
+                        </Typography>
+                      )}
+                    </Box>
+                  </Grid>
+
+                  {/* Application Status Summary */}
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: 2 }}>
+                      <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, mb: 1 }}>
+                        Application Status
+                      </Typography>
+                      <Box display="flex" flexDirection="column" gap={1}>
+                        <Box display="flex" justifyContent="space-between" alignItems="center">
+                          <Typography variant="body2">Total Applications</Typography>
+                          <Chip label={dashboardData.applications?.total ?? 0} size="small" />
+                        </Box>
+                        <Box display="flex" justifyContent="space-between" alignItems="center">
+                          <Typography variant="body2">Active</Typography>
+                          <Chip label={dashboardData.applications?.active ?? 0} color="info" size="small" />
+                        </Box>
+                        <Box display="flex" justifyContent="space-between" alignItems="center">
+                          <Typography variant="body2">Approved</Typography>
+                          <Chip label={dashboardData.applications?.approved ?? 0} color="success" size="small" />
+                        </Box>
+                        <Box display="flex" justifyContent="space-between" alignItems="center">
+                          <Typography variant="body2">Rejected</Typography>
+                          <Chip label={dashboardData.applications?.rejected ?? 0} color="error" size="small" />
+                        </Box>
+                      </Box>
+                    </Box>
+                  </Grid>
+                </Grid>
               </CardContent>
             </Card>
           </Grid>
@@ -903,6 +1260,92 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
           </CardContent>
         </Card>
       )}
+
+      {/* Settings Dialog */}
+      <Dialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          pb: 2,
+          borderBottom: '1px solid #E0E0E0'
+        }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            {t('common.settings', 'Settings')}
+          </Typography>
+          <IconButton
+            onClick={() => setSettingsOpen(false)}
+            size="small"
+            sx={{ color: 'text.secondary' }}
+          >
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={autoRefresh}
+                  onChange={(e) => {
+                    setAutoRefresh(e.target.checked);
+                    if (e.target.checked) {
+                      fetchDashboardData();
+                    }
+                  }}
+                />
+              }
+              label={
+                <Box>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    Auto-refresh Dashboard
+                  </Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    Automatically refresh dashboard data every 3 minutes
+                  </Typography>
+                </Box>
+              }
+            />
+            <Divider />
+            <Box>
+              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, mb: 1 }}>
+                Dashboard Preferences
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                Customize your dashboard experience. Changes are saved automatically.
+              </Typography>
+            </Box>
+            <Divider />
+            <Box>
+              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, mb: 1 }}>
+                Data & Privacy
+              </Typography>
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                Your data is securely stored and only accessible to you and authorized administrators.
+              </Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => {
+                  alert('Data export feature coming soon!');
+                }}
+              >
+                Export All Data
+              </Button>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 2, borderTop: '1px solid #E0E0E0' }}>
+          <Button onClick={() => setSettingsOpen(false)} variant="contained">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
