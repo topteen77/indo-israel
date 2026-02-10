@@ -30,6 +30,8 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [typingMessageIndex, setTypingMessageIndex] = useState(null);
+  const [sessionId, setSessionId] = useState(null);
+  const [suggestedActions, setSuggestedActions] = useState([]);
   const messagesEndRef = useRef(null);
   const hasProcessedInitialQuestion = useRef(false);
   const typingIntervalRef = useRef(null);
@@ -99,50 +101,76 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
     setTyping(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const botResponse = generateBotResponse(messageText);
-      
-      // Add bot message with typing effect
-      const botMessage = {
-        id: Date.now() + 1,
-        type: 'bot',
-        content: '',
-        fullContent: botResponse,
-        timestamp: new Date(),
-        isTyping: true,
-      };
+      // Call backend API with RAG
+      const response = await api.post('/chatbot/message', {
+        message: messageText,
+        sessionId: sessionId,
+        userId: 'guest',
+        metadata: { source: 'web_widget', url: window.location.href }
+      });
 
-      setMessages(prev => [...prev, botMessage]);
-      setTypingMessageIndex(botMessage.id);
-      setIsTyping(true);
-      
-      // Simulate typing effect
-      let index = 0;
-      typingIntervalRef.current = setInterval(() => {
-        if (index < botResponse.length) {
-          setMessages(prev => prev.map(msg => 
-            msg.id === botMessage.id 
-              ? { ...msg, content: botResponse.substring(0, index + 1) }
-              : msg
-          ));
-          index++;
-          scrollToBottom();
-        } else {
-          clearInterval(typingIntervalRef.current);
-          setMessages(prev => prev.map(msg => 
-            msg.id === botMessage.id 
-              ? { ...msg, content: botResponse, isTyping: false }
-              : msg
-          ));
-          setIsTyping(false);
-          setTypingMessageIndex(null);
-          setLoading(false);
-          setTyping(false);
+      if (response.data.success) {
+        const result = response.data.data;
+        
+        // Update session ID if provided
+        if (result.sessionId && !sessionId) {
+          setSessionId(result.sessionId);
         }
-      }, 30);
+
+        // Update suggested actions
+        if (result.suggestedActions) {
+          setSuggestedActions(result.suggestedActions);
+        }
+
+        const botResponse = result.response;
+        
+        // Add bot message with typing effect
+        const botMessage = {
+          id: Date.now() + 1,
+          type: 'bot',
+          content: '',
+          fullContent: botResponse,
+          timestamp: new Date(),
+          isTyping: true,
+          sources: result.sources || [],
+          confidence: result.confidence || 'medium',
+          intent: result.intent || 'general',
+        };
+
+        setMessages(prev => [...prev, botMessage]);
+        setTypingMessageIndex(botMessage.id);
+        setIsTyping(true);
+        
+        // Simulate typing effect
+        let index = 0;
+        typingIntervalRef.current = setInterval(() => {
+          if (index < botResponse.length) {
+            setMessages(prev => prev.map(msg => 
+              msg.id === botMessage.id 
+                ? { ...msg, content: botResponse.substring(0, index + 1) }
+                : msg
+            ));
+            index++;
+            scrollToBottom();
+          } else {
+            clearInterval(typingIntervalRef.current);
+            setMessages(prev => prev.map(msg => 
+              msg.id === botMessage.id 
+                ? { ...msg, content: botResponse, isTyping: false }
+                : msg
+            ));
+            setIsTyping(false);
+            setTypingMessageIndex(null);
+            setLoading(false);
+            setTyping(false);
+          }
+        }, 30);
+      } else {
+        throw new Error(response.data.message || 'Failed to get response');
+      }
 
     } catch (error) {
+      console.error('Chatbot API error:', error);
       const errorMessage = {
         id: Date.now() + 1,
         type: 'bot',
@@ -168,143 +196,22 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
     ));
   };
 
-  const generateBotResponse = (query) => {
-    const lowerQuery = query.toLowerCase();
-    
-    if (lowerQuery.includes('visa') || lowerQuery.includes('work permit')) {
-      return `🛂 **Visa Process for Working in Israel**
-
-Here's a step-by-step guide:
-
-**1. Job Offer** 📝
-   - Secure a job offer from an Israeli employer
-   - Ensure the employer is PIBA verified
-
-**2. Work Permit Application** 📋
-   - Your employer applies through PIBA (Population and Immigration Authority)
-   - Processing time: 30-45 days
-
-**3. Medical Examination** 🏥
-   - Complete medical fitness certificate
-   - Must be from authorized medical center
-
-**4. Documentation** 📄
-   - Valid passport (minimum 2 years validity)
-   - Educational certificates
-   - Experience certificates
-   - Police clearance certificate
-
-**5. Visa Processing** ⏳
-   - PIBA reviews your application
-   - Background checks are conducted
-
-**6. Final Approval** ✅
-   - Receive work visa
-   - Travel arrangements can be made
-
-⚠️ **Important**: This is guidance only. Consult NSDC India or PIBA Israel for official procedures.
-
-**Contact:**
-- NSDC India: +91-11-4747-4700
-- PIBA Israel: +972-2-629-4666`;
-    }
-    
-    if (lowerQuery.includes('skill') || lowerQuery.includes('requirement')) {
-      return `🎓 **Skill Requirements by Job Category**
-
-**🏗️ Construction Jobs:**
-   ✓ Minimum 2-3 years experience
-   ✓ Safety certifications
-   ✓ Physical fitness certificate
-   ✓ Basic English/Hebrew communication
-
-**🏥 Healthcare Jobs:**
-   ✓ Nursing or healthcare certifications
-   ✓ Relevant work experience
-   ✓ Medical license (if applicable)
-   ✓ Language proficiency
-
-**🌾 Agriculture Jobs:**
-   ✓ Experience in farming/agriculture
-   ✓ Physical fitness
-   ✓ Willingness to work in rural areas
-
-**💻 IT Jobs:**
-   ✓ Technical certifications
-   ✓ Programming skills
-   ✓ Relevant degree/experience
-   ✓ English proficiency
-
-For specific requirements, check job postings or contact NSDC International.`;
-    }
-    
-    if (lowerQuery.includes('employer') || lowerQuery.includes('verify')) {
-      return `✅ **Employer Verification Guide**
-
-**How to Verify:**
-1. **Company Registration** - Check Israeli Companies Authority
-2. **PIBA Authorization** - Verify employer can hire foreign workers
-3. **License Check** - Confirm valid labor license
-4. **NSDC Verification** - Contact NSDC India for assistance
-
-**🚨 Red Flags to Watch:**
-   ⚠️ Requests for upfront payment
-   ⚠️ Unclear job descriptions
-   ⚠️ Pressure to sign quickly
-   ⚠️ Unverified contact information
-
-**Always verify through official channels before accepting any job offer.**
-
-**Verification Assistance:**
-- NSDC India: info@nsdcindia.org
-- PIBA Israel: piba@piba.gov.il`;
-    }
-    
-    if (lowerQuery.includes('salary') || lowerQuery.includes('benefit') || lowerQuery.includes('wage')) {
-      return `💰 **Salary & Benefits in Israel**
-
-**🏗️ Construction Workers:**
-   💵 Monthly: ₹80,000 - ₹1,20,000
-   🏠 Accommodation: Usually provided
-   🏥 Health Insurance: Mandatory
-   ⏰ Hours: 8-10 hours/day, 6 days/week
-
-**🏥 Healthcare Workers:**
-   💵 Monthly: ₹1,00,000 - ₹1,50,000
-   📚 Professional development
-   🏥 Health insurance
-   🏖️ Paid leave
-
-**📦 General Benefits:**
-   ✓ Accommodation (often provided)
-   ✓ Health insurance coverage
-   ✓ Return ticket (after contract)
-   ✓ Legal protection under Israeli labor laws
-
-⚠️ **Note**: Salaries vary by experience, skills, and employer. Always confirm in your employment contract.
-
-For specific information, contact NSDC International.`;
-    }
-    
-    // Default response
-    return `🤖 I can help you with information about:
-
-📋 **Topics I can assist with:**
-   • Visa processes and work permits
-   • Skill requirements for different jobs
-   • Employer verification
-   • Salary and benefits
-   • Recruitment procedures
-   • Required documents
-   • NSDC and PIBA guidelines
-
-💡 **Tip**: Ask a specific question or use the quick prompts below for faster answers.
-
-⚠️ **For official legal advice**, please consult with NSDC India or PIBA Israel directly.
-
-**📞 Official Contacts:**
-- NSDC India: +91-11-4747-4700, info@nsdcindia.org
-- PIBA Israel: +972-2-629-4666, piba@piba.gov.il`;
+  const handleSuggestedAction = async (action) => {
+    const actionMessages = {
+      'schedule_consultation': 'I want to schedule a consultation',
+      'download_checklist': 'Can you send me the document checklist?',
+      'check_eligibility': 'Check my eligibility',
+      'fee_calculator': 'What are the total fees?',
+      'speak_to_human': 'I want to speak with a human counselor',
+      'contact_human': 'Connect me with Apravas support'
+    };
+   
+    const message = actionMessages[action] || action;
+    setInput(message);
+    // Trigger send after a brief delay to allow input to update
+    setTimeout(() => {
+      handleSendMessage();
+    }, 100);
   };
 
   const handleConsent = () => {
@@ -321,73 +228,11 @@ For specific information, contact NSDC International.`;
       return;
     }
 
-    const userMessage = {
-      id: Date.now(),
-      type: 'user',
-      content: prompt,
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setLoading(true);
-    setTyping(true);
-
-    try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const botResponse = generateBotResponse(prompt);
-      
-      const botMessage = {
-        id: Date.now() + 1,
-        type: 'bot',
-        content: '',
-        fullContent: botResponse,
-        timestamp: new Date(),
-        isTyping: true,
-      };
-
-      setMessages(prev => [...prev, botMessage]);
-      setTypingMessageIndex(botMessage.id);
-      setIsTyping(true);
-      
-      let index = 0;
-      typingIntervalRef.current = setInterval(() => {
-        if (index < botResponse.length) {
-          setMessages(prev => prev.map(msg => 
-            msg.id === botMessage.id 
-              ? { ...msg, content: botResponse.substring(0, index + 1) }
-              : msg
-          ));
-          index++;
-          scrollToBottom();
-        } else {
-          clearInterval(typingIntervalRef.current);
-          setMessages(prev => prev.map(msg => 
-            msg.id === botMessage.id 
-              ? { ...msg, content: botResponse, isTyping: false }
-              : msg
-          ));
-          setIsTyping(false);
-          setTypingMessageIndex(null);
-          setLoading(false);
-          setTyping(false);
-        }
-      }, 30);
-
-    } catch (error) {
-      const errorMessage = {
-        id: Date.now() + 1,
-        type: 'bot',
-        content: 'I encountered an error processing your request. Please try again or contact support.',
-        error: true,
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
-      setLoading(false);
-      setTyping(false);
-      setIsTyping(false);
-    }
+    setInput(prompt);
+    // Use the same handleSendMessage function
+    setTimeout(() => {
+      handleSendMessage();
+    }, 100);
   };
 
   const handleClearChat = () => {
@@ -797,6 +642,61 @@ For specific information, contact NSDC International.`;
                           .replace(/• /g, '• '),
                       }}
                     />
+                    {/* Source Citations */}
+                    {message.sources && message.sources.length > 0 && (
+                      <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid rgba(0,0,0,0.1)' }}>
+                        <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5, color: 'rgba(123, 15, 255, 1)' }}>
+                          Sources:
+                        </Typography>
+                        {message.sources.map((source, idx) => (
+                          <Box key={idx} sx={{ mb: 0.5 }}>
+                            <Typography variant="caption" sx={{ fontSize: '11px', color: 'rgba(114, 114, 113, 1)' }}>
+                              {source.authority || 'Official Source'}
+                              {source.country && ` (${source.country})`}
+                              {source.url && (
+                                <a 
+                                  href={source.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  style={{ 
+                                    color: 'rgba(123, 15, 255, 1)', 
+                                    textDecoration: 'none',
+                                    marginLeft: '4px'
+                                  }}
+                                  onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                                  onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
+                                >
+                                  [View Source]
+                                </a>
+                              )}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
+                    {/* Confidence Indicator */}
+                    {message.confidence && message.type === 'bot' && (
+                      <Box sx={{ mt: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Typography variant="caption" sx={{ fontSize: '10px', color: 'rgba(114, 114, 113, 1)' }}>
+                          Confidence: 
+                        </Typography>
+                        <Chip
+                          label={message.confidence.toUpperCase()}
+                          size="small"
+                          sx={{
+                            height: '16px',
+                            fontSize: '9px',
+                            bgcolor: message.confidence === 'high' ? 'rgba(76, 175, 80, 0.1)' : 
+                                     message.confidence === 'medium' ? 'rgba(255, 152, 0, 0.1)' : 
+                                     'rgba(244, 67, 54, 0.1)',
+                            color: message.confidence === 'high' ? 'rgba(76, 175, 80, 1)' : 
+                                   message.confidence === 'medium' ? 'rgba(255, 152, 0, 1)' : 
+                                   'rgba(244, 67, 54, 1)',
+                            fontWeight: 600,
+                          }}
+                        />
+                      </Box>
+                    )}
                     {/* Quick Option Buttons */}
                     {message.showQuickOptions && consentGiven && (
                       <Box sx={{ 
@@ -986,6 +886,53 @@ For specific information, contact NSDC International.`;
             <div ref={messagesEndRef} />
           </Box>
         </DialogContent>
+
+        {/* Suggested Actions */}
+        {suggestedActions.length > 0 && (
+          <Box
+            sx={{
+              px: 2,
+              py: 1.5,
+              bgcolor: 'white',
+              borderTop: '1px solid #e2e8f0',
+              display: 'flex',
+              gap: 1,
+              overflowX: 'auto',
+              flexWrap: 'wrap',
+              '&::-webkit-scrollbar': {
+                height: '4px',
+              },
+              '&::-webkit-scrollbar-track': {
+                background: '#f0f0f0',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                background: '#7B0FFF',
+                borderRadius: '10px',
+              },
+            }}
+          >
+            {suggestedActions.map((action, idx) => (
+              <Chip
+                key={idx}
+                label={action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                onClick={() => handleSuggestedAction(action)}
+                sx={{
+                  bgcolor: '#f1f5f9',
+                  border: '1px solid #e2e8f0',
+                  color: '#475569',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    bgcolor: '#7B0FFF',
+                    color: 'white',
+                    borderColor: '#7B0FFF',
+                  },
+                  transition: 'all 0.2s',
+                }}
+              />
+            ))}
+          </Box>
+        )}
 
         {/* Input Area - Matching the provided design */}
         <Box

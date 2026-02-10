@@ -34,6 +34,7 @@ const crmRoutes = require('./routes/crm');
 const googleSheetsRoutes = require('./routes/googleSheets');
 const merfRoutes = require('./routes/merf');
 const aiJobGeneratorRoutes = require('./routes/aiJobGenerator');
+const chatbotRoutes = require('./routes/chatbot');
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -47,6 +48,7 @@ app.use('/api/crm', crmRoutes);
 app.use('/api/google-sheets', googleSheetsRoutes);
 app.use('/api/merf', merfRoutes);
 app.use('/api/ai-job-generator', aiJobGeneratorRoutes);
+app.use('/api/chatbot', chatbotRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
