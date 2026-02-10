@@ -1,5 +1,5 @@
 # CD: on push to main, optionally push images to GHCR and/or deploy to server via SSH.
-# For auto-deploy to server, set repo secrets: DEPLOY_HOST, DEPLOY_USER, SSH_PRIVATE_KEY; optional: DEPLOY_PATH
+# Uses repo secrets: AWS_HOST, AWS_USER, AWS_SSH_KEY. Enable: Variables → DEPLOY_TO_SERVER = true; optional: DEPLOY_PATH
 name: CD
 
 on:
@@ -69,22 +69,37 @@ jobs:
           cache-to: type=gha,mode=max
 
   # Deploy to server: SSH in, cd to project, git fetch/reset, run ./deploy.sh deploy
-  # Enable: set variable DEPLOY_TO_SERVER = true; set DEPLOY_PATH in Variables or Secrets (e.g. /home/ubuntu/indo-israel)
+  # Uses existing repo secrets: AWS_HOST, AWS_USER, AWS_SSH_KEY. Enable: Variables → DEPLOY_TO_SERVER = true
   deploy-to-server:
     name: Deploy to server
     runs-on: ubuntu-latest
     needs: build-and-push
     if: vars.DEPLOY_TO_SERVER == 'true'
     env:
-      # Path can be in Variables (Settings → Variables) or Secrets (Settings → Secrets)
       DEPLOY_PATH: ${{ vars.DEPLOY_PATH || secrets.DEPLOY_PATH }}
     steps:
+      - name: Check deploy secrets
+        run: |
+          if [ -z "${{ secrets.AWS_HOST }}" ]; then
+            echo "::error::Missing secret AWS_HOST. Add it in Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          if [ -z "${{ secrets.AWS_USER }}" ]; then
+            echo "::error::Missing secret AWS_USER. Add it in Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          if [ -z "${{ secrets.AWS_SSH_KEY }}" ]; then
+            echo "::error::Missing secret AWS_SSH_KEY. Add your SSH private key in Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          echo "Secrets present for host ${{ secrets.AWS_HOST }}."
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          host: ${{ secrets.AWS_HOST }}
+          username: ${{ secrets.AWS_USER }}
+          key: ${{ secrets.AWS_SSH_KEY }}
           envs: DEPLOY_PATH
           script: |
             set -e
