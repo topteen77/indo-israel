@@ -1,14 +1,30 @@
 const nodemailer = require('nodemailer');
 const { loadTemplate, prepareTemplateData } = require('../utils/templateLoader');
 const path = require('path');
+const { getSetting } = require('../database/db');
+
+/** From address: admin setting (default_from_email) > env DEFAULT_FROM_EMAIL > SMTP user. */
+function getDefaultFromEmail() {
+  const override = getSetting('default_from_email');
+  if (override && String(override).trim()) return String(override).trim();
+  if (process.env.DEFAULT_FROM_EMAIL) return process.env.DEFAULT_FROM_EMAIL;
+  return `"Apravas Recruitment" <${process.env.SMTP_USER || process.env.EMAIL_HOST_USER || 'noreply@apravas.com'}>`;
+}
+
+function isEmailServiceEnabled() {
+  return getSetting('email_service_enabled') === 'true' || process.env.EMAIL_SERVICE_ENABLED === 'true';
+}
+
+function getRecruitmentEmail() {
+  return getSetting('recruitment_email') || process.env.RECRUITMENT_EMAIL || 'recruitment@apravas.com';
+}
 
 // Email service configuration
 let transporter = null;
 
 const initializeEmailService = () => {
-  // Check if email service is enabled
-  if (process.env.EMAIL_SERVICE_ENABLED !== 'true') {
-    console.log('Email service is disabled. Set EMAIL_SERVICE_ENABLED=true to enable.');
+  if (!isEmailServiceEnabled()) {
+    console.log('Email service is disabled. Enable in Admin → Settings → Email or set EMAIL_SERVICE_ENABLED=true in .env');
     return false;
   }
 
@@ -36,7 +52,7 @@ const initializeEmailService = () => {
 };
 
 // Initialize on module load (server.js also calls initializeEmailService() after dotenv for correct order)
-if (process.env.EMAIL_SERVICE_ENABLED === 'true') {
+if (isEmailServiceEnabled()) {
   initializeEmailService();
 }
 
@@ -44,13 +60,13 @@ if (process.env.EMAIL_SERVICE_ENABLED === 'true') {
  * Send a test email (e.g. to verify SES/SMTP). To: RECRUITMENT_EMAIL or provided address.
  */
 const sendTestEmail = async (toEmail = null) => {
-  const to = toEmail || process.env.RECRUITMENT_EMAIL || 'recruitment@apravas.com';
-  if (!transporter || process.env.EMAIL_SERVICE_ENABLED !== 'true') {
-    console.log('📧 Email service not enabled; test email skipped. Set EMAIL_SERVICE_ENABLED=true in .env');
+  const to = toEmail || getRecruitmentEmail();
+  if (!transporter || !isEmailServiceEnabled()) {
+    console.log('📧 Email service not enabled; test email skipped. Enable in Admin → Settings → Email.');
     return { success: false, message: 'Email service not enabled', preview: true };
   }
   try {
-    const from = process.env.DEFAULT_FROM_EMAIL || `"Apravas" <${process.env.SMTP_USER}>`;
+    const from = getDefaultFromEmail();
     const info = await transporter.sendMail({
       from,
       to,
@@ -80,12 +96,12 @@ const sendApplicationConfirmation = async (applicationData) => {
   }
 
   // If email service is not configured, log to console instead
-  if (!transporter || process.env.EMAIL_SERVICE_ENABLED !== 'true') {
+  if (!transporter || !isEmailServiceEnabled()) {
     console.log('\n📧 ============================================');
     console.log('📧 EMAIL SERVICE (Console Preview Mode)');
     console.log('📧 ============================================');
     console.log('📧 Email service is not enabled. Showing preview:');
-    console.log('📧 To enable: Set EMAIL_SERVICE_ENABLED=true in .env');
+    console.log('📧 To enable: Admin → Settings → Email, or set EMAIL_SERVICE_ENABLED=true in .env');
     console.log('📧 ============================================');
     console.log('📧 TO:', applicantEmail);
     console.log('📧 FROM:', `"Apravas Recruitment" <${process.env.SMTP_USER || 'recruitment@apravas.com'}>`);
@@ -105,7 +121,7 @@ const sendApplicationConfirmation = async (applicationData) => {
     console.log(`📧 Track Application: ${process.env.FRONTEND_URL || 'http://localhost:3000'}/apply/success?applicationId=${applicationId}`);
     console.log('📧 Contact:');
     console.log(`📧   Phone: ${process.env.RECRUITMENT_PHONE || '+91 11 4747 4700'}`);
-    console.log(`📧   Email: ${process.env.RECRUITMENT_EMAIL || 'recruitment@apravas.com'}`);
+    console.log(`📧   Email: ${getRecruitmentEmail()}`);
     console.log(`📧   WhatsApp: ${process.env.RECRUITMENT_WHATSAPP || '+91 11 4747 4700'}`);
     console.log('📧 ============================================');
     console.log('📧 HTML Email would be sent with full formatting');
@@ -196,7 +212,7 @@ const sendApplicationConfirmation = async (applicationData) => {
     }
 
     const mailOptions = {
-      from: process.env.DEFAULT_FROM_EMAIL || `"Apravas Recruitment" <${process.env.SMTP_USER}>`,
+      from: getDefaultFromEmail(),
       to: applicantEmail,
       subject: 'Application Submitted Successfully - Apravas Recruitment',
       html,
@@ -258,7 +274,7 @@ const sendRejectionEmail = async (applicationData, rejectionReason) => {
   }
 
   // If email service is not configured, log to console instead
-  if (!transporter || process.env.EMAIL_SERVICE_ENABLED !== 'true') {
+  if (!transporter || !isEmailServiceEnabled()) {
     console.log('\n📧 ============================================');
     console.log('📧 REJECTION EMAIL (Console Preview Mode)');
     console.log('📧 ============================================');
@@ -279,7 +295,7 @@ const sendRejectionEmail = async (applicationData, rejectionReason) => {
     }
     console.log('📧 We encourage you to apply for future opportunities.');
     console.log('📧 Appeal Process: If you believe there was an error, you can appeal within 7 days.');
-    console.log(`📧 Contact: ${process.env.RECRUITMENT_EMAIL || 'recruitment@apravas.com'}`);
+    console.log(`📧 Contact: ${getRecruitmentEmail()}`);
     console.log('📧 ============================================');
     console.log('📧 PDF Rejection Letter would be attached');
     console.log('📧 ============================================\n');
@@ -335,7 +351,7 @@ const sendRejectionEmail = async (applicationData, rejectionReason) => {
     }
 
     const mailOptions = {
-      from: process.env.DEFAULT_FROM_EMAIL || `"Apravas Recruitment" <${process.env.SMTP_USER}>`,
+      from: getDefaultFromEmail(),
       to: applicantEmail,
       subject: 'Application Status Update - Apravas Recruitment',
       html,
@@ -395,7 +411,7 @@ const sendAppealConfirmation = async (appealData) => {
   }
 
   // If email service is not configured, log to console instead
-  if (!transporter || process.env.EMAIL_SERVICE_ENABLED !== 'true') {
+  if (!transporter || !isEmailServiceEnabled()) {
     console.log('\n📧 ============================================');
     console.log('📧 APPEAL CONFIRMATION EMAIL (Console Preview Mode)');
     console.log('📧 ============================================');
@@ -456,7 +472,7 @@ const sendAppealConfirmation = async (appealData) => {
     }
 
     const mailOptions = {
-      from: process.env.DEFAULT_FROM_EMAIL || `"Apravas Recruitment" <${process.env.SMTP_USER}>`,
+      from: getDefaultFromEmail(),
       to: applicantEmail,
       subject: 'Appeal Submitted Successfully - Apravas Recruitment',
       html,

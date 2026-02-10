@@ -97,6 +97,25 @@ function seedUsers() {
   console.log(`✅ Seeded ${users.length} users`);
 }
 
+// Seed login page settings (nav label + test credentials) if not set
+function seedLoginPageSettings() {
+  if (!db.getSetting('nav_login_label')) {
+    db.setSetting('nav_login_label', 'Login');
+    console.log('✅ Set default nav_login_label');
+  }
+  if (!db.getSetting('login_page_credentials')) {
+    const defaultCredentials = [
+      { role: 'employer', email: 'employer@israel.com', password: 'employer123', name: 'Israeli Employer', description: 'Post jobs and manage applications' },
+      { role: 'employer', email: 'employer2@israel.com', password: 'employer123', name: 'Sarah Levy', description: 'Post jobs and manage applications' },
+      { role: 'worker', email: 'worker@india.com', password: 'worker123', name: 'Rajesh Kumar', description: 'Browse jobs and submit applications' },
+      { role: 'worker', email: 'worker2@india.com', password: 'worker123', name: 'Amit Sharma', description: 'Browse jobs and submit applications' },
+      { role: 'worker', email: 'worker3@india.com', password: 'worker123', name: 'Priya Patel', description: 'Browse jobs and submit applications' },
+    ];
+    db.setSetting('login_page_credentials', JSON.stringify(defaultCredentials));
+    console.log('✅ Set default login_page_credentials');
+  }
+}
+
 // Seed jobs
 function seedJobs() {
   const categories = [
@@ -300,7 +319,8 @@ function seed() {
     seedUsers();
     seedJobs();
     seedApplications();
-    
+    seedLoginPageSettings();
+
     console.log('\n✅ Database seeding completed successfully!');
     console.log('\n📊 Summary:');
     const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
@@ -320,4 +340,4 @@ if (require.main === module) {
   seed();
 }
 
-module.exports = { seed, seedUsers, seedJobs, seedApplications };
+module.exports = { seed, seedUsers, seedJobs, seedApplications, seedLoginPageSettings };

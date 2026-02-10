@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import {
   Container,
@@ -6,84 +6,20 @@ import {
   Typography,
   Card,
   CardContent,
-  TextField,
   Button,
   Grid,
   Paper,
-  Divider,
   Alert,
-  IconButton,
-  InputAdornment,
   Chip,
+  TextField,
+  InputAdornment,
+  IconButton,
 } from '@mui/material';
-import {
-  Visibility,
-  VisibilityOff,
-  AdminPanelSettings,
-  Business,
-  Person,
-  ContentCopy,
-  CheckCircle,
-} from '@mui/icons-material';
+import { Business, Person, AdminPanelSettings, Visibility, VisibilityOff } from '@mui/icons-material';
 import { API_BASE_URL } from '../utils/api';
 
-// Available login credentials
-const loginCredentials = [
-  {
-    role: 'admin',
-    email: 'admin@apravas.com',
-    password: 'admin123',
-    name: 'Apravas Admin',
-    icon: AdminPanelSettings,
-    color: '#d32f2f',
-    description: 'Full access to all features and data',
-  },
-  {
-    role: 'employer',
-    email: 'employer@israel.com',
-    password: 'employer123',
-    name: 'Israeli Employer',
-    icon: Business,
-    color: '#1976d2',
-    description: 'Post jobs and manage applications',
-  },
-  {
-    role: 'employer',
-    email: 'employer2@israel.com',
-    password: 'employer123',
-    name: 'Sarah Levy',
-    icon: Business,
-    color: '#1976d2',
-    description: 'Post jobs and manage applications',
-  },
-  {
-    role: 'worker',
-    email: 'worker@india.com',
-    password: 'worker123',
-    name: 'Rajesh Kumar',
-    icon: Person,
-    color: '#2e7d32',
-    description: 'Browse jobs and submit applications',
-  },
-  {
-    role: 'worker',
-    email: 'worker2@india.com',
-    password: 'worker123',
-    name: 'Amit Sharma',
-    icon: Person,
-    color: '#2e7d32',
-    description: 'Browse jobs and submit applications',
-  },
-  {
-    role: 'worker',
-    email: 'worker3@india.com',
-    password: 'worker123',
-    name: 'Priya Patel',
-    icon: Person,
-    color: '#2e7d32',
-    description: 'Browse jobs and submit applications',
-  },
-];
+const roleIcon = { admin: AdminPanelSettings, employer: Business, worker: Person };
+const roleColor = { admin: '#d32f2f', employer: '#1976d2', worker: '#2e7d32' };
 
 export default function LoginPage() {
   const router = useRouter();
@@ -92,41 +28,49 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [copiedField, setCopiedField] = useState(null);
+  const [credentials, setCredentials] = useState([]);
+  const [credentialsLoading, setCredentialsLoading] = useState(true);
+  const [showDemoCredentials, setShowDemoCredentials] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/auth/login-credentials`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.credentials)) setCredentials(data.credentials);
+        if (typeof data.showDemoCredentials === 'boolean') setShowDemoCredentials(data.showDemoCredentials);
+      })
+      .catch(() => setCredentials([]))
+      .finally(() => setCredentialsLoading(false));
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-
-      const data = await response.json();
-
+      const text = await response.text();
+      let data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = { success: false, message: 'Invalid response from server. Is the backend running?' };
+      }
       if (data.success) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-
-        // Redirect based on role
-        if (data.user.role === 'admin') {
-          router.push('/dashboard/admin');
-        } else if (data.user.role === 'employer') {
-          router.push('/dashboard/employer');
-        } else if (data.user.role === 'worker') {
-          router.push('/dashboard/worker');
-        }
+        if (data.user.role === 'admin') router.push('/dashboard/admin');
+        else if (data.user.role === 'employer') router.push('/dashboard/employer');
+        else if (data.user.role === 'worker') router.push('/dashboard/worker');
       } else {
         setError(data.message || 'Login failed. Please check your credentials.');
       }
-    } catch (error) {
-      console.error('Login error:', error);
+    } catch (err) {
+      console.error('Login error:', err);
       setError('Login failed. Please try again.');
     } finally {
       setLoading(false);
@@ -134,88 +78,52 @@ export default function LoginPage() {
   };
 
   const quickLogin = async (credential) => {
-    setEmail(credential.email);
-    setPassword(credential.password);
     setError('');
-
+    // Populate login form with this demo account's email (and password if provided)
+    setEmail(credential.email);
+    setPassword(credential.password || '');
+    setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const hasPassword = credential.password != null && String(credential.password).trim() !== '';
+      const url = credential.demoOnly || !hasPassword ? `${API_BASE_URL}/auth/login-as-demo` : `${API_BASE_URL}/auth/login`;
+      const body = hasPassword ? { email: credential.email, password: credential.password } : { email: credential.email };
+      const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: credential.email, password: credential.password }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
       });
-
-      const data = await response.json();
-
+      const text = await response.text();
+      let data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = { success: false, message: 'Invalid response from server. Is the backend running?' };
+      }
       if (data.success) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-
-        if (data.user.role === 'admin') {
-          router.push('/dashboard/admin');
-        } else if (data.user.role === 'employer') {
-          router.push('/dashboard/employer');
-        } else if (data.user.role === 'worker') {
-          router.push('/dashboard/worker');
-        }
+        if (data.user.role === 'admin') router.push('/dashboard/admin');
+        else if (data.user.role === 'employer') router.push('/dashboard/employer');
+        else if (data.user.role === 'worker') router.push('/dashboard/worker');
       } else {
         setError(data.message || 'Login failed.');
       }
-    } catch (error) {
-      console.error('Login error:', error);
+    } catch (err) {
+      console.error('Login error:', err);
       setError('Login failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const copyToClipboard = (text, field) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 2000);
-  };
-
-  const getRoleColor = (role) => {
-    switch (role) {
-      case 'admin':
-        return '#d32f2f';
-      case 'employer':
-        return '#1976d2';
-      case 'worker':
-        return '#2e7d32';
-      default:
-        return '#666';
-    }
-  };
-
-  const getRoleLabel = (role) => {
-    switch (role) {
-      case 'admin':
-        return 'Admin';
-      case 'employer':
-        return 'Employer';
-      case 'worker':
-        return 'Worker';
-      default:
-        return role;
-    }
-  };
+  const getRoleLabel = (role) =>
+    role === 'admin' ? 'Admin' : role === 'employer' ? 'Employer' : role === 'worker' ? 'Worker' : role || '';
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        bgcolor: '#f5f5f5',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        py: 4,
-      }}
-    >
+    <Box sx={{ minHeight: '100vh', bgcolor: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4 }}>
       <Container maxWidth="lg">
         <Grid container spacing={4}>
-          {/* Login Form */}
-          <Grid item xs={12} md={5}>
+          <Grid item xs={12} md={showDemoCredentials ? 5 : 12}>
             <Card elevation={3}>
               <CardContent sx={{ p: 4 }}>
                 <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, mb: 1 }}>
@@ -224,13 +132,11 @@ export default function LoginPage() {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                   Sign in to access your dashboard
                 </Typography>
-
                 {error && (
                   <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
                     {error}
                   </Alert>
                 )}
-
                 <Box component="form" onSubmit={handleLogin}>
                   <TextField
                     fullWidth
@@ -242,7 +148,6 @@ export default function LoginPage() {
                     sx={{ mb: 2 }}
                     autoComplete="email"
                   />
-
                   <TextField
                     fullWidth
                     label="Password"
@@ -255,179 +160,104 @@ export default function LoginPage() {
                     InputProps={{
                       endAdornment: (
                         <InputAdornment position="end">
-                          <IconButton
-                            onClick={() => setShowPassword(!showPassword)}
-                            edge="end"
-                          >
+                          <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
                             {showPassword ? <VisibilityOff /> : <Visibility />}
                           </IconButton>
                         </InputAdornment>
                       ),
                     }}
                   />
-
-                  <Button
-                    type="submit"
-                    fullWidth
-                    variant="contained"
-                    size="large"
-                    disabled={loading}
-                    sx={{ mb: 2, py: 1.5 }}
-                  >
+                  <Button type="submit" fullWidth variant="contained" size="large" disabled={loading} sx={{ mb: 2, py: 1.5 }}>
                     {loading ? 'Logging in...' : 'Login'}
                   </Button>
-
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    onClick={() => router.push('/')}
-                    sx={{ py: 1.5 }}
-                  >
+                  <Button fullWidth variant="outlined" onClick={() => router.push('/')} sx={{ py: 1.5 }}>
                     Back to Home
                   </Button>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
-
-          {/* Credentials Display */}
-          <Grid item xs={12} md={7}>
-            <Card elevation={3}>
-              <CardContent sx={{ p: 4 }}>
-                <Typography variant="h5" gutterBottom sx={{ fontWeight: 700, mb: 1 }}>
-                  Test Credentials
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  Click on any credential card to login instantly, or copy credentials to use in the form
-                </Typography>
-
-                <Grid container spacing={2}>
-                  {loginCredentials.map((credential, index) => {
-                    const Icon = credential.icon;
-                    return (
-                      <Grid item xs={12} sm={6} key={index}>
-                        <Paper
-                          elevation={2}
-                          sx={{
-                            p: 2,
-                            border: `2px solid ${credential.color}20`,
-                            borderRadius: 2,
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            '&:hover': {
-                              borderColor: credential.color,
-                              transform: 'translateY(-2px)',
-                              boxShadow: 4,
-                            },
-                          }}
-                          onClick={() => quickLogin(credential)}
-                        >
-                          <Box display="flex" alignItems="center" mb={1.5}>
-                            <Box
+          {showDemoCredentials && (
+            <Grid item xs={12} md={7}>
+              <Card elevation={3}>
+                <CardContent sx={{ p: 4 }}>
+                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 700, mb: 1 }}>
+                    Demo accounts
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    Click a card to log in
+                  </Typography>
+                  {credentialsLoading ? (
+                    <Typography color="text.secondary">Loading…</Typography>
+                  ) : credentials.length === 0 ? (
+                    <Typography color="text.secondary">No demo credentials configured. Admin → Settings → General.</Typography>
+                  ) : (
+                    <Grid container spacing={2}>
+                      {credentials.map((credential, index) => {
+                        const role = (credential.role || 'worker').toLowerCase();
+                        const Icon = roleIcon[role] || Person;
+                        const color = roleColor[role] || '#666';
+                        return (
+                          <Grid item xs={12} sm={6} key={index}>
+                            <Paper
+                              elevation={2}
                               sx={{
-                                bgcolor: `${credential.color}15`,
-                                p: 1,
-                                borderRadius: 1,
-                                mr: 1.5,
+                                p: 2,
+                                border: `2px solid ${color}20`,
+                                borderRadius: 2,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                '&:hover': { borderColor: color, transform: 'translateY(-2px)', boxShadow: 4 },
                               }}
+                              onClick={() => quickLogin(credential)}
                             >
-                              <Icon sx={{ color: credential.color }} />
-                            </Box>
-                            <Box flex={1}>
-                              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                                {credential.name}
-                              </Typography>
-                              <Chip
-                                label={getRoleLabel(credential.role)}
+                              <Box display="flex" alignItems="center" mb={1.5}>
+                                <Box sx={{ bgcolor: `${color}15`, p: 1, borderRadius: 1, mr: 1.5 }}>
+                                  <Icon sx={{ color }} />
+                                </Box>
+                                <Box flex={1}>
+                                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                                    {credential.name || credential.email}
+                                  </Typography>
+                                  <Chip
+                                    label={getRoleLabel(credential.role)}
+                                    size="small"
+                                    sx={{ bgcolor: `${color}20`, color, fontWeight: 600, mt: 0.5 }}
+                                  />
+                                </Box>
+                              </Box>
+                              {credential.description && (
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  sx={{ fontStyle: 'italic', display: 'block', mb: 1 }}
+                                >
+                                  {credential.description}
+                                </Typography>
+                              )}
+                              <Button
+                                fullWidth
+                                variant="contained"
                                 size="small"
-                                sx={{
-                                  bgcolor: `${credential.color}20`,
-                                  color: credential.color,
-                                  fontWeight: 600,
-                                  mt: 0.5,
-                                }}
-                              />
-                            </Box>
-                          </Box>
-
-                          <Divider sx={{ my: 1.5 }} />
-
-                          <Box mb={1}>
-                            <Box display="flex" alignItems="center" mb={0.5}>
-                              <Typography variant="caption" color="text.secondary" sx={{ minWidth: 60 }}>
-                                Email:
-                              </Typography>
-                              <Typography variant="body2" sx={{ flex: 1, fontFamily: 'monospace' }}>
-                                {credential.email}
-                              </Typography>
-                              <IconButton
-                                size="small"
+                                disabled={loading}
+                                sx={{ mt: 1, bgcolor: color, '&:hover': { bgcolor: color, opacity: 0.9 } }}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  copyToClipboard(credential.email, `email-${index}`);
+                                  quickLogin(credential);
                                 }}
-                                sx={{ ml: 0.5 }}
                               >
-                                {copiedField === `email-${index}` ? (
-                                  <CheckCircle fontSize="small" color="success" />
-                                ) : (
-                                  <ContentCopy fontSize="small" />
-                                )}
-                              </IconButton>
-                            </Box>
-
-                            <Box display="flex" alignItems="center">
-                              <Typography variant="caption" color="text.secondary" sx={{ minWidth: 60 }}>
-                                Password:
-                              </Typography>
-                              <Typography variant="body2" sx={{ flex: 1, fontFamily: 'monospace' }}>
-                                {credential.password}
-                              </Typography>
-                              <IconButton
-                                size="small"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  copyToClipboard(credential.password, `password-${index}`);
-                                }}
-                                sx={{ ml: 0.5 }}
-                              >
-                                {copiedField === `password-${index}` ? (
-                                  <CheckCircle fontSize="small" color="success" />
-                                ) : (
-                                  <ContentCopy fontSize="small" />
-                                )}
-                              </IconButton>
-                            </Box>
-                          </Box>
-
-                          <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                            {credential.description}
-                          </Typography>
-
-                          <Button
-                            fullWidth
-                            variant="contained"
-                            size="small"
-                            sx={{
-                              mt: 2,
-                              bgcolor: credential.color,
-                              '&:hover': { bgcolor: credential.color, opacity: 0.9 },
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              quickLogin(credential);
-                            }}
-                          >
-                            Login as {getRoleLabel(credential.role)}
-                          </Button>
-                        </Paper>
-                      </Grid>
-                    );
-                  })}
-                </Grid>
-              </CardContent>
-            </Card>
-          </Grid>
+                                Login as {getRoleLabel(credential.role)}
+                              </Button>
+                            </Paper>
+                          </Grid>
+                        );
+                      })}
+                    </Grid>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          )}
         </Grid>
       </Container>
     </Box>

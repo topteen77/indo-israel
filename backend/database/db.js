@@ -351,6 +351,15 @@ function initializeDatabase() {
     )
   `);
 
+  // App settings (e.g. default_from_email) - admin-editable
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // WhatsApp send log (Interakt) - for admin dashboard
   db.exec(`
     CREATE TABLE IF NOT EXISTS whatsapp_log (
@@ -401,10 +410,35 @@ function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_location_history_timestamp ON location_history(timestamp);
   `);
 
+  // Add demo account columns to users if missing (migration)
+  try {
+    db.exec('ALTER TABLE users ADD COLUMN is_demo_account INTEGER DEFAULT 0');
+  } catch (e) {
+    if (!/duplicate column name/i.test(e.message)) throw e;
+  }
+  try {
+    db.exec('ALTER TABLE users ADD COLUMN demo_password TEXT');
+  } catch (e) {
+    if (!/duplicate column name/i.test(e.message)) throw e;
+  }
   console.log('✅ Database initialized successfully');
 }
 
 // Initialize on module load
 initializeDatabase();
 
+function getSetting(key) {
+  const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key);
+  return row ? row.value : null;
+}
+
+function setSetting(key, value) {
+  db.prepare(`
+    INSERT INTO app_settings (key, value, updatedAt) VALUES (?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updatedAt = CURRENT_TIMESTAMP
+  `).run(key, value);
+}
+
 module.exports = db;
+module.exports.getSetting = getSetting;
+module.exports.setSetting = setSetting;

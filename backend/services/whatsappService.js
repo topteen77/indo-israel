@@ -11,14 +11,29 @@ try {
   db = null;
 }
 
-// Interakt API Configuration (only channel used for WhatsApp)
-// Production uses hardcoded key; env var is fallback only
-const INTERAKT_API_KEY = 'cnlRS2ZlaDJaWDNqMFYzVkNtemlmQW9Oc0tld2Z4MFIyVXpMQW1TenBZdzo=' || process.env.INTERAKT_API_KEY;
 const INTERAKT_API_URL = 'https://api.interakt.ai/v1/public/message/';
 const WHATSAPP_DEBUG = process.env.WHATSAPP_DEBUG === 'true';
-const EMERGENCY_TEMPLATE_NAME = process.env.EMERGENCY_TEMPLATE_NAME || 'emergency_alert';
-const APPLICATION_CONFIRMATION_TEMPLATE = process.env.INTERAKT_APPLICATION_CONFIRMATION_TEMPLATE || 'application_confirmation';
-const APPLICATION_REJECTION_TEMPLATE = process.env.INTERAKT_APPLICATION_REJECTION_TEMPLATE || 'application_rejection';
+
+function getInteraktApiKey() {
+  if (!db || !db.getSetting) return process.env.INTERAKT_API_KEY || '';
+  return db.getSetting('interakt_api_key') || process.env.INTERAKT_API_KEY || '';
+}
+
+function getWhatsAppTemplate(name) {
+  const key = name === 'emergency' ? 'emergency_template_name' : name === 'application_confirmation' ? 'application_confirmation_template' : name === 'application_rejection' ? 'application_rejection_template' : null;
+  if (!key || !db || !db.getSetting) {
+    if (name === 'emergency') return process.env.EMERGENCY_TEMPLATE_NAME || 'emergency_alert';
+    if (name === 'application_confirmation') return process.env.INTERAKT_APPLICATION_CONFIRMATION_TEMPLATE || 'application_confirmation';
+    if (name === 'application_rejection') return process.env.INTERAKT_APPLICATION_REJECTION_TEMPLATE || 'application_rejection';
+    return 'emergency_alert';
+  }
+  const v = db.getSetting(key);
+  if (v) return v;
+  if (name === 'emergency') return process.env.EMERGENCY_TEMPLATE_NAME || 'emergency_alert';
+  if (name === 'application_confirmation') return process.env.INTERAKT_APPLICATION_CONFIRMATION_TEMPLATE || 'application_confirmation';
+  if (name === 'application_rejection') return process.env.INTERAKT_APPLICATION_REJECTION_TEMPLATE || 'application_rejection';
+  return 'emergency_alert';
+}
 
 function interaktOnlyError(phoneNumber, reason) {
   return {
@@ -128,24 +143,25 @@ const formatPhoneNumber = (phoneNumber) => {
 
 /**
  * Send WhatsApp message via Interakt API only (no direct wa.me link).
- * Requires INTERAKT_API_KEY and a template name in .env.
+ * Uses Interakt API key and template names from Admin → Settings → WhatsApp or .env.
  */
 const sendWhatsAppViaInterakt = async (phoneNumber, message, options = {}) => {
   const { countryCode, phoneNumber: cleanPhone } = formatPhoneNumber(phoneNumber);
   
   const trackType = options.trackType || options.type || 'unknown';
 
-  if (!INTERAKT_API_KEY) {
-    console.error('❌ Interakt API key not configured. Set INTERAKT_API_KEY in .env');
+  const apiKey = getInteraktApiKey();
+  if (!apiKey) {
+    console.error('❌ Interakt API key not configured. Set in Admin → Settings → WhatsApp or INTERAKT_API_KEY in .env');
     const result = interaktOnlyError(phoneNumber, 'Interakt API not configured');
     trackWhatsAppSend(trackType, phoneNumber, result);
     return result;
   }
 
-  const templateName = options.templateName || EMERGENCY_TEMPLATE_NAME;
+  const templateName = options.templateName || getWhatsAppTemplate('emergency');
 
   if (!templateName) {
-    console.error('❌ No WhatsApp template configured. Set EMERGENCY_TEMPLATE_NAME (or application templates) in .env');
+    console.error('❌ No WhatsApp template configured. Set in Admin → Settings → WhatsApp or .env');
     const result = interaktOnlyError(phoneNumber, 'No Interakt template configured');
     trackWhatsAppSend(trackType, phoneNumber, result);
     return result;
@@ -213,7 +229,7 @@ const sendWhatsAppViaInterakt = async (phoneNumber, message, options = {}) => {
       path: apiUrl.pathname,
       method: 'POST',
       headers: {
-        'Authorization': `Basic ${INTERAKT_API_KEY}`,
+        'Authorization': `Basic ${apiKey}`,
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(payloadString)
       }
@@ -313,17 +329,18 @@ const sendWhatsAppMessage = async (phoneNumber, message, options = {}) => {
       return result;
     }
 
-    if (!INTERAKT_API_KEY) {
+    const apiKey = getInteraktApiKey();
+    if (!apiKey) {
       const result = interaktOnlyError(phoneNumber, 'Interakt API not configured');
       trackWhatsAppSend(trackType, phoneNumber, result);
       return result;
     }
 
     if (options.type === 'emergency' || options.priority === 'critical') {
-      const templateName = options.templateName || EMERGENCY_TEMPLATE_NAME;
+      const templateName = options.templateName || getWhatsAppTemplate('emergency');
       
       // For emergency alerts, try Interakt first, but fall back to direct link if it fails
-      if (INTERAKT_API_KEY && templateName) {
+      if (apiKey && templateName) {
         console.log('🚨 Sending emergency alert via Interakt...');
         let templateData = options.templateData;
         if (!templateData || !templateData.bodyValues) {
@@ -373,7 +390,7 @@ const sendWhatsAppMessage = async (phoneNumber, message, options = {}) => {
       return directResult;
     }
 
-    if (options.templateName || EMERGENCY_TEMPLATE_NAME) {
+    if (options.templateName || getWhatsAppTemplate('emergency')) {
       return await sendWhatsAppViaInterakt(phoneNumber, message, { ...options, trackType });
     }
 
@@ -422,7 +439,7 @@ const sendApplicationConfirmationWhatsApp = async (applicationData) => {
 
   return await sendWhatsAppMessage(phoneNumber, message, {
     trackType: 'application_confirmation',
-    templateName: APPLICATION_CONFIRMATION_TEMPLATE,
+    templateName: getWhatsAppTemplate('application_confirmation'),
     templateData: {
       bodyValues: [applicantName, applicationId, trackUrl],
       headerValues: [],
@@ -448,7 +465,7 @@ const sendRejectionWhatsApp = async (applicationData, rejectionReason) => {
 
   return await sendWhatsAppMessage(phoneNumber, message, {
     trackType: 'application_rejection',
-    templateName: APPLICATION_REJECTION_TEMPLATE,
+    templateName: getWhatsAppTemplate('application_rejection'),
     templateData: {
       bodyValues: [applicantName, applicationId, reasonText],
       headerValues: [],

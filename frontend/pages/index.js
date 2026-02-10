@@ -218,101 +218,35 @@ export default function Home() {
               APRAVAS
             </Typography>
             <Stack direction="row" spacing={2} alignItems="center">
+              <Button
+                variant="outlined"
+                startIcon={<HomeIcon />}
+                onClick={() => router.push('/')}
+                sx={{ borderRadius: '25px', px: 3 }}
+              >
+                Home
+              </Button>
               {mounted && user ? (
-                <>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {user.fullName || user.name || 'User'}
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    startIcon={<Dashboard />}
-                    onClick={() => {
-                      if (user.role === 'admin') router.push('/dashboard/admin');
-                      else if (user.role === 'employer') router.push('/dashboard/employer');
-                      else if (user.role === 'worker') router.push('/dashboard/worker');
-                      else router.push('/');
-                    }}
-                    sx={{ borderRadius: '25px', px: 3 }}
-                  >
-                    Dashboard
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    onClick={() => {
-                      localStorage.removeItem('token');
-                      localStorage.removeItem('user');
-                      setUser(null);
-                      router.push('/');
-                    }}
-                    sx={{ borderRadius: '25px', px: 3 }}
-                  >
-                    Logout
-                  </Button>
-                </>
+                <Button
+                  variant="outlined"
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    setUser(null);
+                    router.push('/');
+                  }}
+                  sx={{ borderRadius: '25px', px: 3 }}
+                >
+                  Logout
+                </Button>
               ) : (
-                <>
-                  <Button
-                    variant="outlined"
-                    onClick={() => router.push('/login')}
-                    sx={{ borderRadius: '25px', px: 3 }}
-                  >
-                    Login
-                  </Button>
-                  <Button
-                    variant="contained"
-                    startIcon={<Business />}
-                    sx={{
-                      background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-                      borderRadius: '25px',
-                      px: 3,
-                      color: 'white',
-                      '&:hover': {
-                        background: 'linear-gradient(135deg, #1565c0 0%, #1976d2 100%)',
-                        transform: 'translateY(-2px)',
-                      },
-                      transition: 'all 0.3s ease',
-                    }}
-                    onClick={() => quickLogin('admin')}
-                  >
-                    Admin
-                  </Button>
-                  <Button
-                    variant="contained"
-                    startIcon={<Work />}
-                    sx={{
-                      background: 'linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)',
-                      borderRadius: '25px',
-                      px: 3,
-                      color: 'white',
-                      '&:hover': {
-                        background: 'linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%)',
-                        transform: 'translateY(-2px)',
-                      },
-                      transition: 'all 0.3s ease',
-                    }}
-                    onClick={() => quickLogin('employer')}
-                  >
-                    Employer
-                  </Button>
-                  <Button
-                    variant="contained"
-                    startIcon={<Person />}
-                    sx={{
-                      background: 'linear-gradient(135deg, #ed6c02 0%, #e65100 100%)',
-                      borderRadius: '25px',
-                      px: 3,
-                      color: 'white',
-                      '&:hover': {
-                        background: 'linear-gradient(135deg, #e65100 0%, #ed6c02 100%)',
-                        transform: 'translateY(-2px)',
-                      },
-                      transition: 'all 0.3s ease',
-                    }}
-                    onClick={() => quickLogin('worker')}
-                  >
-                    Worker
-                  </Button>
-                </>
+                <Button
+                  variant="outlined"
+                  onClick={() => router.push('/login')}
+                  sx={{ borderRadius: '25px', px: 3 }}
+                >
+                  Login
+                </Button>
               )}
             </Stack>
           </Box>

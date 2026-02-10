@@ -1,6 +1,14 @@
 const fs = require('fs');
 const path = require('path');
 
+function getSetting(key) {
+  try {
+    const db = require('../database/db');
+    if (db.getSetting) return db.getSetting(key);
+  } catch (e) {}
+  return null;
+}
+
 /**
  * Load HTML template and replace placeholders
  * @param {string} templateName - Name of the template file (without .html)
@@ -71,9 +79,9 @@ const getDefaultTemplateData = () => {
       day: 'numeric',
     }),
     frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
-    recruitmentPhone: process.env.RECRUITMENT_PHONE || '+91 11 4747 4700',
-    recruitmentEmail: process.env.RECRUITMENT_EMAIL || 'recruitment@apravas.com',
-    recruitmentWhatsApp: process.env.RECRUITMENT_WHATSAPP || '+91 11 4747 4700',
+    recruitmentPhone: getSetting('recruitment_phone') || process.env.RECRUITMENT_PHONE || '+91 11 4747 4700',
+    recruitmentEmail: getSetting('recruitment_email') || process.env.RECRUITMENT_EMAIL || 'recruitment@apravas.com',
+    recruitmentWhatsApp: getSetting('recruitment_whatsapp') || process.env.RECRUITMENT_WHATSAPP || '+91 11 4747 4700',
     companyAddress: process.env.COMPANY_ADDRESS || 'Apravas Recruitment Platform, India',
     signatoryName: process.env.SIGNATORY_NAME || 'Recruitment Team',
     signatoryTitle: process.env.SIGNATORY_TITLE || 'Senior Recruitment Manager',

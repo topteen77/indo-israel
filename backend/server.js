@@ -14,10 +14,29 @@ initializeEmailService();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CORS: restrict to Apravas domains when CORS_ORIGINS is set (comma-separated); otherwise allow all for dev
+// CORS: allow origins from CORS_ORIGINS (comma-separated), or same host (any port), or allow all when unset
 const corsOrigins = process.env.CORS_ORIGINS;
 const corsOptions = {
-  origin: corsOrigins ? corsOrigins.split(',').map(s => s.trim()).filter(Boolean) : true,
+  origin: (origin, callback) => {
+    const allowed = corsOrigins
+      ? corsOrigins.split(',').map(s => s.trim()).filter(Boolean)
+      : [];
+    if (allowed.length === 0) {
+      return callback(null, true);
+    }
+    if (!origin) {
+      return callback(null, true);
+    }
+    if (allowed.includes(origin)) {
+      return callback(null, true);
+    }
+    try {
+      const reqHost = new URL(origin).hostname;
+      const sameHostAllowed = allowed.some(allowedUrl => new URL(allowedUrl).hostname === reqHost);
+      if (sameHostAllowed) return callback(null, true);
+    } catch (e) {}
+    callback(null, false);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -55,6 +74,7 @@ const merfRoutes = require('./routes/merf');
 const aiJobGeneratorRoutes = require('./routes/aiJobGenerator');
 const chatbotRoutes = require('./routes/chatbot');
 const emailRoutes = require('./routes/email');
+const adminSettingsRoutes = require('./routes/adminSettings');
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -70,6 +90,7 @@ app.use('/api/merf', merfRoutes);
 app.use('/api/ai-job-generator', aiJobGeneratorRoutes);
 app.use('/api/chatbot', chatbotLimiter, chatbotRoutes);
 app.use('/api/email', emailRoutes);
+app.use('/api/admin', adminSettingsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -4,11 +4,14 @@ import {
   LinearProgress, CircularProgress, Button, Avatar,
   Table, TableBody, TableCell, TableHead, TableRow,
   Alert, FormControl, InputLabel, Select, MenuItem,
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField, Checkbox, FormControlLabel,
 } from '@mui/material';
 import {
   TrendingUp, TrendingDown, People, Work, AttachMoney,
   Speed, CheckCircle, Schedule, Assessment,
   Visibility, Download, FilterList, Refresh, SafetyCheck, Chat,
+  PersonAdd, Edit as EditIcon, Settings as SettingsIcon,
 } from '@mui/icons-material';
 import AdminSafetyDashboard from '../Safety/AdminSafetyDashboard';
 import { Tab, Tabs } from '@mui/material';
@@ -28,6 +31,21 @@ const ApravasAdminDashboard = () => {
   const [whatsappLog, setWhatsappLog] = useState({ items: [], total: 0 });
   const [whatsappLogLoading, setWhatsappLogLoading] = useState(false);
   const [whatsappLogFilter, setWhatsappLogFilter] = useState({ status: '', type: '' });
+  // Users tab (admin: add/edit users)
+  const [usersList, setUsersList] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersRoleFilter, setUsersRoleFilter] = useState('');
+  const [userDialogMode, setUserDialogMode] = useState(null); // 'add' | 'edit' | null
+  const [userForm, setUserForm] = useState({ email: '', password: '', name: '', fullName: '', role: 'worker', companyName: '', phone: '', address: '', isDemoAccount: false, demoPassword: '' });
+  const [userFormError, setUserFormError] = useState('');
+  const [savingUser, setSavingUser] = useState(false);
+  const [editingUserId, setEditingUserId] = useState(null);
+  // Settings tab (admin: third-party Email, WhatsApp, SMS)
+  const [tpSettings, setTpSettings] = useState({ email: {}, whatsapp: {}, sms: {} });
+  const [tpEdit, setTpEdit] = useState({ email: {}, whatsapp: {}, sms: {} });
+  const [tpLoading, setTpLoading] = useState(false);
+  const [tpSaving, setTpSaving] = useState(false);
+  const [tpError, setTpError] = useState('');
 
   useEffect(() => {
     fetchAnalytics();
@@ -79,6 +97,160 @@ const ApravasAdminDashboard = () => {
   useEffect(() => {
     if (activeTab === 2) fetchWhatsAppLog();
   }, [activeTab, whatsappLogFilter]);
+
+  const fetchUsers = async () => {
+    setUsersLoading(true);
+    try {
+      const params = usersRoleFilter ? { role: usersRoleFilter } : {};
+      const res = await api.get('/auth/users', { params });
+      setUsersList(res.data?.data ?? []);
+    } catch (err) {
+      console.error('Failed to fetch users:', err);
+      setUsersList([]);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 3) fetchUsers();
+  }, [activeTab, usersRoleFilter]);
+
+  const fetchThirdPartySettings = async () => {
+    setTpLoading(true);
+    setTpError('');
+    try {
+      const res = await api.get('/admin/settings');
+      const data = res.data?.data ?? { general: {}, email: {}, whatsapp: {}, sms: {} };
+      setTpSettings(data);
+      setTpEdit(data);
+    } catch (err) {
+      console.error('Failed to fetch third-party settings:', err);
+      setTpError(err.response?.data?.message || 'Failed to load settings');
+    } finally {
+      setTpLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 4) fetchThirdPartySettings();
+  }, [activeTab]);
+
+  const updateTpEdit = (section, key, value) => {
+    setTpEdit((prev) => ({
+      ...prev,
+      [section]: { ...(prev[section] || {}), [key]: value },
+    }));
+  };
+
+  const handleSaveThirdPartySettings = async () => {
+    setTpSaving(true);
+    setTpError('');
+    try {
+      const res = await api.put('/admin/settings', {
+        general: tpEdit.general,
+        email: tpEdit.email,
+        whatsapp: tpEdit.whatsapp,
+        sms: tpEdit.sms,
+      });
+      setTpSettings(res.data?.data ?? tpEdit);
+      setTpEdit(res.data?.data ?? tpEdit);
+    } catch (err) {
+      setTpError(err.response?.data?.message || 'Failed to save');
+    } finally {
+      setTpSaving(false);
+    }
+  };
+
+  const openAddUser = () => {
+    setUserForm({ email: '', password: '', name: '', fullName: '', role: 'worker', companyName: '', phone: '', address: '', isDemoAccount: false, demoPassword: '' });
+    setUserFormError('');
+    setUserDialogMode('add');
+    setEditingUserId(null);
+  };
+
+  const openEditUser = (user) => {
+    setUserForm({
+      email: user.email || '',
+      password: '',
+      name: user.name || '',
+      fullName: user.fullName || '',
+      role: user.role || 'worker',
+      companyName: user.companyName || '',
+      phone: user.phone || '',
+      address: user.address || '',
+      isDemoAccount: !!user.is_demo_account,
+      demoPassword: user.demo_password || '',
+    });
+    setUserFormError('');
+    setUserDialogMode('edit');
+    setEditingUserId(user.id);
+  };
+
+  const closeUserDialog = () => {
+    setUserDialogMode(null);
+    setEditingUserId(null);
+    setUserFormError('');
+  };
+
+  const handleSaveUser = async () => {
+    setUserFormError('');
+    if (userDialogMode === 'add') {
+      if (!userForm.email?.trim() || !userForm.password || !userForm.name?.trim() || !userForm.role) {
+        setUserFormError('Email, password, name, and role are required.');
+        return;
+      }
+      setSavingUser(true);
+      try {
+        await api.post('/auth/users', {
+          email: userForm.email.trim(),
+          password: userForm.password,
+          name: userForm.name.trim(),
+          fullName: userForm.fullName?.trim() || userForm.name.trim(),
+          role: userForm.role,
+          companyName: userForm.companyName?.trim() || null,
+          phone: userForm.phone?.trim() || null,
+          address: userForm.address?.trim() || null,
+          is_demo_account: userForm.isDemoAccount,
+          demo_password: userForm.isDemoAccount ? (userForm.demoPassword?.trim() || null) : null,
+        });
+        closeUserDialog();
+        fetchUsers();
+      } catch (err) {
+        setUserFormError(err.response?.data?.message || 'Failed to create user');
+      } finally {
+        setSavingUser(false);
+      }
+    } else {
+      if (!userForm.email?.trim() || !userForm.name?.trim() || !userForm.role) {
+        setUserFormError('Email, name, and role are required.');
+        return;
+      }
+      setSavingUser(true);
+      try {
+        const payload = {
+          email: userForm.email.trim(),
+          name: userForm.name.trim(),
+          fullName: userForm.fullName?.trim() || userForm.name.trim(),
+          role: userForm.role,
+          companyName: userForm.companyName?.trim() || null,
+          phone: userForm.phone?.trim() || null,
+          address: userForm.address?.trim() || null,
+          is_demo_account: userForm.isDemoAccount,
+        };
+        if (!userForm.isDemoAccount) payload.demo_password = null;
+        else if (userForm.demoPassword?.trim() !== '') payload.demo_password = userForm.demoPassword.trim();
+        if (userForm.password) payload.password = userForm.password;
+        await api.put(`/auth/users/${editingUserId}`, payload);
+        closeUserDialog();
+        fetchUsers();
+      } catch (err) {
+        setUserFormError(err.response?.data?.message || 'Failed to update user');
+      } finally {
+        setSavingUser(false);
+      }
+    }
+  };
 
   const MetricCard = ({ title, value, change, icon, color = 'primary' }) => (
     <Card elevation={2}>
@@ -185,6 +357,8 @@ const ApravasAdminDashboard = () => {
         <Tab label="Analytics" icon={<Assessment />} />
         <Tab label="Safety & Welfare" icon={<SafetyCheck />} />
         <Tab label="WhatsApp Log" icon={<Chat />} />
+        <Tab label="Users" icon={<People />} />
+        <Tab label="Settings" icon={<SettingsIcon />} />
       </Tabs>
 
       {/* Analytics Tab */}
@@ -506,6 +680,401 @@ const ApravasAdminDashboard = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Users Tab */}
+      {activeTab === 3 && (
+        <Card>
+          <CardContent>
+            <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2} mb={2}>
+              <Typography variant="h6">User Management</Typography>
+              <Box display="flex" gap={1} alignItems="center" flexWrap="wrap">
+                <Chip
+                  label="All"
+                  onClick={() => setUsersRoleFilter('')}
+                  color={usersRoleFilter === '' ? 'primary' : 'default'}
+                  variant={usersRoleFilter === '' ? 'filled' : 'outlined'}
+                />
+                <Chip
+                  label="Admin"
+                  onClick={() => setUsersRoleFilter('admin')}
+                  color={usersRoleFilter === 'admin' ? 'primary' : 'default'}
+                  variant={usersRoleFilter === 'admin' ? 'filled' : 'outlined'}
+                />
+                <Chip
+                  label="Employer"
+                  onClick={() => setUsersRoleFilter('employer')}
+                  color={usersRoleFilter === 'employer' ? 'primary' : 'default'}
+                  variant={usersRoleFilter === 'employer' ? 'filled' : 'outlined'}
+                />
+                <Chip
+                  label="Worker"
+                  onClick={() => setUsersRoleFilter('worker')}
+                  color={usersRoleFilter === 'worker' ? 'primary' : 'default'}
+                  variant={usersRoleFilter === 'worker' ? 'filled' : 'outlined'}
+                />
+                <Button variant="contained" startIcon={<PersonAdd />} onClick={openAddUser}>
+                  Add User
+                </Button>
+                <Button
+                  size="small"
+                  startIcon={usersLoading ? <CircularProgress size={16} /> : <Refresh />}
+                  onClick={fetchUsers}
+                  disabled={usersLoading}
+                >
+                  Refresh
+                </Button>
+              </Box>
+            </Box>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell><strong>ID</strong></TableCell>
+                  <TableCell><strong>Email</strong></TableCell>
+                  <TableCell><strong>Name</strong></TableCell>
+                  <TableCell><strong>Role</strong></TableCell>
+                  <TableCell><strong>Company</strong></TableCell>
+                  <TableCell><strong>Phone</strong></TableCell>
+                  <TableCell align="right"><strong>Actions</strong></TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {usersLoading && usersList.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} align="center">Loading…</TableCell></TableRow>
+                ) : usersList.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} align="center">No users found.</TableCell></TableRow>
+                ) : (
+                  usersList.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell>{row.id}</TableCell>
+                      <TableCell>{row.email}</TableCell>
+                      <TableCell>{row.fullName || row.name || '—'}</TableCell>
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={0.5} flexWrap="wrap">
+                          <Chip label={row.role} size="small" color={row.role === 'admin' ? 'error' : row.role === 'employer' ? 'primary' : 'default'} />
+                          {row.is_demo_account && <Chip label="Demo" size="small" variant="outlined" color="secondary" />}
+                        </Box>
+                      </TableCell>
+                      <TableCell>{row.companyName || '—'}</TableCell>
+                      <TableCell>{row.phone || '—'}</TableCell>
+                      <TableCell align="right">
+                        <Button size="small" startIcon={<EditIcon />} onClick={() => openEditUser(row)}>Edit</Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Settings Tab – Third-party: Email, WhatsApp, SMS */}
+      {activeTab === 4 && (
+        <Box display="flex" flexDirection="column" gap={3}>
+          {tpError && <Alert severity="error" onClose={() => setTpError('')}>{tpError}</Alert>}
+          {tpLoading ? (
+            <Box display="flex" alignItems="center" gap={2}><CircularProgress size={24} /> Loading settings…</Box>
+          ) : (
+            <>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom color="primary">General (Login page &amp; nav)</Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="Nav login button label"
+                        value={tpEdit.general?.nav_login_label ?? ''}
+                        onChange={(e) => updateTpEdit('general', 'nav_login_label', e.target.value)}
+                        placeholder="Login"
+                        fullWidth
+                        size="small"
+                        helperText="Text shown on the top navigation Login button"
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        label="Login page credentials (JSON array)"
+                        value={tpEdit.general?.login_page_credentials ?? ''}
+                        onChange={(e) => updateTpEdit('general', 'login_page_credentials', e.target.value)}
+                        fullWidth
+                        multiline
+                        minRows={6}
+                        size="small"
+                        placeholder='[{"role":"employer","email":"employer@israel.com","password":"employer123","name":"Israeli Employer","description":"Post jobs"}]'
+                        helperText='Array of objects: role, email, password, name, description. Shown as test credential cards on /login.'
+                      />
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom color="primary">Email</Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <FormControl fullWidth>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <input
+                            type="checkbox"
+                            id="email_service_enabled"
+                            checked={tpEdit.email?.email_service_enabled === 'true'}
+                            onChange={(e) => updateTpEdit('email', 'email_service_enabled', e.target.checked ? 'true' : '')}
+                          />
+                          <Typography component="label" htmlFor="email_service_enabled">Email service enabled</Typography>
+                        </Box>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="Default From Email"
+                        value={tpEdit.email?.default_from_email ?? ''}
+                        onChange={(e) => updateTpEdit('email', 'default_from_email', e.target.value)}
+                        placeholder='e.g. "Apravas" &lt;noreply@example.com&gt;'
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="Recruitment contact email"
+                        value={tpEdit.email?.recruitment_email ?? ''}
+                        onChange={(e) => updateTpEdit('email', 'recruitment_email', e.target.value)}
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="Recruitment phone"
+                        value={tpEdit.email?.recruitment_phone ?? ''}
+                        onChange={(e) => updateTpEdit('email', 'recruitment_phone', e.target.value)}
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="Recruitment WhatsApp"
+                        value={tpEdit.email?.recruitment_whatsapp ?? ''}
+                        onChange={(e) => updateTpEdit('email', 'recruitment_whatsapp', e.target.value)}
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom color="primary">WhatsApp (Interakt)</Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <FormControl fullWidth>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <input
+                            type="checkbox"
+                            id="whatsapp_enabled"
+                            checked={tpEdit.whatsapp?.whatsapp_enabled === 'true'}
+                            onChange={(e) => updateTpEdit('whatsapp', 'whatsapp_enabled', e.target.checked ? 'true' : '')}
+                          />
+                          <Typography component="label" htmlFor="whatsapp_enabled">WhatsApp enabled</Typography>
+                        </Box>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        label="Interakt API key (Base64)"
+                        type="password"
+                        value={tpEdit.whatsapp?.interakt_api_key ?? ''}
+                        onChange={(e) => updateTpEdit('whatsapp', 'interakt_api_key', e.target.value)}
+                        placeholder="Leave blank to keep current"
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        label="Emergency template name"
+                        value={tpEdit.whatsapp?.emergency_template_name ?? ''}
+                        onChange={(e) => updateTpEdit('whatsapp', 'emergency_template_name', e.target.value)}
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        label="Application confirmation template"
+                        value={tpEdit.whatsapp?.application_confirmation_template ?? ''}
+                        onChange={(e) => updateTpEdit('whatsapp', 'application_confirmation_template', e.target.value)}
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        label="Application rejection template"
+                        value={tpEdit.whatsapp?.application_rejection_template ?? ''}
+                        onChange={(e) => updateTpEdit('whatsapp', 'application_rejection_template', e.target.value)}
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom color="primary">SMS (Twilio)</Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <FormControl fullWidth>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <input
+                            type="checkbox"
+                            id="sms_enabled"
+                            checked={tpEdit.sms?.sms_enabled === 'true'}
+                            onChange={(e) => updateTpEdit('sms', 'sms_enabled', e.target.checked ? 'true' : '')}
+                          />
+                          <Typography component="label" htmlFor="sms_enabled">SMS enabled</Typography>
+                        </Box>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="Twilio Account SID"
+                        value={tpEdit.sms?.twilio_account_sid ?? ''}
+                        onChange={(e) => updateTpEdit('sms', 'twilio_account_sid', e.target.value)}
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="Twilio Auth Token"
+                        type="password"
+                        value={tpEdit.sms?.twilio_auth_token ?? ''}
+                        onChange={(e) => updateTpEdit('sms', 'twilio_auth_token', e.target.value)}
+                        placeholder="Leave blank to keep current"
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="Twilio phone number"
+                        value={tpEdit.sms?.twilio_phone_number ?? ''}
+                        onChange={(e) => updateTpEdit('sms', 'twilio_phone_number', e.target.value)}
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+              <Button variant="contained" onClick={handleSaveThirdPartySettings} disabled={tpSaving}>
+                {tpSaving ? <CircularProgress size={24} /> : 'Save all settings'}
+              </Button>
+            </>
+          )}
+        </Box>
+      )}
+
+      {/* Add/Edit User Dialog */}
+      <Dialog open={userDialogMode !== null} onClose={closeUserDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>{userDialogMode === 'add' ? 'Add User' : 'Edit User'}</DialogTitle>
+        <DialogContent>
+          {userFormError && <Alert severity="error" sx={{ mb: 2 }}>{userFormError}</Alert>}
+          <Box display="flex" flexDirection="column" gap={2} pt={1}>
+            <TextField
+              label="Email"
+              type="email"
+              value={userForm.email}
+              onChange={(e) => setUserForm((f) => ({ ...f, email: e.target.value }))}
+              required
+              fullWidth
+            />
+            <TextField
+              label="Password"
+              type="password"
+              value={userForm.password}
+              onChange={(e) => setUserForm((f) => ({ ...f, password: e.target.value }))}
+              placeholder={userDialogMode === 'edit' ? 'Leave blank to keep current' : ''}
+              fullWidth
+              required={userDialogMode === 'add'}
+            />
+            <TextField
+              label="Name"
+              value={userForm.name}
+              onChange={(e) => setUserForm((f) => ({ ...f, name: e.target.value }))}
+              required
+              fullWidth
+            />
+            <TextField
+              label="Full name"
+              value={userForm.fullName}
+              onChange={(e) => setUserForm((f) => ({ ...f, fullName: e.target.value }))}
+              fullWidth
+            />
+            <FormControl fullWidth required>
+              <InputLabel>Role</InputLabel>
+              <Select
+                value={userForm.role}
+                label="Role"
+                onChange={(e) => setUserForm((f) => ({ ...f, role: e.target.value }))}
+              >
+                <MenuItem value="admin">Admin</MenuItem>
+                <MenuItem value="employer">Employer</MenuItem>
+                <MenuItem value="worker">Worker</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              label="Company name"
+              value={userForm.companyName}
+              onChange={(e) => setUserForm((f) => ({ ...f, companyName: e.target.value }))}
+              fullWidth
+            />
+            <TextField
+              label="Phone"
+              value={userForm.phone}
+              onChange={(e) => setUserForm((f) => ({ ...f, phone: e.target.value }))}
+              fullWidth
+            />
+            <TextField
+              label="Address"
+              value={userForm.address}
+              onChange={(e) => setUserForm((f) => ({ ...f, address: e.target.value }))}
+              fullWidth
+              multiline
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={userForm.isDemoAccount}
+                  onChange={(e) => setUserForm((f) => ({ ...f, isDemoAccount: e.target.checked }))}
+                />
+              }
+              label="Demo account (show on login page)"
+            />
+            {userForm.isDemoAccount && (
+              <TextField
+                label="Demo password (for Login as: populates form and logs in)"
+                type="password"
+                value={userForm.demoPassword}
+                onChange={(e) => setUserForm((f) => ({ ...f, demoPassword: e.target.value }))}
+                placeholder={userDialogMode === 'edit' ? 'Leave blank to keep current' : 'Same as account password or any'}
+                fullWidth
+                helperText="Filled in when user clicks Login as; then form submits to dashboard."
+              />
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeUserDialog}>Cancel</Button>
+          <Button variant="contained" onClick={handleSaveUser} disabled={savingUser}>
+            {savingUser ? <CircularProgress size={24} /> : (userDialogMode === 'add' ? 'Create' : 'Save')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
