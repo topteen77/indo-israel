@@ -15,10 +15,14 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     volumes:
-      - backend-data:/opt/apravas/data
+      # Mount the knowledge base + SQLite database directory from the host.
+      # This needs to be read-write so the app can create/update apravas.db.
+      - ./backend/data:/opt/apravas/data
     environment:
       - PORT=5000
       - NODE_ENV=production
+      # Passed through from root .env for OpenAI client
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
 
   frontend:
     image: indo-israel-frontend:latest

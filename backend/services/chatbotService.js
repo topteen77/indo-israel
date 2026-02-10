@@ -303,60 +303,83 @@ async function searchKnowledgeBase(query, country = null, visaType = null, topK 
     return [];
   }
 
-  const queryLower = query.toLowerCase();
+  const queryLower = query.toLowerCase().trim();
   const results = [];
 
-  // First, try keyword-based search (faster)
-  for (const doc of knowledgeBase.documents) {
-    // Filter by country and visa type if specified
-    if (country && doc.country && doc.country.toLowerCase() !== country.toLowerCase()) {
-      continue;
+  // Helper: score one doc (used for main and fallback search)
+  function scoreDoc(doc, qLower, useCountryFilter, useVisaFilter) {
+    if (useCountryFilter && country && doc.country && doc.country.toLowerCase() !== country.toLowerCase()) {
+      return 0;
     }
-    if (visaType && doc.visa_type && doc.visa_type.toLowerCase() !== visaType.toLowerCase()) {
-      continue;
+    if (useVisaFilter && visaType && doc.visa_type && doc.visa_type.toLowerCase() !== visaType.toLowerCase()) {
+      return 0;
     }
-
     let score = 0;
-    
-    // Title match
-    if (doc.title && doc.title.toLowerCase().includes(queryLower)) {
+    const titleLower = (doc.title || '').toLowerCase();
+    const contentLower = (doc.content || '').toLowerCase();
+
+    // Title match (full phrase or significant words)
+    if (doc.title && titleLower.includes(qLower)) {
       score += 10;
     }
 
-    // Content match
-    if (doc.content) {
-      const contentLower = doc.content.toLowerCase();
-      const queryWords = queryLower.split(/\s+/).filter(w => w.length > 2);
-      for (const word of queryWords) {
-        const count = (contentLower.match(new RegExp(word, 'g')) || []).length;
-        score += count * 2;
-      }
-      
-      // Boost score for "visa types" queries
-      if (queryLower.includes('visa type') || queryLower.includes('types of visa') || queryLower.includes('kinds of visa')) {
-        if (contentLower.includes('visa type') || contentLower.includes('types') || doc.title.toLowerCase().includes('overview') || doc.title.toLowerCase().includes('types')) {
-          score += 20; // Significant boost for visa types queries
-        }
+    // Content match: words longer than 2 chars
+    const queryWords = qLower.split(/\s+/).filter(w => w.length > 2);
+    for (const word of queryWords) {
+      const count = (contentLower.match(new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')) || []).length;
+      score += count * 2;
+    }
+    // Also match in title for each word
+    for (const word of queryWords) {
+      if (titleLower.includes(word)) score += 5;
+    }
+
+    // Boost for "visa process" / "what is the visa process" etc.
+    if (qLower.includes('process') && (titleLower.includes('process') || contentLower.includes('process'))) {
+      score += 15;
+    }
+    if (qLower.includes('visa type') || qLower.includes('types of visa') || qLower.includes('kinds of visa')) {
+      if (contentLower.includes('visa type') || contentLower.includes('types') || titleLower.includes('overview') || titleLower.includes('types')) {
+        score += 20;
       }
     }
 
     // Keyword match
     if (doc.keywords) {
       for (const keyword of doc.keywords) {
-        if (queryLower.includes(keyword.toLowerCase()) || keyword.toLowerCase().includes(queryLower)) {
+        const kw = keyword.toLowerCase();
+        if (qLower.includes(kw) || kw.includes(qLower)) {
           score += 5;
         }
       }
     }
 
+    return score;
+  }
+
+  for (const doc of knowledgeBase.documents) {
+    const score = scoreDoc(doc, queryLower, true, true);
     if (score > 0) {
       results.push({ doc, score });
     }
   }
 
-  // Sort by score and return top K
   results.sort((a, b) => b.score - a.score);
-  return results.slice(0, topK).map(r => r.doc);
+  let out = results.slice(0, topK).map(r => r.doc);
+
+  // Fallback: if no results and query is visa-related, retry with relaxed matching (no country/visa filter) and minimal query
+  if (out.length === 0 && /visa|permit|immigration|work|study|student|process|requirement/i.test(queryLower)) {
+    const fallbackQuery = queryLower.replace(/\b(what|is|the|how|does|do|can|i|a|an|for|in|to|of)\b/gi, '').trim() || 'visa';
+    const fallbackResults = [];
+    for (const doc of knowledgeBase.documents) {
+      const score = scoreDoc(doc, fallbackQuery, false, false);
+      if (score > 0) fallbackResults.push({ doc, score });
+    }
+    fallbackResults.sort((a, b) => b.score - a.score);
+    out = fallbackResults.slice(0, topK).map(r => r.doc);
+  }
+
+  return out;
 }
 
 // ============================================================================
