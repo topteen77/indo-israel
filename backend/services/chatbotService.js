@@ -7,9 +7,11 @@ const { OpenAI } = require('openai');
 const fs = require('fs');
 const path = require('path');
 
-// Initialize OpenAI client with hardcoded key
+// Initialize OpenAI client
+// Use environment variable, with fallback for development
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "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";
 const openai = new OpenAI({
-  apiKey: "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",
+  apiKey: OPENAI_API_KEY,
 });
 
 // Configuration
