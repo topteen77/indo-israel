@@ -7,6 +7,10 @@ const rateLimit = require('express-rate-limit');
 const pathToRootEnv = path.resolve(__dirname, '..', '.env');
 require('dotenv').config({ path: pathToRootEnv });
 
+// Initialize email service (SES/SMTP) after env is loaded so it uses .env credentials
+const { initializeEmailService } = require('./services/emailService');
+initializeEmailService();
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -50,6 +54,7 @@ const googleSheetsRoutes = require('./routes/googleSheets');
 const merfRoutes = require('./routes/merf');
 const aiJobGeneratorRoutes = require('./routes/aiJobGenerator');
 const chatbotRoutes = require('./routes/chatbot');
+const emailRoutes = require('./routes/email');
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -64,6 +69,7 @@ app.use('/api/google-sheets', googleSheetsRoutes);
 app.use('/api/merf', merfRoutes);
 app.use('/api/ai-job-generator', aiJobGeneratorRoutes);
 app.use('/api/chatbot', chatbotLimiter, chatbotRoutes);
+app.use('/api/email', emailRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

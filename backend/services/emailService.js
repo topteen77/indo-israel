@@ -35,10 +35,36 @@ const initializeEmailService = () => {
   return true;
 };
 
-// Initialize on module load
+// Initialize on module load (server.js also calls initializeEmailService() after dotenv for correct order)
 if (process.env.EMAIL_SERVICE_ENABLED === 'true') {
   initializeEmailService();
 }
+
+/**
+ * Send a test email (e.g. to verify SES/SMTP). To: RECRUITMENT_EMAIL or provided address.
+ */
+const sendTestEmail = async (toEmail = null) => {
+  const to = toEmail || process.env.RECRUITMENT_EMAIL || 'recruitment@apravas.com';
+  if (!transporter || process.env.EMAIL_SERVICE_ENABLED !== 'true') {
+    console.log('📧 Email service not enabled; test email skipped. Set EMAIL_SERVICE_ENABLED=true in .env');
+    return { success: false, message: 'Email service not enabled', preview: true };
+  }
+  try {
+    const from = process.env.DEFAULT_FROM_EMAIL || `"Apravas" <${process.env.SMTP_USER}>`;
+    const info = await transporter.sendMail({
+      from,
+      to,
+      subject: 'Apravas – Test email (SES/SMTP)',
+      text: `This is a test email from the Apravas backend. If you received this, SES/SMTP is configured correctly.\n\nSent at ${new Date().toISOString()}`,
+      html: `<p>This is a test email from the Apravas backend.</p><p>If you received this, SES/SMTP is configured correctly.</p><p><em>Sent at ${new Date().toISOString()}</em></p>`,
+    });
+    console.log('✅ Test email sent:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('❌ Test email failed:', error);
+    throw error;
+  }
+};
 
 /**
  * Send application confirmation email
@@ -473,4 +499,5 @@ module.exports = {
   sendApplicationConfirmation,
   sendRejectionEmail,
   sendAppealConfirmation,
+  sendTestEmail,
 };
