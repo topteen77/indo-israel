@@ -1,0 +1,138 @@
+{
+  "version": "2.0.0",
+  "lastUpdated": "2024-01-15",
+  "documents": [
+    {
+      "id": "CA_STUDY_001",
+      "country": "Canada",
+      "visa_type": "Student",
+      "title": "Study Permit Requirements",
+      "source": "https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/study-permit.html",
+      "source_authority": "Immigration, Refugees and Citizenship Canada (IRCC)",
+      "last_verified": "2024-01-15",
+      "content": "Study Permit Requirements for Canada:\n\n1. Letter of Acceptance: Must have acceptance letter from Designated Learning Institution (DLI)\n2. Proof of Financial Support: Must prove you can pay tuition fees + living expenses + return transportation\n   - Living expenses: CAD $10,000/year (or $833/month) plus tuition\n   - Additional $4,000 for first family member, $3,000 for each additional member\n3. No Criminal Record: Police certificate may be required\n4. Medical Exam: Required if staying >6 months or work in health/childcare\n5. Intent to Leave: Must prove you'll leave Canada when permit expires\n6. Biometrics: Required for most applicants\n7. Quebec Acceptance Certificate (CAQ): Required for studies in Quebec\n\nProcessing Times: Vary by country, check IRCC website for current estimates.",
+      "keywords": ["student visa", "study permit", "canada study", "DLI", "financial proof", "CAQ"]
+    },
+    {
+      "id": "CA_WORK_001",
+      "country": "Canada",
+      "visa_type": "Work",
+      "title": "Work Permit Types and Requirements",
+      "source": "https://www.canada.ca/en/immigration-refugees-citizenship/services/work-canada.html",
+      "source_authority": "Immigration, Refugees and Citizenship Canada (IRCC)",
+      "last_verified": "2024-01-15",
+      "content": "Work Permit Categories:\n\n1. Employer-Specific Work Permit:\n   - Requires Labour Market Impact Assessment (LMIA) in most cases\n   - Job offer from Canadian employer required\n   - Valid for specific employer, location, and duration\n\n2. Open Work Permit:\n   - Not job-specific\n   - Available for spouses of skilled workers/students, IEC participants, PGWP holders\n   - Post-Graduation Work Permit (PGWP): Valid 8 months to 3 years based on program length\n\n3. Global Talent Stream:\n   - For high-skilled workers in tech occupations\n   - Priority processing (2-week standard)\n   - LMIA-exempt categories available\n\nRequirements:\n- Prove you'll leave Canada when permit expires\n- Financial resources to support family\n- Clean criminal record\n- Good health (medical exam)\n- Not plan to work for ineligible employer",
+      "keywords": ["work permit", "lmia", "pgwp", "global talent stream", "canada work"]
+    },
+    {
+      "id": "US_STUDY_001",
+      "country": "USA",
+      "visa_type": "Student",
+      "title": "F-1 Student Visa Requirements",
+      "source": "https://travel.state.gov/content/travel/en/us-visas/study.html",
+      "source_authority": "U.S. Department of State - Bureau of Consular Affairs",
+      "last_verified": "2024-01-15",
+      "content": "F-1 Student Visa Requirements:\n\n1. SEVIS Registration: Must pay SEVIS I-901 fee ($350)\n2. Form I-20: Certificate of Eligibility from SEVP-approved school\n3. Online Nonimmigrant Visa Application (DS-160)\n4. Interview: Required for most applicants aged 14-79\n5. Documentation:\n   - Passport valid for 6 months beyond stay\n   - Form I-20\n   - DS-160 confirmation\n   - Application fee payment receipt ($185)\n   - Photo (if upload fails)\n   - Academic records: Transcripts, diplomas, test scores\n   - Financial evidence: Bank statements, scholarships, sponsor letters\n\n6. English Proficiency: Must demonstrate sufficient English skills\n7. Home Ties: Must prove intent to return home after studies\n\nWork Restrictions:\n- On-campus: Maximum 20 hours/week during term\n- Off-campus: Requires authorization (CPT/OPT)",
+      "keywords": ["f1 visa", "student visa usa", "sevis", "i-20", "opt", "cpt"]
+    },
+    {
+      "id": "US_VISA_TYPES_001",
+      "country": "USA",
+      "visa_type": "General",
+      "title": "USA Visa Types Overview",
+      "source": "https://travel.state.gov/content/travel/en/us-visas.html",
+      "source_authority": "U.S. Department of State - Bureau of Consular Affairs",
+      "last_verified": "2024-01-15",
+      "content": "USA Visa Types:\n\n**Nonimmigrant Visas (Temporary):**\n\n1. **F-1 Student Visa**: For academic studies at SEVP-approved schools\n   - Requires Form I-20 from school\n   - SEVIS fee required\n   - Work restrictions apply\n\n2. **H-1B Specialty Occupation Visa**: For workers in specialty occupations\n   - Requires bachelor's degree or equivalent\n   - Employer sponsorship required\n   - Annual cap: 65,000 (plus 20,000 for advanced degrees)\n\n3. **L-1 Intracompany Transferee**: For employees transferring within multinational company\n   - L-1A for executives/managers\n   - L-1B for specialized knowledge workers\n\n4. **O-1 Extraordinary Ability**: For individuals with extraordinary ability\n   - Sciences, arts, education, business, athletics\n   - Requires sustained national or international acclaim\n\n5. **E-2 Treaty Investor**: For investors from treaty countries\n   - Substantial investment in U.S. business\n   - Must be from treaty country\n\n6. **TN NAFTA Professional**: For professionals from Canada/Mexico\n   - Under NAFTA/USMCA agreement\n   - Specific professional occupations\n\n7. **B-1/B-2 Visitor Visa**: For business (B-1) or tourism (B-2)\n   - Temporary visits\n   - No work authorization\n\n8. **J-1 Exchange Visitor**: For exchange programs\n   - Students, researchers, teachers, au pairs\n   - Subject to 2-year home residency requirement\n\n**Immigrant Visas (Permanent):**\n\n1. **EB-1 Priority Workers**: Extraordinary ability, outstanding professors/researchers, multinational executives\n2. **EB-2 Advanced Degree Professionals**: Advanced degree or exceptional ability\n3. **EB-3 Skilled Workers**: Professionals, skilled workers, unskilled workers\n4. **EB-5 Investor**: Investment of $800,000-$1,050,000 creating jobs\n5. **Family-Based**: Immediate relatives, family preference categories\n\nFor detailed requirements, consult USCIS or U.S. Department of State official websites.",
+      "keywords": ["usa visa types", "us visa types", "visa types usa", "types of usa visas", "american visa types", "united states visa types", "f1", "h1b", "l1", "o1", "e2", "tn", "b1", "b2", "j1", "eb1", "eb2", "eb3", "eb5"]
+    },
+    {
+      "id": "US_WORK_001",
+      "country": "USA",
+      "visa_type": "Work",
+      "title": "H-1B Specialty Occupation Visa",
+      "source": "https://www.uscis.gov/working-in-the-united-states/temporary-workers/h-1b-specialty-occupations",
+      "source_authority": "U.S. Citizenship and Immigration Services (USCIS)",
+      "last_verified": "2024-01-15",
+      "content": "H-1B Specialty Occupation Visa:\n\nRequirements:\n1. Specialty Occupation: Position requiring theoretical/practical application of specialized knowledge\n   - Minimum bachelor's degree or equivalent in specific specialty\n\n2. Employer Sponsorship: U.S. employer must file petition (Form I-129)\n\n3. Labor Condition Application (LCA): Approved by Department of Labor\n   - Must pay prevailing wage or actual wage, whichever is higher\n\n4. Cap Limitations:\n   - Regular cap: 65,000 visas/year\n   - Advanced degree exemption: 20,000 additional for master's+ from US institutions\n   - Lottery system when petitions exceed cap (first week of April)\n\n5. Validity: Initial 3 years, extendable to 6 years maximum\n\nAlternatives:\n- L-1: Intracompany transferees\n- O-1: Individuals with extraordinary ability\n- E-2: Treaty investors (for treaty countries)\n- TN: NAFTA professionals (Canada/Mexico)",
+      "keywords": ["h1b", "work visa usa", "specialty occupation", "lca", "uscis"]
+    },
+    {
+      "id": "UK_STUDY_001",
+      "country": "UK",
+      "visa_type": "Student",
+      "title": "Student Route (formerly Tier 4)",
+      "source": "https://www.gov.uk/student-visa",
+      "source_authority": "UK Visas and Immigration (UKVI)",
+      "last_verified": "2024-01-15",
+      "content": "UK Student Visa (Student Route):\n\nEligibility:\n1. Course Requirements:\n   - Full-time course leading to degree level or above (RQF level 6+)\n   - Minimum 15 hours/week organized daytime study\n   - Approved education provider with 'student sponsor' license\n\n2. Confirmation of Acceptance for Studies (CAS):\n   - Unique reference number from sponsoring institution\n   - Valid for 6 months from issue\n\n3. Financial Requirements:\n   - Course fees for 1 year (or entire course if <1 year)\n   - Living costs: £1,334/month (London) or £1,023/month (outside London)\n   - Must show funds for 28 consecutive days before application\n\n4. English Language: CEFR level B2 for degree level, B1 for below degree\n\n5. ATAS Certificate: Required for sensitive subjects (science, engineering)\n\nApplication Fee: £490\nImmigration Health Surcharge: £470/year\n\nWork Rights:\n- Degree level: Max 20 hours/week term time, full-time holidays\n- Below degree: Max 10 hours/week",
+      "keywords": ["uk student visa", "tier 4", "cas", "student route", "atas"]
+    },
+    {
+      "id": "AU_STUDY_001",
+      "country": "Australia",
+      "visa_type": "Student",
+      "title": "Student Visa (Subclass 500)",
+      "source": "https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/student-500",
+      "source_authority": "Australian Department of Home Affairs",
+      "last_verified": "2024-01-15",
+      "content": "Student Visa (Subclass 500):\n\nRequirements:\n1. Enrollment: Confirmation of Enrollment (CoE) from CRICOS-registered course\n2. Genuine Temporary Entrant (GTE): Must prove genuine intention to stay temporarily\n3. Financial Capacity:\n   - 12 months living costs: AUD $21,041\n   - Course fees (12 months)\n   - Travel costs: AUD $2,000-$3,000 depending on location\n   - Alternative: Evidence of parental income (AUD $62,222/year)\n\n4. English Proficiency:\n   - IELTS: 5.5 overall (or 5.0 with 10 weeks ELICOS, or 4.5 with 20 weeks)\n   - TOEFL, PTE, Cambridge also accepted\n\n5. Health Insurance: Overseas Student Health Cover (OSHC) for entire stay\n\n6. Health and Character: Medical exams and police certificates\n\n7. Welfare Arrangements: Under 18 requires approved accommodation/custody\n\nVisa Fee: AUD $650 (main applicant)\n\nWork Rights: 48 hours per fortnight during term, unlimited during breaks",
+      "keywords": ["australia student visa", "subclass 500", "coe", "gte", "oshc"]
+    },
+    {
+      "id": "DE_STUDY_001",
+      "country": "Germany",
+      "visa_type": "Student",
+      "title": "Student Visa and Residence Permit",
+      "source": "https://www.auswaertiges-amt.de/en/visa-service/kontakt-botschaften-konsulate",
+      "source_authority": "German Federal Foreign Office",
+      "last_verified": "2024-01-15",
+      "content": "German Student Visa Process:\n\n1. University Admission: Acceptance letter from German university\n2. Blocked Account (Sperrkonto):\n   - €11,208 per year (€934/month) in blocked account\n   - Providers: Expatrio, Fintiba, Deutsche Bank\n\n3. Health Insurance: Mandatory for enrollment and residence permit\n\n4. Visa Application Documents:\n   - Valid passport\n   - Biometric photos\n   - Admission letter\n   - Proof of financial means (blocked account)\n   - Academic certificates (translated and apostilled)\n   - Language proficiency proof (German/English depending on course)\n   - Motivation letter\n   - CV/Resume\n\n5. Residence Permit: Apply at local Ausländerbehörde within 90 days of arrival\n\nProcessing Time: 6-12 weeks\n\nWork Rights:\n- 120 full days or 240 half days per year\n- Student assistant jobs unlimited",
+      "keywords": ["germany student visa", "blocked account", "sperrkonto", "ausländerbehörde"]
+    },
+    {
+      "id": "IL_WORK_001",
+      "country": "Israel",
+      "visa_type": "Work",
+      "title": "B/4 Work Visa for Skilled Workers",
+      "source": "https://www.gov.il/en/departments/population_and_immigration_authority",
+      "source_authority": "Israel Population and Immigration Authority",
+      "last_verified": "2024-01-15",
+      "content": "Israel Work Visa (B/4) for Construction and Caregiving:\n\nBilateral Agreements:\n- India-Israel agreement for 10,000 Indian workers in construction\n- Additional agreements for nursing/caregiving staff\n\nRequirements:\n1. Employer Sponsorship: Israeli employer must obtain permit from Ministry of Labor\n\n2. Documentation:\n   - Valid passport (minimum 6 months validity)\n   - Medical clearance from approved panel physicians\n   - Police clearance certificate (PCC) from India\n   - Work experience certificates (minimum 2 years for construction)\n   - Educational qualifications attested\n\n3. Medical Tests: HIV, Hepatitis B, TB screening mandatory\n\n4. Training: Pre-departure orientation mandatory\n\n5. Contract: Must specify wages, conditions, duration (typically 1 year renewable)\n\nProcessing:\n- Employer applies for work permit in Israel\n- Upon approval, worker applies for B/4 visa at Israeli embassy\n- Visa valid for single entry, converted to temporary residence upon arrival\n\nRights and Protections:\n- Health insurance provided by employer\n- Housing or allowance provided\n- Coverage under Israeli labor laws",
+      "keywords": ["israel work visa", "b4 visa", "construction visa", "india israel agreement", "caregiving visa"]
+    },
+    {
+      "id": "IL_WORK_002",
+      "country": "Israel",
+      "visa_type": "Work",
+      "title": "Visa Process for Working in Israel",
+      "source": "https://www.gov.il/en/departments/piba",
+      "source_authority": "PIBA (Population and Immigration Authority of Israel)",
+      "last_verified": "2024-01-15",
+      "content": "Visa Process for Working in Israel:\n\nStep-by-step process:\n\n1. Job Offer: Secure a job offer from a PIBA-verified Israeli employer. Employer must have valid authorization to hire foreign workers.\n\n2. Work Permit Application: Your employer applies through PIBA (Population and Immigration Authority). Processing time: 30-45 business days (non-guaranteed, may vary). Application must include all required documentation.\n\n3. Medical Examination: Complete medical fitness certificate from authorized medical center. Must be conducted at PIBA-approved facilities. Valid for 6 months from issue date.\n\n4. Required Documentation:\n   - Valid passport (minimum 2 years validity from visa issue date)\n   - Educational certificates (attested)\n   - Experience certificates (minimum 2-3 years for most categories)\n   - Police clearance certificate (from home country)\n   - Medical fitness certificate\n   - Passport-sized photographs\n\n5. Visa Processing: PIBA reviews your application. Background checks are conducted. Employer verification is completed.\n\n6. Final Approval: Receive work visa approval. Travel arrangements can be made. Entry visa must be obtained from Israeli consulate.\n\nImportant: This is general guidance only. Procedures may vary by visa category and individual circumstances. Always consult official sources.\n\nOfficial Contacts:\n- NSDC India: +91-11-4747-4700, info@nsdcindia.org\n- PIBA Israel: +972-2-629-4666, piba@piba.gov.il",
+      "keywords": ["visa", "work permit", "visa process", "immigration", "work visa", "permit application", "israel"]
+    },
+    {
+      "id": "CA_PR_001",
+      "country": "Canada",
+      "visa_type": "Permanent Residency",
+      "title": "Express Entry System",
+      "source": "https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/express-entry.html",
+      "source_authority": "Immigration, Refugees and Citizenship Canada (IRCC)",
+      "last_verified": "2024-01-15",
+      "content": "Express Entry for Permanent Residency:\n\nPrograms:\n1. Federal Skilled Worker Program (FSWP)\n2. Federal Skilled Trades Program (FSTP)\n3. Canadian Experience Class (CEC)\n\nProcess:\n1. Create Express Entry profile\n2. Get Comprehensive Ranking System (CRS) score\n3. Enter Express Entry pool\n4. Receive Invitation to Apply (ITA) if score is high enough\n5. Submit complete application within 60 days\n6. Processing: 6 months standard\n\nCRS Score Factors:\n- Age\n- Education\n- Work experience\n- Language proficiency (English/French)\n- Adaptability factors\n- Spouse factors\n\nMinimum Requirements:\n- Language test (IELTS/CELPIP/TEF)\n- Educational Credential Assessment (ECA)\n- Proof of funds\n- Medical exam\n- Police certificate",
+      "keywords": ["express entry", "permanent residency", "pr canada", "crs score", "fswp", "cec"]
+    },
+    {
+      "id": "AU_WORK_001",
+      "country": "Australia",
+      "visa_type": "Work",
+      "title": "Skilled Worker Visa (Subclass 189/190/491)",
+      "source": "https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing",
+      "source_authority": "Australian Department of Home Affairs",
+      "last_verified": "2024-01-15",
+      "content": "Australian Skilled Worker Visas:\n\nSubclass 189 (Skilled Independent):\n- Points-based system\n- No state/territory nomination required\n- Permanent residency\n\nSubclass 190 (Skilled Nominated):\n- State/territory nomination required\n- Permanent residency\n- Must live in nominating state for 2 years\n\nSubclass 491 (Skilled Work Regional):\n- Regional area nomination\n- 5-year temporary visa\n- Pathway to permanent residency\n\nRequirements:\n- Age: Under 45 (usually)\n- Skills assessment in nominated occupation\n- English proficiency (IELTS 6.0 minimum, higher for more points)\n- Points test: Minimum 65 points (higher scores more competitive)\n- Health and character requirements\n- Expression of Interest (EOI) in SkillSelect\n\nPoints Factors:\n- Age\n- English proficiency\n- Work experience\n- Education\n- State nomination\n- Partner skills",
+      "keywords": ["australia work visa", "skilled worker", "subclass 189", "subclass 190", "subclass 491", "points test"]
+    }
+  ]
+}

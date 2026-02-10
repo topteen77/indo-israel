@@ -1,0 +1,91 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2024-01-01",
+  "sources": [
+    "Official PIBA (Population and Immigration Authority) guidelines",
+    "NSDC India official documentation",
+    "Apravas verified immigration procedures"
+  ],
+  "topics": {
+    "visa_process": {
+      "title": "Visa Process for Working in Israel",
+      "content": "🛂 **Visa Process for Working in Israel**\n\nHere's the official step-by-step process:\n\n**1. Job Offer** 📝\n   - Secure a job offer from a PIBA-verified Israeli employer\n   - Employer must have valid authorization to hire foreign workers\n\n**2. Work Permit Application** 📋\n   - Your employer applies through PIBA (Population and Immigration Authority)\n   - Processing time: 30-45 business days (non-guaranteed, may vary)\n   - Application must include all required documentation\n\n**3. Medical Examination** 🏥\n   - Complete medical fitness certificate from authorized medical center\n   - Must be conducted at PIBA-approved facilities\n   - Valid for 6 months from issue date\n\n**4. Required Documentation** 📄\n   - Valid passport (minimum 2 years validity from visa issue date)\n   - Educational certificates (attested)\n   - Experience certificates (minimum 2-3 years for most categories)\n   - Police clearance certificate (from home country)\n   - Medical fitness certificate\n   - Passport-sized photographs\n\n**5. Visa Processing** ⏳\n   - PIBA reviews your application\n   - Background checks are conducted\n   - Employer verification is completed\n\n**6. Final Approval** ✅\n   - Receive work visa approval\n   - Travel arrangements can be made\n   - Entry visa must be obtained from Israeli consulate\n\n⚠️ **IMPORTANT DISCLAIMER**: This is general guidance only. Procedures may vary by visa category and individual circumstances. Always consult official sources.\n\n**Official Contacts:**\n- NSDC India: +91-11-4747-4700, info@nsdcindia.org\n- PIBA Israel: +972-2-629-4666, piba@piba.gov.il",
+      "keywords": ["visa", "work permit", "visa process", "immigration", "work visa", "permit application"],
+      "intent": "visa_info",
+      "source": {
+        "authority": "PIBA (Population and Immigration Authority of Israel)",
+        "url": "https://www.gov.il/en/departments/piba",
+        "lastVerified": "2024-01-01",
+        "additionalSources": [
+          {
+            "authority": "NSDC India",
+            "url": "https://www.nsdcindia.org",
+            "lastVerified": "2024-01-01"
+          }
+        ]
+      },
+      "processingTime": "30-45 business days (non-guaranteed, may vary)",
+      "workRights": "Work rights limited to specific employer and job category as stated in work permit"
+    },
+    "skill_requirements": {
+      "title": "Skill Requirements by Job Category",
+      "content": "🎓 **Skill Requirements by Job Category**\n\n**🏗️ Construction Jobs:**\n   ✓ Minimum 2-3 years documented experience in construction\n   ✓ Safety certifications (OSHA or equivalent)\n   ✓ Physical fitness certificate\n   ✓ Basic English or Hebrew communication skills\n   ✓ Specific trade certifications (plumber, electrician, etc.)\n\n**🏥 Healthcare Jobs:**\n   ✓ Nursing or healthcare certifications (recognized by Israeli authorities)\n   ✓ Minimum 2 years relevant work experience\n   ✓ Medical license (if applicable for your role)\n   ✓ Language proficiency (English/Hebrew as required)\n   ✓ Background check clearance\n\n**🌾 Agriculture Jobs:**\n   ✓ Experience in farming/agriculture (minimum 1-2 years)\n   ✓ Physical fitness certificate\n   ✓ Willingness to work in rural areas\n   ✓ Basic understanding of agricultural practices\n\n**💻 IT Jobs:**\n   ✓ Technical certifications or relevant degree\n   ✓ Programming skills (as per job requirements)\n   ✓ Minimum 3 years professional experience\n   ✓ English proficiency (Hebrew preferred)\n   ✓ Portfolio of previous work\n\n**⚠️ NOTE**: Specific requirements vary by employer and job category. Always verify exact requirements with your employer or NSDC International.\n\n**For specific requirements, check job postings or contact NSDC International.**",
+      "keywords": ["skill", "requirement", "qualification", "experience", "certification", "skills needed"],
+      "intent": "visa_info"
+    },
+    "employer_verification": {
+      "title": "Employer Verification Guide",
+      "content": "✅ **Employer Verification Guide**\n\n**How to Verify an Israeli Employer:**\n\n1. **Company Registration** - Check Israeli Companies Authority (Rasham HaChaverot)\n   - Verify company exists and is active\n   - Check company registration number\n\n2. **PIBA Authorization** - Verify employer can hire foreign workers\n   - Employer must have valid PIBA authorization\n   - Check authorization number and validity\n\n3. **License Check** - Confirm valid labor license\n   - Verify license is current and not suspended\n   - Check for any violations or complaints\n\n4. **NSDC Verification** - Contact NSDC India for assistance\n   - NSDC maintains list of verified employers\n   - They can assist with verification process\n\n**🚨 Red Flags to Watch:**\n   ⚠️ Requests for upfront payment or fees\n   ⚠️ Unclear or vague job descriptions\n   ⚠️ Pressure to sign contracts quickly without review\n   ⚠️ Unverified contact information or addresses\n   ⚠️ Promises that seem too good to be true\n   ⚠️ Requests for personal documents before verification\n\n**Always verify through official channels before accepting any job offer.**\n\n**Verification Assistance:**\n- NSDC India: info@nsdcindia.org, +91-11-4747-4700\n- PIBA Israel: piba@piba.gov.il, +972-2-629-4666\n- Apravas Counselors: Available for consultation",
+      "keywords": ["employer", "verify", "verification", "company", "employer check", "legitimate"],
+      "intent": "visa_info"
+    },
+    "salary_benefits": {
+      "title": "Salary & Benefits in Israel",
+      "content": "💰 **Salary & Benefits in Israel**\n\n**🏗️ Construction Workers:**\n   💵 Monthly Salary: ₹80,000 - ₹1,20,000 (approximately 8,000 - 12,000 ILS)\n   🏠 Accommodation: Usually provided by employer\n   🏥 Health Insurance: Mandatory (covered by employer)\n   ⏰ Working Hours: 8-10 hours/day, 6 days/week (maximum 182 hours/month)\n   📅 Overtime: Paid as per Israeli labor laws\n\n**🏥 Healthcare Workers:**\n   💵 Monthly Salary: ₹1,00,000 - ₹1,50,000 (approximately 10,000 - 15,000 ILS)\n   📚 Professional development opportunities\n   🏥 Comprehensive health insurance\n   🏖️ Paid leave and holidays\n   📈 Career advancement paths\n\n**📦 Standard Benefits (All Categories):**\n   ✓ Accommodation (often provided or subsidized)\n   ✓ Health insurance coverage (mandatory)\n   ✓ Return ticket (after contract completion)\n   ✓ Legal protection under Israeli labor laws\n   ✓ Minimum wage protection (ILS 5,300 minimum)\n   ✓ Social security contributions\n\n**⚠️ IMPORTANT**: \n- Salaries vary by experience, skills, job category, and employer\n- Always confirm exact salary and benefits in your employment contract\n- Minimum wage is legally protected in Israel\n- Overtime must be paid according to Israeli labor laws\n\n**For specific salary information, contact NSDC International or verify with your employer.**",
+      "keywords": ["salary", "benefit", "wage", "payment", "compensation", "income", "money"],
+      "intent": "visa_info"
+    },
+    "required_documents": {
+      "title": "Required Documents for Visa Application",
+      "content": "📄 **Required Documents for Visa Application**\n\n**Essential Documents:**\n\n1. **Passport**\n   - Valid passport with minimum 2 years validity from visa issue date\n   - At least 2 blank pages for visa stamps\n\n2. **Educational Certificates**\n   - Original educational certificates\n   - Attested by appropriate authorities\n   - Translated to English or Hebrew if required\n\n3. **Experience Certificates**\n   - Certificates from previous employers\n   - Minimum 2-3 years experience (varies by category)\n   - Should be on company letterhead\n\n4. **Police Clearance Certificate**\n   - From home country authorities\n   - Valid for 6 months from issue date\n   - Must be attested\n\n5. **Medical Fitness Certificate**\n   - From PIBA-approved medical centers\n   - Valid for 6 months\n   - Must include all required tests\n\n6. **Passport Photographs**\n   - Recent passport-sized photographs\n   - White background\n   - As per PIBA specifications\n\n7. **Employment Contract**\n   - Signed employment contract\n   - Should include all terms and conditions\n\n**⚠️ NOTE**: Document requirements may vary by visa category and individual circumstances. Always verify exact requirements with PIBA or NSDC.\n\n**For document verification assistance, contact NSDC India or Apravas counselors.**",
+      "keywords": ["document", "documents", "paperwork", "certificate", "required documents", "documentation"],
+      "intent": "visa_info",
+      "source": {
+        "authority": "PIBA (Population and Immigration Authority of Israel)",
+        "url": "https://www.gov.il/en/departments/piba",
+        "lastVerified": "2024-01-01"
+      },
+      "checklist": [
+        "Valid passport (2+ years validity)",
+        "Educational certificates (attested)",
+        "Experience certificates (2-3 years minimum)",
+        "Police clearance certificate",
+        "Medical fitness certificate",
+        "Passport photographs",
+        "Employment contract"
+      ]
+    },
+    "visa_fees": {
+      "title": "Visa Fees and Costs",
+      "content": "💳 **Visa Fees and Costs**\n\n**Official Fees:**\n- Work permit application fee: Varies by category (check current PIBA rates)\n- Medical examination: Approximately 500-800 ILS (varies by facility)\n- Visa processing fee: As per current PIBA schedule\n- Entry visa fee: Check with Israeli consulate\n\n**⚠️ IMPORTANT**:\n- Official fees are paid directly to government authorities\n- Be cautious of any agent or employer requesting additional \"processing fees\"\n- All official fees should be paid through authorized channels only\n- Keep receipts of all payments\n\n**For current fee information, contact:**\n- PIBA Israel: +972-2-629-4666\n- NSDC India: +91-11-4747-4700\n- Israeli Consulate in your region\n\n**⚠️ DISCLAIMER**: Fee amounts are subject to change. Always verify current fees from official sources.",
+      "keywords": ["fee", "fees", "cost", "costs", "price", "payment", "visa fee"],
+      "intent": "visa_info"
+    },
+    "appointment_booking": {
+      "title": "Appointment Booking Process",
+      "content": "📅 **Appointment Booking Process**\n\n**For PIBA Appointments:**\n- Appointments can be booked through PIBA's official website\n- Phone booking: +972-2-629-4666\n- Appointments are typically required for:\n  * Document submission\n  * Biometric data collection\n  * Interview (if required)\n\n**For Medical Examinations:**\n- Contact PIBA-approved medical centers directly\n- Schedule appointment well in advance\n- Bring all required documents\n\n**For NSDC Consultations:**\n- Contact NSDC India: +91-11-4747-4700\n- Email: info@nsdcindia.org\n- Walk-in consultations may be available (check in advance)\n\n**⚠️ TIP**: Book appointments early as slots fill quickly. Have all documents ready before your appointment.\n\n**For assistance with appointment booking, contact NSDC or Apravas counselors.**",
+      "keywords": ["appointment", "booking", "schedule", "meeting", "consultation", "book appointment"],
+      "intent": "appointment"
+    }
+  },
+  "disclaimer": "⚠️ **IMPORTANT LEGAL DISCLAIMER**:\n\nThis information is provided for general guidance only and does not constitute legal advice. Immigration laws and procedures are subject to change. Individual circumstances may vary. Always consult with official government sources (PIBA, NSDC) or qualified immigration counselors for specific advice related to your situation.\n\nApravas is not a law firm and does not provide legal services. For legal advice, please consult a qualified immigration attorney.",
+  "handoff_triggers": [
+    "legal advice",
+    "specific case",
+    "complex situation",
+    "appeal",
+    "rejection",
+    "complaint",
+    "dispute"
+  ]
+}
