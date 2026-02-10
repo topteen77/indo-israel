@@ -101,4 +101,5 @@ jobs:
             fi
             git fetch origin main
             git reset --hard origin/main
+            ./deploy.sh stop
             ./deploy.sh deploy
