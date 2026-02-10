@@ -14,12 +14,12 @@ const initializeEmailService = () => {
 
   // Create transporter
   transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '587'),
+    host: process.env.EMAIL_HOST || process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.EMAIL_PORT || process.env.SMTP_PORT || '587'),
     secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+      user: process.env.EMAIL_HOST_USER || process.env.SMTP_USER,
+      pass: process.env.EMAIL_HOST_PASSWORD || process.env.SMTP_PASS,
     },
   });
 
@@ -170,7 +170,7 @@ const sendApplicationConfirmation = async (applicationData) => {
     }
 
     const mailOptions = {
-      from: `"Apravas Recruitment" <${process.env.SMTP_USER}>`,
+      from: process.env.DEFAULT_FROM_EMAIL || `"Apravas Recruitment" <${process.env.SMTP_USER}>`,
       to: applicantEmail,
       subject: 'Application Submitted Successfully - Apravas Recruitment',
       html,
@@ -309,7 +309,7 @@ const sendRejectionEmail = async (applicationData, rejectionReason) => {
     }
 
     const mailOptions = {
-      from: `"Apravas Recruitment" <${process.env.SMTP_USER}>`,
+      from: process.env.DEFAULT_FROM_EMAIL || `"Apravas Recruitment" <${process.env.SMTP_USER}>`,
       to: applicantEmail,
       subject: 'Application Status Update - Apravas Recruitment',
       html,
@@ -430,7 +430,7 @@ const sendAppealConfirmation = async (appealData) => {
     }
 
     const mailOptions = {
-      from: `"Apravas Recruitment" <${process.env.SMTP_USER}>`,
+      from: process.env.DEFAULT_FROM_EMAIL || `"Apravas Recruitment" <${process.env.SMTP_USER}>`,
       to: applicantEmail,
       subject: 'Appeal Submitted Successfully - Apravas Recruitment',
       html,
