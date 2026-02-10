@@ -100,7 +100,9 @@ jobs:
           host: ${{ secrets.AWS_HOST }}
           username: ${{ secrets.AWS_USER }}
           key: ${{ secrets.AWS_SSH_KEY }}
+          port: 22
           envs: DEPLOY_PATH
+          script_stop: true
           script: |
             set -e
             DIR="${DEPLOY_PATH:-$HOME/indo-israel}"
