@@ -7,6 +7,12 @@ const { OpenAI } = require('openai');
 const fs = require('fs');
 const path = require('path');
 
+// Ensure .env is loaded when this module is required (e.g. from tests or before server.js)
+if (!process.env.OPENAI_API_KEY) {
+  const pathToRootEnv = path.resolve(__dirname, '..', '..', '.env');
+  require('dotenv').config({ path: pathToRootEnv });
+}
+
 // Initialize OpenAI client
 // API key should be set via environment variable: OPENAI_API_KEY
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -64,7 +70,8 @@ loadKnowledgeBase();
 // ============================================================================
 
 const activeSessions = new Map();
-const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
+// GDPR: configurable session retention. Default 24h; set CHATBOT_SESSION_TIMEOUT_MS (e.g. 90 days = 90*24*60*60*1000).
+const SESSION_TIMEOUT = parseInt(process.env.CHATBOT_SESSION_TIMEOUT_MS || '', 10) || 24 * 60 * 60 * 1000;
 
 class UserContext {
   constructor(userId, sessionId) {

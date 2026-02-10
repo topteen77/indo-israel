@@ -5,6 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
+const xss = require('xss');
 const {
   generateResponse,
   createSession,
@@ -14,6 +15,17 @@ const {
   extractEntities,
   searchKnowledgeBase,
 } = require('../services/chatbotService');
+
+/**
+ * Sanitize user message for XSS: strip HTML/scripts, limit length.
+ */
+function sanitizeMessage(input) {
+  if (typeof input !== 'string') return '';
+  const trimmed = input.trim();
+  if (!trimmed) return '';
+  const sanitized = xss(trimmed, { stripIgnoreTagBody: ['script', 'style'], whiteList: {} });
+  return sanitized.substring(0, 1000);
+}
 
 /**
  * POST /api/chatbot/message
@@ -30,8 +42,13 @@ router.post('/message', async (req, res) => {
       });
     }
 
-    // Sanitize message (basic)
-    const sanitizedMessage = message.trim().substring(0, 1000);
+    const sanitizedMessage = sanitizeMessage(message);
+    if (!sanitizedMessage) {
+      return res.status(400).json({
+        success: false,
+        message: 'Message is required and must be a non-empty string',
+      });
+    }
 
     // Generate response with RAG
     const result = await generateResponse(sanitizedMessage, sessionId);
@@ -207,12 +224,49 @@ router.get('/documents/:country/:visaType', async (req, res) => {
 });
 
 /**
+ * POST /api/chatbot/schedule
+ * Request a consultation booking (CRM integration hook).
+ * Body: { sessionId?, preferredDate?, preferredTime?, topic?, country?, visaType?, contactPreference? }
+ */
+router.post('/schedule', (req, res) => {
+  try {
+    const { sessionId, preferredDate, preferredTime, topic, country, visaType, contactPreference } = req.body;
+
+    const confirmationCode = `SCHED-${Date.now().toString(36).toUpperCase()}`;
+    // CRM integration: in production, create calendar event / CRM lead here (no PII in logs).
+    console.log('Consultation request', {
+      confirmationCode,
+      hasSession: !!sessionId,
+      topic: topic || null,
+      country: country || null,
+      visaType: visaType || null,
+    });
+
+    res.json({
+      success: true,
+      message: 'Your consultation request has been received. An Apravas counselor will contact you to confirm the appointment.',
+      data: {
+        confirmationCode,
+        estimatedResponseTime: '24 hours',
+      },
+    });
+  } catch (error) {
+    console.error('Error in schedule endpoint:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to submit consultation request',
+      error: error.message,
+    });
+  }
+});
+
+/**
  * POST /api/chatbot/handoff
- * Create handoff request for human counselor
+ * Create handoff request for human counselor (no PII in logs).
  */
 router.post('/handoff', (req, res) => {
   try {
-    const { sessionId, reason, userInfo = {} } = req.body;
+    const { sessionId, reason } = req.body;
 
     if (!sessionId) {
       return res.status(400).json({
@@ -229,13 +283,12 @@ router.post('/handoff', (req, res) => {
       });
     }
 
-    // TODO: Integrate with CRM system
-    // For now, just log the handoff request
-    console.log('Handoff request:', {
-      sessionId,
-      reason,
-      userInfo,
-      conversationHistory: context.conversationHistory.length,
+    const confirmationCode = `HANDOFF-${Date.now().toString(36).toUpperCase()}`;
+    // Log only non-PII: session id, reason, message count (GDPR-compliant).
+    console.log('Handoff request', {
+      confirmationCode,
+      reason: reason || 'not_specified',
+      messageCount: context.conversationHistory.length,
     });
 
     res.json({
@@ -243,7 +296,7 @@ router.post('/handoff', (req, res) => {
       message: 'Handoff request created. Apravas counselor will contact you shortly.',
       data: {
         sessionId,
-        confirmationCode: `HANDOFF-${Date.now().toString(36).toUpperCase()}`,
+        confirmationCode,
         estimatedWaitTime: '24 hours',
       },
     });

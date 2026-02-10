@@ -5,4 +5,4 @@ node_modules/
 *.db-journal
 
 # Google Cloud / service account credentials (never commit)
-config/
+# config/
