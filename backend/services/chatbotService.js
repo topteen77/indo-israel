@@ -8,11 +8,14 @@ const fs = require('fs');
 const path = require('path');
 
 // Initialize OpenAI client
-// Use environment variable, with fallback for development
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "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";
-const openai = new OpenAI({
+// API key should be set via environment variable: OPENAI_API_KEY
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+if (!OPENAI_API_KEY) {
+  console.warn('⚠️ OPENAI_API_KEY not set. Chatbot will not work without it.');
+}
+const openai = OPENAI_API_KEY ? new OpenAI({
   apiKey: OPENAI_API_KEY,
-});
+}) : null;
 
 // Configuration
 const CONFIG = {
