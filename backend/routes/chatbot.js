@@ -1,11 +1,14 @@
 /**
  * Apravas Chatbot API Routes
- * Handles chatbot interactions with RAG, intent classification, and entity extraction
+ * Handles chatbot interactions with RAG, intent classification, and entity extraction.
+ * Agent handoff: waiting sessions, join, and live chat with user.
  */
 
 const express = require('express');
 const router = express.Router();
 const xss = require('xss');
+const jwt = require('jsonwebtoken');
+const db = require('../database/db');
 const {
   generateResponse,
   createSession,
@@ -15,6 +18,30 @@ const {
   extractEntities,
   searchKnowledgeBase,
 } = require('../services/chatbotService');
+
+// Admin auth for agent routes
+const getAdminFromToken = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.replace('Bearer ', '') || req.query.token;
+  if (!token) {
+    req.user = null;
+    return next();
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const user = db.prepare('SELECT id, role, fullName FROM users WHERE id = ?').get(decoded.id);
+    req.user = user ? { id: user.id, role: user.role, fullName: user.fullName } : null;
+  } catch (e) {
+    req.user = null;
+  }
+  next();
+};
+const requireAdmin = (req, res, next) => {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ success: false, message: 'Admin access required' });
+  }
+  next();
+};
 
 /**
  * Sanitize user message for XSS: strip HTML/scripts, limit length.
@@ -52,6 +79,17 @@ router.post('/message', async (req, res) => {
 
     // Generate response with RAG
     const result = await generateResponse(sanitizedMessage, sessionId);
+
+    // If an agent has joined this session, persist user + assistant messages for agent view
+    try {
+      const handoff = db.prepare('SELECT id, status FROM agent_handoffs WHERE sessionId = ?').get(sessionId);
+      if (handoff && handoff.status === 'joined') {
+        db.prepare('INSERT INTO agent_chat_messages (sessionId, role, content) VALUES (?, ?, ?)').run(sessionId, 'user', sanitizedMessage);
+        db.prepare('INSERT INTO agent_chat_messages (sessionId, role, content) VALUES (?, ?, ?)').run(sessionId, 'assistant', result.response || '');
+      }
+    } catch (e) {
+      console.error('Persist message for agent:', e.message);
+    }
 
     res.json({
       success: true,
@@ -262,11 +300,11 @@ router.post('/schedule', (req, res) => {
 
 /**
  * POST /api/chatbot/handoff
- * Create handoff request for human counselor (no PII in logs).
+ * Create handoff request: agent gets notification, can join and chat with this session.
  */
 router.post('/handoff', (req, res) => {
   try {
-    const { sessionId, reason } = req.body;
+    const { sessionId, reason, userName, userMobile, userEmail } = req.body;
 
     if (!sessionId) {
       return res.status(400).json({
@@ -284,14 +322,35 @@ router.post('/handoff', (req, res) => {
     }
 
     const confirmationCode = `HANDOFF-${Date.now().toString(36).toUpperCase()}`;
-    // Log only non-PII: session id, reason, message count (GDPR-compliant).
+    const name = userName != null ? String(userName).trim() : null;
+    const mobile = userMobile != null ? String(userMobile).trim() : null;
+    const email = userEmail != null ? String(userEmail).trim() : null;
     console.log('Handoff request', {
       confirmationCode,
       reason: reason || 'not_specified',
       messageCount: context.conversationHistory.length,
+      hasContact: !!(name || mobile || email),
     });
 
-    // Notify recruitment team by email (sender: default_from_email, recipient: recruitment_email)
+    // Create handoff row so agents see "chat join" request (one per session)
+    const existing = db.prepare('SELECT id FROM agent_handoffs WHERE sessionId = ?').get(sessionId);
+    if (!existing) {
+      db.prepare(
+        'INSERT INTO agent_handoffs (sessionId, status, userName, userMobile, userEmail) VALUES (?, ?, ?, ?, ?)'
+      ).run(sessionId, 'waiting', name || null, mobile || null, email || null);
+      // Persist current conversation so agent can see it when they join
+      const insertMsg = db.prepare('INSERT INTO agent_chat_messages (sessionId, role, content) VALUES (?, ?, ?)');
+      for (const msg of context.conversationHistory || []) {
+        const role = msg.role === 'user' ? 'user' : 'assistant';
+        insertMsg.run(sessionId, role, msg.content || '');
+      }
+    } else {
+      db.prepare(
+        'UPDATE agent_handoffs SET status = ?, agentUserId = NULL, joinedAt = NULL, userName = ?, userMobile = ?, userEmail = ? WHERE sessionId = ?'
+      ).run('waiting', name || null, mobile || null, email || null, sessionId);
+    }
+
+    // Notify recruitment team by email
     const { sendSpeakToHumanNotification } = require('../services/emailService');
     sendSpeakToHumanNotification(confirmationCode, sessionId).catch((err) => {
       console.error('Failed to send speak-to-human notification email:', err);
@@ -299,7 +358,7 @@ router.post('/handoff', (req, res) => {
 
     res.json({
       success: true,
-      message: 'Handoff request created. Apravas counselor will contact you shortly.',
+      message: 'Handoff request created. An agent will join your chat shortly.',
       data: {
         sessionId,
         confirmationCode,
@@ -313,6 +372,157 @@ router.post('/handoff', (req, res) => {
       message: 'Failed to create handoff request',
       error: error.message,
     });
+  }
+});
+
+/**
+ * GET /api/chatbot/agent/waiting-sessions
+ * List sessions waiting for an agent (admin only). Agent gets "notification" of chat join requests.
+ */
+router.get('/agent/waiting-sessions', getAdminFromToken, requireAdmin, (req, res) => {
+  try {
+    const rows = db.prepare(
+      `SELECT id, sessionId, status, agentUserId, createdAt, joinedAt, userName, userMobile, userEmail 
+       FROM agent_handoffs 
+       WHERE status = 'waiting' 
+       ORDER BY createdAt DESC`
+    ).all();
+    res.json({ success: true, data: rows });
+  } catch (e) {
+    console.error('Agent waiting-sessions:', e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+/**
+ * POST /api/chatbot/agent/join/:sessionId
+ * Agent joins this session and will see the chat (admin only).
+ */
+router.post('/agent/join/:sessionId', getAdminFromToken, requireAdmin, (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const agentUserId = req.user?.id;
+    const agentName = (req.user?.fullName || 'Agent').trim() || 'Agent';
+    const handoff = db.prepare('SELECT id FROM agent_handoffs WHERE sessionId = ?').get(sessionId);
+    if (!handoff) {
+      return res.status(404).json({ success: false, message: 'Session not found or not waiting' });
+    }
+    db.prepare(
+      'UPDATE agent_handoffs SET status = ?, agentUserId = ?, joinedAt = CURRENT_TIMESTAMP WHERE sessionId = ?'
+    ).run('joined', agentUserId, sessionId);
+    db.prepare(
+      "INSERT INTO agent_chat_messages (sessionId, role, content) VALUES (?, 'system', ?)"
+    ).run(sessionId, `Agent: ${agentName} joined`);
+    res.json({ success: true, data: { sessionId, status: 'joined' } });
+  } catch (e) {
+    console.error('Agent join:', e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+/**
+ * GET /api/chatbot/agent/session/:sessionId
+ * Get full conversation for this session (admin only). Agent sees user + assistant + agent messages.
+ */
+router.get('/agent/session/:sessionId', getAdminFromToken, requireAdmin, (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const messages = db.prepare(
+      'SELECT id, sessionId, role, content, createdAt FROM agent_chat_messages WHERE sessionId = ? ORDER BY id ASC'
+    ).all(sessionId);
+    const handoff = db.prepare('SELECT status, agentUserId, joinedAt FROM agent_handoffs WHERE sessionId = ?').get(sessionId);
+    res.json({ success: true, data: { sessionId, messages, handoff: handoff || null } });
+  } catch (e) {
+    console.error('Agent session:', e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+/**
+ * POST /api/chatbot/agent/session/:sessionId/message
+ * Agent sends a message to the user in this session (admin only). User will see it via polling.
+ */
+router.post('/agent/session/:sessionId/message', getAdminFromToken, requireAdmin, (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const content = (req.body?.content || req.body?.message || '').trim();
+    if (!content) {
+      return res.status(400).json({ success: false, message: 'Content is required' });
+    }
+    const handoff = db.prepare('SELECT id, status FROM agent_handoffs WHERE sessionId = ?').get(sessionId);
+    if (!handoff) {
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+    if (handoff.status === 'closed') {
+      return res.status(400).json({ success: false, message: 'Session is closed' });
+    }
+    const run = db.prepare('INSERT INTO agent_chat_messages (sessionId, role, content) VALUES (?, ?, ?)').run(sessionId, 'agent', content);
+    res.json({ success: true, data: { id: run.lastInsertRowid, role: 'agent', content, sessionId } });
+  } catch (e) {
+    console.error('Agent message:', e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+/**
+ * POST /api/chatbot/agent/session/:sessionId/close
+ * Agent ends the live chat. User will see a system message when they poll.
+ */
+router.post('/agent/session/:sessionId/close', getAdminFromToken, requireAdmin, (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const handoff = db.prepare('SELECT id FROM agent_handoffs WHERE sessionId = ?').get(sessionId);
+    if (!handoff) {
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+    db.prepare("UPDATE agent_handoffs SET status = 'closed' WHERE sessionId = ?").run(sessionId);
+    db.prepare(
+      "INSERT INTO agent_chat_messages (sessionId, role, content) VALUES (?, 'system', ?)"
+    ).run(sessionId, 'Chat ended by agent.');
+    res.json({ success: true, data: { sessionId, status: 'closed' } });
+  } catch (e) {
+    console.error('Agent close session:', e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+/**
+ * POST /api/chatbot/session/:sessionId/close
+ * User ends the live chat. Agent will see a system message on next poll.
+ */
+router.post('/session/:sessionId/close', (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const handoff = db.prepare('SELECT id FROM agent_handoffs WHERE sessionId = ?').get(sessionId);
+    if (!handoff) {
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+    db.prepare("UPDATE agent_handoffs SET status = 'closed' WHERE sessionId = ?").run(sessionId);
+    db.prepare(
+      "INSERT INTO agent_chat_messages (sessionId, role, content) VALUES (?, 'system', ?)"
+    ).run(sessionId, 'Chat ended by user.');
+    res.json({ success: true, data: { sessionId, status: 'closed' } });
+  } catch (e) {
+    console.error('User close session:', e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+/**
+ * GET /api/chatbot/session/:sessionId/updates?after=id
+ * User polls for new messages (e.g. agent messages). Returns messages with id > after.
+ */
+router.get('/session/:sessionId/updates', (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const after = parseInt(req.query.after, 10) || 0;
+    const messages = db.prepare(
+      'SELECT id, role, content, createdAt FROM agent_chat_messages WHERE sessionId = ? AND id > ? ORDER BY id ASC'
+    ).all(sessionId, after);
+    res.json({ success: true, data: { messages } });
+  } catch (e) {
+    console.error('Session updates:', e);
+    res.status(500).json({ success: false, message: e.message });
   }
 });
 

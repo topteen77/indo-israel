@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Grid, Card, CardContent, Typography, Box, Chip,
   LinearProgress, CircularProgress, Button, Avatar,
   Table, TableBody, TableCell, TableHead, TableRow,
   Alert, FormControl, InputLabel, Select, MenuItem,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Checkbox, FormControlLabel,
+  TextField, Checkbox, FormControlLabel, Paper,
 } from '@mui/material';
 import {
   TrendingUp, TrendingDown, People, Work, AttachMoney,
@@ -49,6 +49,16 @@ const ApravasAdminDashboard = () => {
   const [tpLoading, setTpLoading] = useState(false);
   const [tpSaving, setTpSaving] = useState(false);
   const [tpError, setTpError] = useState('');
+  // Live chat (agent handoff)
+  const [waitingSessions, setWaitingSessions] = useState([]);
+  const [waitingSessionsLoading, setWaitingSessionsLoading] = useState(false);
+  const [joinedSessionId, setJoinedSessionId] = useState(null);
+  const [sessionMessages, setSessionMessages] = useState([]);
+  const [sessionHandoff, setSessionHandoff] = useState(null);
+  const [sessionMessagesLoading, setSessionMessagesLoading] = useState(false);
+  const [agentMessageInput, setAgentMessageInput] = useState('');
+  const [sendingAgentMessage, setSendingAgentMessage] = useState(false);
+  const liveChatPollRef = useRef(null);
 
   useEffect(() => {
     fetchAnalytics();
@@ -156,8 +166,86 @@ const ApravasAdminDashboard = () => {
   };
 
   useEffect(() => {
-    if (activeTab === 5) fetchThirdPartySettings();
+    if (activeTab === 6) fetchThirdPartySettings();
   }, [activeTab]);
+
+  const fetchWaitingSessions = async () => {
+    setWaitingSessionsLoading(true);
+    try {
+      const res = await api.get('/chatbot/agent/waiting-sessions');
+      setWaitingSessions(res.data?.data || []);
+    } catch (err) {
+      console.error('Failed to fetch waiting sessions:', err);
+      setWaitingSessions([]);
+    } finally {
+      setWaitingSessionsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 5) fetchWaitingSessions();
+  }, [activeTab]);
+
+  const fetchSessionMessages = async (sid) => {
+    if (!sid) return;
+    setSessionMessagesLoading(true);
+    try {
+      const res = await api.get(`/chatbot/agent/session/${sid}`);
+      setSessionMessages(res.data?.data?.messages || []);
+      setSessionHandoff(res.data?.data?.handoff || null);
+    } catch (err) {
+      console.error('Failed to fetch session messages:', err);
+      setSessionMessages([]);
+      setSessionHandoff(null);
+    } finally {
+      setSessionMessagesLoading(false);
+    }
+  };
+
+  const handleAgentJoin = async (sessionId) => {
+    try {
+      await api.post(`/chatbot/agent/join/${sessionId}`);
+      setJoinedSessionId(sessionId);
+      setSessionHandoff(null);
+      fetchSessionMessages(sessionId);
+      fetchWaitingSessions();
+    } catch (err) {
+      console.error('Join failed:', err);
+    }
+  };
+
+  const handleAgentCloseSession = async () => {
+    if (!joinedSessionId) return;
+    try {
+      await api.post(`/chatbot/agent/session/${joinedSessionId}/close`);
+      await fetchSessionMessages(joinedSessionId);
+    } catch (err) {
+      console.error('Close session failed:', err);
+    }
+  };
+
+  const handleSendAgentMessage = async () => {
+    const content = agentMessageInput.trim();
+    if (!content || !joinedSessionId) return;
+    setSendingAgentMessage(true);
+    try {
+      await api.post(`/chatbot/agent/session/${joinedSessionId}/message`, { content });
+      setAgentMessageInput('');
+      setSessionMessages((prev) => [...prev, { id: Date.now(), role: 'agent', content, createdAt: new Date().toISOString() }]);
+    } catch (err) {
+      console.error('Send agent message failed:', err);
+    } finally {
+      setSendingAgentMessage(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab !== 5 || !joinedSessionId) return;
+    liveChatPollRef.current = setInterval(() => fetchSessionMessages(joinedSessionId), 3000);
+    return () => {
+      if (liveChatPollRef.current) clearInterval(liveChatPollRef.current);
+    };
+  }, [activeTab, joinedSessionId]);
 
   const updateTpEdit = (section, key, value) => {
     setTpEdit((prev) => ({
@@ -382,6 +470,7 @@ const ApravasAdminDashboard = () => {
         <Tab label="WhatsApp Log" icon={<Chat />} />
         <Tab label="Users" icon={<People />} />
         <Tab label="Email Log" icon={<EmailIcon />} />
+        <Tab label="Live chat" icon={<Chat />} />
         <Tab label="Settings" icon={<SettingsIcon />} />
       </Tabs>
 
@@ -896,7 +985,103 @@ const ApravasAdminDashboard = () => {
       )}
 
       {/* Settings Tab – Third-party: Email, WhatsApp, SMS */}
+      {/* Live chat tab: waiting sessions + join + chat with user */}
       {activeTab === 5 && (
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>Chat join requests</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              When a user clicks &quot;Connect me with Apravas support&quot;, they appear here. Click Join to see the conversation and chat with them.
+            </Typography>
+            {joinedSessionId ? (
+              <Box>
+                <Box display="flex" alignItems="center" gap={1} sx={{ mb: 2 }}>
+                  <Button size="small" onClick={() => { setJoinedSessionId(null); setSessionMessages([]); setSessionHandoff(null); }}>
+                    ← Back to list
+                  </Button>
+                  {sessionHandoff?.status !== 'closed' && (
+                    <Button size="small" variant="outlined" color="secondary" onClick={handleAgentCloseSession}>
+                      End session
+                    </Button>
+                  )}
+                </Box>
+                {sessionHandoff?.status === 'closed' && (
+                  <Alert severity="info" sx={{ mb: 2 }}>Session ended. The other party has been notified.</Alert>
+                )}
+                <Box sx={{ border: '1px solid #e0e0e0', borderRadius: 1, p: 2, minHeight: 280, maxHeight: 400, overflowY: 'auto', bgcolor: '#fafafa' }}>
+                  {sessionMessagesLoading && sessionMessages.length === 0 ? (
+                    <Typography color="text.secondary">Loading…</Typography>
+                  ) : (
+                    sessionMessages.map((msg) => (
+                      <Box key={msg.id} sx={{ mb: 1.5, display: 'flex', justifyContent: msg.role === 'system' ? 'center' : msg.role === 'user' ? 'flex-start' : 'flex-end' }}>
+                        <Paper elevation={0} sx={{ p: 1.5, maxWidth: '85%', bgcolor: msg.role === 'agent' ? 'primary.light' : msg.role === 'user' ? '#e3f2fd' : msg.role === 'system' ? 'rgba(0,0,0,0.06)' : '#f5f5f5', color: msg.role === 'agent' ? 'primary.contrastText' : 'text.primary' }}>
+                          <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
+                            {msg.role === 'user' ? 'User' : msg.role === 'agent' ? 'You (Agent)' : msg.role === 'system' ? 'System' : 'Bot'}
+                          </Typography>
+                          <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', ...(msg.role === 'system' && { fontStyle: 'italic', color: 'text.secondary' }) }}>{msg.content}</Typography>
+                          <Typography variant="caption" color="text.secondary">{new Date(msg.createdAt).toLocaleTimeString()}</Typography>
+                        </Paper>
+                      </Box>
+                    ))
+                  )}
+                </Box>
+                <Box display="flex" gap={1} sx={{ mt: 2 }}>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    placeholder={sessionHandoff?.status === 'closed' ? 'Session ended' : 'Type a message to the user…'}
+                    value={agentMessageInput}
+                    onChange={(e) => setAgentMessageInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendAgentMessage(); } }}
+                    disabled={sessionHandoff?.status === 'closed'}
+                  />
+                  <Button variant="contained" onClick={handleSendAgentMessage} disabled={sendingAgentMessage || !agentMessageInput.trim() || sessionHandoff?.status === 'closed'}>
+                    Send
+                  </Button>
+                </Box>
+              </Box>
+            ) : (
+              <>
+                <Button size="small" startIcon={waitingSessionsLoading ? <CircularProgress size={16} /> : <Refresh />} onClick={fetchWaitingSessions} disabled={waitingSessionsLoading} sx={{ mb: 2 }}>
+                  Refresh
+                </Button>
+                {waitingSessions.length === 0 ? (
+                  <Typography color="text.secondary">No chat join requests right now.</Typography>
+                ) : (
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell><strong>Name</strong></TableCell>
+                        <TableCell><strong>Mobile</strong></TableCell>
+                        <TableCell><strong>Email</strong></TableCell>
+                        <TableCell><strong>Session ID</strong></TableCell>
+                        <TableCell><strong>Created</strong></TableCell>
+                        <TableCell align="right"><strong>Action</strong></TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {waitingSessions.map((row) => (
+                        <TableRow key={row.sessionId}>
+                          <TableCell>{row.userName || '—'}</TableCell>
+                          <TableCell>{row.userMobile || '—'}</TableCell>
+                          <TableCell>{row.userEmail || '—'}</TableCell>
+                          <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{row.sessionId}</TableCell>
+                          <TableCell>{new Date(row.createdAt).toLocaleString()}</TableCell>
+                          <TableCell align="right">
+                            <Button size="small" variant="contained" onClick={() => handleAgentJoin(row.sessionId)}>Join</Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === 6 && (
         <Box display="flex" flexDirection="column" gap={3}>
           {tpError && <Alert severity="error" onClose={() => setTpError('')}>{tpError}</Alert>}
           {tpLoading ? (

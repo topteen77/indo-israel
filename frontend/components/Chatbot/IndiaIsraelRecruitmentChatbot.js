@@ -32,9 +32,64 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
   const [typingMessageIndex, setTypingMessageIndex] = useState(null);
   const [sessionId, setSessionId] = useState(null);
   const [suggestedActions, setSuggestedActions] = useState([]);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [contactForm, setContactForm] = useState({ name: '', mobile: '', email: '' });
+  const [contactFormSubmitting, setContactFormSubmitting] = useState(false);
+  const [handoffRequested, setHandoffRequested] = useState(false);
+  const [sessionEnded, setSessionEnded] = useState(false);
+  const [endChatConfirmOpen, setEndChatConfirmOpen] = useState(false);
   const messagesEndRef = useRef(null);
   const hasProcessedInitialQuestion = useRef(false);
   const typingIntervalRef = useRef(null);
+  const lastSeenAgentMessageIdRef = useRef(0);
+
+  // Poll for agent messages when chat is open and user has a session (agent may have joined)
+  useEffect(() => {
+    if (!open || !sessionId) return;
+    const poll = async () => {
+      try {
+        const res = await api.get(`/chatbot/session/${sessionId}/updates`, {
+          params: { after: lastSeenAgentMessageIdRef.current },
+        });
+        const list = res.data?.data?.messages || [];
+        for (const msg of list) {
+          if (msg.id <= lastSeenAgentMessageIdRef.current) continue;
+          lastSeenAgentMessageIdRef.current = Math.max(lastSeenAgentMessageIdRef.current, msg.id);
+          if (msg.role === 'agent') {
+            setMessages((prev) => [...prev, {
+              id: `agent-${msg.id}`,
+              type: 'bot',
+              content: msg.content,
+              timestamp: new Date(msg.createdAt),
+              isAgent: true,
+            }]);
+          } else if (msg.role === 'system') {
+            const agentJoinedMatch = msg.content && msg.content.match(/^Agent: (.+) joined\.?$/i);
+            setMessages((prev) => [...prev, {
+              id: `system-${msg.id}`,
+              type: 'bot',
+              content: msg.content,
+              timestamp: new Date(msg.createdAt),
+              isSystem: true,
+              isAgentJoined: !!agentJoinedMatch,
+              agentName: agentJoinedMatch ? agentJoinedMatch[1].trim() : null,
+            }]);
+            if (msg.content && msg.content.includes('Chat ended by')) {
+              setSessionEnded(true);
+            }
+          }
+        }
+        if (list.length > 0) {
+          const maxId = Math.max(...list.map((m) => m.id));
+          lastSeenAgentMessageIdRef.current = Math.max(lastSeenAgentMessageIdRef.current, maxId);
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+    const interval = setInterval(poll, 3000);
+    return () => clearInterval(interval);
+  }, [open, sessionId]);
 
   useEffect(() => {
     const hasConsent = localStorage.getItem('chatbot_consent');
@@ -196,38 +251,115 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
     ));
   };
 
+  const submitHandoff = async (sid, contactInfo) => {
+    const payload = { sessionId: sid, reason: 'user_clicked_speak_to_human' };
+    if (contactInfo) {
+      payload.userName = contactInfo.name?.trim() || null;
+      payload.userMobile = contactInfo.mobile?.trim() || null;
+      payload.userEmail = contactInfo.email?.trim() || null;
+    } else if (typeof window !== 'undefined') {
+      try {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (user.fullName || user.name) payload.userName = user.fullName || user.name;
+        if (user.email) payload.userEmail = user.email;
+        if (user.phone) payload.userMobile = user.phone;
+      } catch (e) {}
+    }
+    try {
+      await api.post('/chatbot/handoff', payload);
+    } catch (err) {
+      console.error('Handoff request failed:', err);
+    }
+    setMessages((prev) => [...prev, {
+      id: Date.now(),
+      type: 'bot',
+      content: "We've notified our team. An Apravas counselor will contact you shortly. You can also reach us via the contact details on our website.",
+      timestamp: new Date(),
+    }]);
+    setHandoffRequested(true);
+  };
+
+  const handleContactFormSubmit = async () => {
+    setContactFormSubmitting(true);
+    try {
+      let sid = sessionId;
+      if (!sid) {
+        const res = await api.post('/chatbot/message', {
+          message: 'Connect me with Apravas support',
+          sessionId: null,
+          userId: 'guest',
+        });
+        sid = res.data?.data?.sessionId;
+        if (sid) setSessionId(sid);
+      }
+      if (sid) {
+        await submitHandoff(sid, contactForm);
+        setContactDialogOpen(false);
+        setContactForm({ name: '', mobile: '', email: '' });
+      }
+    } catch (e) {
+      console.error('Failed to create session for handoff:', e);
+    } finally {
+      setContactFormSubmitting(false);
+    }
+  };
+
+  const handleEndChat = async () => {
+    if (!sessionId || sessionEnded) return;
+    try {
+      await api.post(`/chatbot/session/${sessionId}/close`);
+      setMessages((prev) => [...prev, {
+        id: Date.now(),
+        type: 'bot',
+        content: 'You ended the chat. An agent can still reach you via the contact details you provided.',
+        timestamp: new Date(),
+        isSystem: true,
+      }]);
+      setSessionEnded(true);
+    } catch (e) {
+      console.error('End chat failed:', e);
+    }
+  };
+
+  const handleCloseClick = () => {
+    if (handoffRequested && sessionId && !sessionEnded) {
+      setEndChatConfirmOpen(true);
+    } else if (typeof onClose === 'function') {
+      onClose(false);
+    }
+  };
+
+  const handleConfirmEndChat = async () => {
+    await handleEndChat();
+    setEndChatConfirmOpen(false);
+    if (typeof onClose === 'function') onClose(false);
+  };
+
   const handleSuggestedAction = async (action) => {
-    // Speak to human: call handoff API so recruitment gets email + log entry, then show confirmation
+    // Speak to human: if not logged in, ask for contact info; then create handoff
     if (action === 'speak_to_human' || action === 'contact_human') {
-      const doHandoff = async (sid) => {
-        try {
-          await api.post('/chatbot/handoff', { sessionId: sid, reason: 'user_clicked_speak_to_human' });
-        } catch (err) {
-          console.error('Handoff request failed:', err);
-        }
-      };
-      if (sessionId) {
-        await doHandoff(sessionId);
-      } else {
-        // No session yet: send one message to create session, then handoff
+      const isLoggedIn = typeof window !== 'undefined' && !!localStorage.getItem('token');
+      if (!isLoggedIn) {
+        setContactForm({ name: '', mobile: '', email: '' });
+        setContactDialogOpen(true);
+        return;
+      }
+      let sid = sessionId;
+      if (!sid) {
         try {
           const res = await api.post('/chatbot/message', {
             message: 'Connect me with Apravas support',
             sessionId: null,
             userId: 'guest',
           });
-          const sid = res.data?.data?.sessionId;
-          if (sid) await doHandoff(sid);
+          sid = res.data?.data?.sessionId;
+          if (sid) setSessionId(sid);
         } catch (e) {
           console.error('Failed to create session for handoff:', e);
+          return;
         }
       }
-      setMessages(prev => [...prev, {
-        id: Date.now(),
-        type: 'bot',
-        content: "We've notified our team. An Apravas counselor will contact you shortly. You can also reach us via the contact details on our website.",
-        timestamp: new Date(),
-      }]);
+      if (sid) await submitHandoff(sid, null);
       return;
     }
 
@@ -369,11 +501,7 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
       {/* Enhanced Chatbot Dialog - Fullscreen Style */}
       <Dialog
         open={open}
-        onClose={() => {
-          if (typeof onClose === 'function') {
-            onClose(false);
-          }
-        }}
+        onClose={handleCloseClick}
         maxWidth={false}
         fullWidth={false}
         disableEnforceFocus
@@ -470,11 +598,7 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
               component="button"
               type="button"
               aria-label="Close chat"
-              onClick={() => {
-                if (typeof onClose === 'function') {
-                  onClose(false);
-                }
-              }}
+              onClick={handleCloseClick}
               sx={{
                 cursor: 'pointer',
                 padding: '8px',
@@ -615,7 +739,7 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
                   alignItems: 'flex-end',
                 }}
               >
-                {message.type === 'bot' && (
+                {message.type === 'bot' && !message.isSystem && (
                   <Box
                     sx={{
                       width: 36,
@@ -630,6 +754,18 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
                   >
                     <SmartToy sx={{ fontSize: 20, color: '#7437d0' }} />
                   </Box>
+                )}
+                {message.isAgentJoined && (
+                  <Avatar
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      bgcolor: 'primary.main',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Person sx={{ fontSize: 20 }} />
+                  </Avatar>
                 )}
                 <Box
                   sx={{
@@ -647,8 +783,11 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
                         message.type === 'user'
                           ? '12px 12px 0 12px'
                           : '12px 12px 12px 0',
-                      bgcolor:
-                        message.type === 'user'
+                      bgcolor: message.isAgentJoined
+                        ? 'rgba(123, 15, 255, 0.08)'
+                        : message.isSystem
+                        ? 'rgba(0,0,0,0.06)'
+                        : message.type === 'user'
                           ? 'rgba(237, 225, 251, 1)'
                           : 'transparent',
                       color: 'rgba(43, 42, 41, 1)',
@@ -664,6 +803,8 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
                         whiteSpace: 'pre-line',
                         lineHeight: 1.6,
                         fontSize: '14px',
+                        ...(message.isSystem && !message.isAgentJoined && { fontStyle: 'italic', color: 'text.secondary' }),
+                        ...(message.isAgentJoined && { fontWeight: 500 }),
                       }}
                       dangerouslySetInnerHTML={{
                         __html: message.content
@@ -1042,6 +1183,62 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
             ➤
           </Button>
         </Box>
+      </Dialog>
+
+      {/* End chat confirmation when user closes during live chat */}
+      <Dialog open={endChatConfirmOpen} onClose={() => setEndChatConfirmOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>End chat?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            Do you want to end the live chat? The agent will be notified.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEndChatConfirmOpen(false)}>No</Button>
+          <Button variant="contained" color="primary" onClick={handleConfirmEndChat}>
+            Yes, end chat
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Contact info when guest requests "speak to human" */}
+      <Dialog open={contactDialogOpen} onClose={() => setContactDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Contact details</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Please share your contact info so an agent can reach you.
+          </Typography>
+          <TextField
+            fullWidth
+            label="Name"
+            value={contactForm.name}
+            onChange={(e) => setContactForm((f) => ({ ...f, name: e.target.value }))}
+            sx={{ mb: 2 }}
+            placeholder="Your name"
+          />
+          <TextField
+            fullWidth
+            label="Mobile"
+            value={contactForm.mobile}
+            onChange={(e) => setContactForm((f) => ({ ...f, mobile: e.target.value }))}
+            sx={{ mb: 2 }}
+            placeholder="Phone number"
+          />
+          <TextField
+            fullWidth
+            label="Email"
+            type="email"
+            value={contactForm.email}
+            onChange={(e) => setContactForm((f) => ({ ...f, email: e.target.value }))}
+            placeholder="your@email.com"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setContactDialogOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleContactFormSubmit} disabled={contactFormSubmitting}>
+            {contactFormSubmitting ? 'Submitting…' : 'Submit'}
+          </Button>
+        </DialogActions>
       </Dialog>
     </>
   );

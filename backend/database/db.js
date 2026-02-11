@@ -387,6 +387,28 @@ function initializeDatabase() {
     )
   `);
 
+  // Agent handoff: user requested "speak to human", agent can join and chat
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS agent_handoffs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sessionId TEXT UNIQUE NOT NULL,
+      status TEXT NOT NULL DEFAULT 'waiting',
+      agentUserId INTEGER,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      joinedAt DATETIME,
+      FOREIGN KEY (agentUserId) REFERENCES users(id)
+    )
+  `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS agent_chat_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sessionId TEXT NOT NULL,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // Create indexes for better performance
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_whatsapp_log_createdAt ON whatsapp_log(createdAt);
@@ -395,6 +417,10 @@ function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_email_log_createdAt ON email_log(createdAt);
     CREATE INDEX IF NOT EXISTS idx_email_log_type ON email_log(type);
     CREATE INDEX IF NOT EXISTS idx_email_log_success ON email_log(success);
+    CREATE INDEX IF NOT EXISTS idx_agent_handoffs_sessionId ON agent_handoffs(sessionId);
+    CREATE INDEX IF NOT EXISTS idx_agent_handoffs_status ON agent_handoffs(status);
+    CREATE INDEX IF NOT EXISTS idx_agent_chat_messages_sessionId ON agent_chat_messages(sessionId);
+    CREATE INDEX IF NOT EXISTS idx_agent_chat_messages_createdAt ON agent_chat_messages(createdAt);
     CREATE INDEX IF NOT EXISTS idx_jobs_category ON jobs(category);
     CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
     CREATE INDEX IF NOT EXISTS idx_applications_userId ON applications(userId);
@@ -435,6 +461,22 @@ function initializeDatabase() {
   }
   try {
     db.exec('ALTER TABLE users ADD COLUMN demo_password TEXT');
+  } catch (e) {
+    if (!/duplicate column name/i.test(e.message)) throw e;
+  }
+  // Agent handoff user info (name, mobile, email)
+  try {
+    db.exec('ALTER TABLE agent_handoffs ADD COLUMN userName TEXT');
+  } catch (e) {
+    if (!/duplicate column name/i.test(e.message)) throw e;
+  }
+  try {
+    db.exec('ALTER TABLE agent_handoffs ADD COLUMN userMobile TEXT');
+  } catch (e) {
+    if (!/duplicate column name/i.test(e.message)) throw e;
+  }
+  try {
+    db.exec('ALTER TABLE agent_handoffs ADD COLUMN userEmail TEXT');
   } catch (e) {
     if (!/duplicate column name/i.test(e.message)) throw e;
   }
