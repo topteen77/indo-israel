@@ -1034,6 +1034,70 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
                 )}
               </Box>
             ))}
+            {/* Loading indicator when chatbot is thinking */}
+            {loading && (
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'flex-start',
+                  mb: 2,
+                  gap: 1,
+                  alignItems: 'flex-end',
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '50%',
+                    background: 'rgba(230, 216, 255, 1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <SmartToy sx={{ fontSize: 20, color: '#7437d0' }} />
+                </Box>
+                <Box
+                  sx={{
+                    maxWidth: '85%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                  }}
+                >
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      borderRadius: '12px 12px 12px 0',
+                      bgcolor: 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                    }}
+                  >
+                    <CircularProgress 
+                      size={20} 
+                      sx={{ 
+                        color: '#7437d0',
+                      }} 
+                    />
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: 'rgba(114, 114, 113, 1)',
+                        fontSize: '14px',
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      ApravasGPT is thinking...
+                    </Typography>
+                  </Paper>
+                </Box>
+              </Box>
+            )}
             <div ref={messagesEndRef} />
           </Box>
         </DialogContent>
