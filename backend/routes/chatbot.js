@@ -291,6 +291,12 @@ router.post('/handoff', (req, res) => {
       messageCount: context.conversationHistory.length,
     });
 
+    // Notify recruitment team by email (sender: default_from_email, recipient: recruitment_email)
+    const { sendSpeakToHumanNotification } = require('../services/emailService');
+    sendSpeakToHumanNotification(confirmationCode, sessionId).catch((err) => {
+      console.error('Failed to send speak-to-human notification email:', err);
+    });
+
     res.json({
       success: true,
       message: 'Handoff request created. Apravas counselor will contact you shortly.',

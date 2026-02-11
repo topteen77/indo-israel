@@ -227,18 +227,33 @@ export default function Home() {
                 Home
               </Button>
               {mounted && user ? (
-                <Button
-                  variant="outlined"
-                  onClick={() => {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('user');
-                    setUser(null);
-                    router.push('/');
-                  }}
-                  sx={{ borderRadius: '25px', px: 3 }}
-                >
-                  Logout
-                </Button>
+                <>
+                  <Button
+                    variant="outlined"
+                    startIcon={<Dashboard />}
+                    onClick={() => {
+                      if (user.role === 'admin') router.push('/dashboard/admin');
+                      else if (user.role === 'employer') router.push('/dashboard/employer');
+                      else if (user.role === 'worker') router.push('/dashboard/worker');
+                      else router.push('/');
+                    }}
+                    sx={{ borderRadius: '25px', px: 3 }}
+                  >
+                    Dashboard
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={() => {
+                      localStorage.removeItem('token');
+                      localStorage.removeItem('user');
+                      setUser(null);
+                      router.push('/');
+                    }}
+                    sx={{ borderRadius: '25px', px: 3 }}
+                  >
+                    Logout
+                  </Button>
+                </>
               ) : (
                 <Button
                   variant="outlined"

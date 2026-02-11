@@ -23,16 +23,16 @@ const openai = OPENAI_API_KEY ? new OpenAI({
   apiKey: OPENAI_API_KEY,
 }) : null;
 
-// Configuration
+// Configuration (tuned for faster response: fewer tokens, less context)
 const CONFIG = {
   MODEL: "gpt-4o-mini",
   TEMPERATURE: 0.3, // Lower for factual accuracy
-  MAX_TOKENS: 1500,
+  MAX_TOKENS: 800,  // Reduced from 1500 for faster completion
   TOP_P: 1,
   FREQUENCY_PENALTY: 0,
   PRESENCE_PENALTY: 0,
   EMBEDDING_MODEL: "text-embedding-3-small",
-  MAX_CONTEXT_DOCS: 3, // Number of documents to retrieve for context
+  MAX_CONTEXT_DOCS: 2, // Fewer docs = smaller prompt = faster
 };
 
 // Load knowledge base
@@ -442,12 +442,12 @@ CRITICAL INSTRUCTIONS:
   if (relevantDocs && relevantDocs.length > 0) {
     prompt += `\nIMPORTANT: You have ${relevantDocs.length} official government document(s) provided below. USE THIS INFORMATION to answer the user's question.\n\n`;
     prompt += 'Official Government Information:\n';
+    const maxContentLen = userMessage && userMessage.toLowerCase().includes('visa type') ? 1200 : 600;
     for (const doc of relevantDocs) {
       prompt += `\n---\nSource: ${doc.source_authority || 'Official Source'} (${doc.country || 'N/A'})\n`;
       prompt += `Title: ${doc.title || 'N/A'}\n`;
-      // Include more content for visa types queries
-      const contentLength = userMessage && userMessage.toLowerCase().includes('visa type') ? 2000 : 1000;
-      prompt += `Content: ${doc.content || ''}\n`;
+      const content = (doc.content || '').slice(0, maxContentLen);
+      prompt += `Content: ${content}${(doc.content || '').length > maxContentLen ? '...' : ''}\n`;
       if (doc.source) prompt += `URL: ${doc.source}\n`;
       if (doc.last_verified) prompt += `Last Verified: ${doc.last_verified}\n`;
     }
@@ -493,8 +493,8 @@ async function generateResponse(userMessage, sessionId = null) {
       { role: 'system', content: systemPrompt },
     ];
 
-    // Add recent conversation history
-    const recentHistory = context.conversationHistory.slice(-3);
+    // Add recent conversation history (keep 2 for faster, smaller payload)
+    const recentHistory = context.conversationHistory.slice(-2);
     for (const msg of recentHistory) {
       messages.push({
         role: msg.role,

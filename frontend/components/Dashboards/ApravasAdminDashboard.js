@@ -11,7 +11,7 @@ import {
   TrendingUp, TrendingDown, People, Work, AttachMoney,
   Speed, CheckCircle, Schedule, Assessment,
   Visibility, Download, FilterList, Refresh, SafetyCheck, Chat,
-  PersonAdd, Edit as EditIcon, Settings as SettingsIcon,
+  PersonAdd, Edit as EditIcon, Settings as SettingsIcon, Email as EmailIcon,
 } from '@mui/icons-material';
 import AdminSafetyDashboard from '../Safety/AdminSafetyDashboard';
 import { Tab, Tabs } from '@mui/material';
@@ -31,6 +31,9 @@ const ApravasAdminDashboard = () => {
   const [whatsappLog, setWhatsappLog] = useState({ items: [], total: 0 });
   const [whatsappLogLoading, setWhatsappLogLoading] = useState(false);
   const [whatsappLogFilter, setWhatsappLogFilter] = useState({ status: '', type: '' });
+  const [emailLog, setEmailLog] = useState({ items: [], total: 0 });
+  const [emailLogLoading, setEmailLogLoading] = useState(false);
+  const [emailLogFilter, setEmailLogFilter] = useState({ status: '', type: '' });
   // Users tab (admin: add/edit users)
   const [usersList, setUsersList] = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
@@ -98,6 +101,26 @@ const ApravasAdminDashboard = () => {
     if (activeTab === 2) fetchWhatsAppLog();
   }, [activeTab, whatsappLogFilter]);
 
+  const fetchEmailLog = async () => {
+    setEmailLogLoading(true);
+    try {
+      const params = new URLSearchParams({ limit: 100 });
+      if (emailLogFilter.status) params.set('status', emailLogFilter.status);
+      if (emailLogFilter.type) params.set('type', emailLogFilter.type);
+      const res = await api.get(`/analytics/email-log?${params}`);
+      setEmailLog(res.data.data || { items: [], total: 0 });
+    } catch (err) {
+      console.error('Failed to fetch email log:', err);
+      setEmailLog({ items: [], total: 0 });
+    } finally {
+      setEmailLogLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 4) fetchEmailLog();
+  }, [activeTab, emailLogFilter]);
+
   const fetchUsers = async () => {
     setUsersLoading(true);
     try {
@@ -133,7 +156,7 @@ const ApravasAdminDashboard = () => {
   };
 
   useEffect(() => {
-    if (activeTab === 4) fetchThirdPartySettings();
+    if (activeTab === 5) fetchThirdPartySettings();
   }, [activeTab]);
 
   const updateTpEdit = (section, key, value) => {
@@ -358,6 +381,7 @@ const ApravasAdminDashboard = () => {
         <Tab label="Safety & Welfare" icon={<SafetyCheck />} />
         <Tab label="WhatsApp Log" icon={<Chat />} />
         <Tab label="Users" icon={<People />} />
+        <Tab label="Email Log" icon={<EmailIcon />} />
         <Tab label="Settings" icon={<SettingsIcon />} />
       </Tabs>
 
@@ -681,6 +705,109 @@ const ApravasAdminDashboard = () => {
         </Card>
       )}
 
+      {/* Email Log Tab */}
+      {activeTab === 4 && (
+        <Card>
+          <CardContent>
+            <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2} mb={2}>
+              <Typography variant="h6">Email send log</Typography>
+              <Box display="flex" gap={1} alignItems="center" flexWrap="wrap">
+                <Chip
+                  label="All"
+                  onClick={() => setEmailLogFilter((f) => ({ ...f, status: '' }))}
+                  color={emailLogFilter.status === '' ? 'primary' : 'default'}
+                  variant={emailLogFilter.status === '' ? 'filled' : 'outlined'}
+                />
+                <Chip
+                  label="Sent"
+                  onClick={() => setEmailLogFilter((f) => ({ ...f, status: 'sent' }))}
+                  color={emailLogFilter.status === 'sent' ? 'success' : 'default'}
+                  variant={emailLogFilter.status === 'sent' ? 'filled' : 'outlined'}
+                />
+                <Chip
+                  label="Failed"
+                  onClick={() => setEmailLogFilter((f) => ({ ...f, status: 'fail' }))}
+                  color={emailLogFilter.status === 'fail' ? 'error' : 'default'}
+                  variant={emailLogFilter.status === 'fail' ? 'filled' : 'outlined'}
+                />
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <InputLabel>Type</InputLabel>
+                  <Select
+                    value={emailLogFilter.type || ''}
+                    label="Type"
+                    onChange={(e) => setEmailLogFilter((f) => ({ ...f, type: e.target.value || '' }))}
+                  >
+                    <MenuItem value="">All types</MenuItem>
+                    <MenuItem value="application_confirmation">Application confirmation</MenuItem>
+                    <MenuItem value="application_rejection">Application rejection</MenuItem>
+                    <MenuItem value="appeal_confirmation">Appeal confirmation</MenuItem>
+                    <MenuItem value="test">Test</MenuItem>
+                    <MenuItem value="speak_to_human">Speak to human</MenuItem>
+                  </Select>
+                </FormControl>
+                <Button
+                  size="small"
+                  startIcon={emailLogLoading ? <CircularProgress size={16} /> : <Refresh />}
+                  onClick={fetchEmailLog}
+                  disabled={emailLogLoading}
+                >
+                  Refresh
+                </Button>
+              </Box>
+            </Box>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell><strong>Date</strong></TableCell>
+                  <TableCell><strong>Type</strong></TableCell>
+                  <TableCell><strong>To</strong></TableCell>
+                  <TableCell><strong>From</strong></TableCell>
+                  <TableCell><strong>Status</strong></TableCell>
+                  <TableCell><strong>Message ID</strong></TableCell>
+                  <TableCell><strong>Error</strong></TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {emailLogLoading && emailLog.items.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} align="center">Loading…</TableCell></TableRow>
+                ) : emailLog.items.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} align="center">No emails logged yet.</TableCell></TableRow>
+                ) : (
+                  emailLog.items.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell>{new Date(row.createdAt).toLocaleString()}</TableCell>
+                      <TableCell>{row.type}</TableCell>
+                      <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{row.toAddress}</TableCell>
+                      <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{row.fromAddress}</TableCell>
+                      <TableCell>
+                        {row.success ? (
+                          <Chip label="Sent" color="success" size="small" />
+                        ) : (
+                          <Chip label="Failed" color="error" size="small" />
+                        )}
+                      </TableCell>
+                      <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{row.messageId || '—'}</TableCell>
+                      <TableCell sx={{ maxWidth: 280 }} title={row.errorDetail || ''}>
+                        {row.errorDetail ? (
+                          <Typography variant="body2" color="error" noWrap sx={{ maxWidth: 280 }}>
+                            {row.errorDetail}
+                          </Typography>
+                        ) : '—'}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+            {emailLog.total > 0 && (
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                Showing {emailLog.items.length} of {emailLog.total}
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Users Tab */}
       {activeTab === 3 && (
         <Card>
@@ -769,7 +896,7 @@ const ApravasAdminDashboard = () => {
       )}
 
       {/* Settings Tab – Third-party: Email, WhatsApp, SMS */}
-      {activeTab === 4 && (
+      {activeTab === 5 && (
         <Box display="flex" flexDirection="column" gap={3}>
           {tpError && <Alert severity="error" onClose={() => setTpError('')}>{tpError}</Alert>}
           {tpLoading ? (

@@ -373,11 +373,28 @@ function initializeDatabase() {
     )
   `);
 
+  // Email send log - for admin dashboard (like whatsapp_log)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS email_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      toAddress TEXT NOT NULL,
+      fromAddress TEXT NOT NULL,
+      success INTEGER NOT NULL,
+      messageId TEXT,
+      errorDetail TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // Create indexes for better performance
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_whatsapp_log_createdAt ON whatsapp_log(createdAt);
     CREATE INDEX IF NOT EXISTS idx_whatsapp_log_type ON whatsapp_log(type);
     CREATE INDEX IF NOT EXISTS idx_whatsapp_log_success ON whatsapp_log(success);
+    CREATE INDEX IF NOT EXISTS idx_email_log_createdAt ON email_log(createdAt);
+    CREATE INDEX IF NOT EXISTS idx_email_log_type ON email_log(type);
+    CREATE INDEX IF NOT EXISTS idx_email_log_success ON email_log(success);
     CREATE INDEX IF NOT EXISTS idx_jobs_category ON jobs(category);
     CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
     CREATE INDEX IF NOT EXISTS idx_applications_userId ON applications(userId);

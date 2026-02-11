@@ -149,4 +149,47 @@ router.get('/whatsapp-log', getUserFromToken, requireAdmin, (req, res) => {
   }
 });
 
+// Email send log - admin only, for dashboard (like whatsapp-log)
+router.get('/email-log', getUserFromToken, requireAdmin, (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+    const offset = parseInt(req.query.offset, 10) || 0;
+    const status = req.query.status; // 'sent' | 'fail'
+    const type = req.query.type;    // application_confirmation | application_rejection | appeal_confirmation | test | speak_to_human
+
+    let where = [];
+    let params = [];
+    if (status === 'sent') {
+      where.push('success = 1');
+    } else if (status === 'fail') {
+      where.push('success = 0');
+    }
+    if (type) {
+      where.push('type = ?');
+      params.push(type);
+    }
+    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+
+    const total = db.prepare(
+      `SELECT COUNT(*) as c FROM email_log ${whereClause}`
+    ).get(...params);
+    const items = db.prepare(
+      `SELECT id, type, toAddress, fromAddress, success, messageId, errorDetail, createdAt FROM email_log ${whereClause} ORDER BY createdAt DESC LIMIT ? OFFSET ?`
+    ).all(...params, limit, offset);
+
+    res.json({
+      success: true,
+      data: {
+        items,
+        total: total.c,
+        limit,
+        offset,
+      },
+    });
+  } catch (err) {
+    console.error('Email log error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;

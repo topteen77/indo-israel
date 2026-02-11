@@ -1,7 +1,64 @@
 const nodemailer = require('nodemailer');
 const { loadTemplate, prepareTemplateData } = require('../utils/templateLoader');
 const path = require('path');
-const { getSetting } = require('../database/db');
+const db = require('../database/db');
+const { getSetting } = db;
+
+/** Mask email for logging: a***@domain.com */
+function maskEmail(email) {
+  if (!email || typeof email !== 'string') return '***';
+  const s = String(email).trim();
+  const at = s.indexOf('@');
+  if (at <= 0) return '***@***';
+  const local = s.slice(0, at);
+  const domain = s.slice(at);
+  if (local.length <= 2) return local[0] + '***' + domain;
+  return local.slice(0, 2) + '***' + domain;
+}
+
+let _emailLogTableEnsured = false;
+function ensureEmailLogTable() {
+  if (!db || _emailLogTableEnsured) return;
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS email_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        type TEXT NOT NULL,
+        toAddress TEXT NOT NULL,
+        fromAddress TEXT NOT NULL,
+        success INTEGER NOT NULL,
+        messageId TEXT,
+        errorDetail TEXT,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    _emailLogTableEnsured = true;
+  } catch (e) {
+    console.error('Email log: could not ensure table:', e.message);
+  }
+}
+
+/**
+ * Track every email send for admin dashboard (like WhatsApp log).
+ * type: application_confirmation | application_rejection | appeal_confirmation | test | speak_to_human
+ */
+function trackEmailSend(type, toAddress, fromAddress, result) {
+  const toMasked = maskEmail(toAddress);
+  const fromMasked = maskEmail(fromAddress);
+  const success = result && result.success ? 1 : 0;
+  const messageId = result && result.messageId ? result.messageId : null;
+  const errorDetail = result && !result.success && (result.error || result.message) ? String(result.error || result.message).substring(0, 500) : null;
+  console.log(`[EMAIL_TRACK] type=${type} to=${toMasked} from=${fromMasked} success=${success}${messageId ? ' messageId=' + messageId : ''}${errorDetail ? ' error=' + errorDetail.substring(0, 80) : ''}`);
+  if (!db) return;
+  try {
+    ensureEmailLogTable();
+    db.prepare(
+      `INSERT INTO email_log (type, toAddress, fromAddress, success, messageId, errorDetail) VALUES (?, ?, ?, ?, ?, ?)`
+    ).run(type, toMasked, fromMasked, success, messageId, errorDetail);
+  } catch (e) {
+    console.error('Failed to persist email log:', e.message);
+  }
+}
 
 /** From address: admin setting (default_from_email) > env DEFAULT_FROM_EMAIL > SMTP user. */
 function getDefaultFromEmail() {
@@ -75,9 +132,12 @@ const sendTestEmail = async (toEmail = null) => {
       html: `<p>This is a test email from the Apravas backend.</p><p>If you received this, SES/SMTP is configured correctly.</p><p><em>Sent at ${new Date().toISOString()}</em></p>`,
     });
     console.log('✅ Test email sent:', info.messageId);
-    return { success: true, messageId: info.messageId };
+    const result = { success: true, messageId: info.messageId };
+    trackEmailSend('test', to, from, result);
+    return result;
   } catch (error) {
     console.error('❌ Test email failed:', error);
+    trackEmailSend('test', to, getDefaultFromEmail(), { success: false, error: error.message });
     throw error;
   }
 };
@@ -127,6 +187,7 @@ const sendApplicationConfirmation = async (applicationData) => {
     console.log('📧 HTML Email would be sent with full formatting');
     console.log('📧 ============================================\n');
     
+    trackEmailSend('application_confirmation', applicantEmail, getDefaultFromEmail(), { success: true, message: 'preview' });
     return {
       success: true,
       message: 'Email preview logged to console (service not enabled)',
@@ -135,6 +196,7 @@ const sendApplicationConfirmation = async (applicationData) => {
   }
 
   try {
+    const from = getDefaultFromEmail();
     // Prepare template data
     const templateData = prepareTemplateData({
       applicantName,
@@ -212,7 +274,7 @@ const sendApplicationConfirmation = async (applicationData) => {
     }
 
     const mailOptions = {
-      from: getDefaultFromEmail(),
+      from,
       to: applicantEmail,
       subject: 'Application Submitted Successfully - Apravas Recruitment',
       html,
@@ -244,14 +306,12 @@ const sendApplicationConfirmation = async (applicationData) => {
 
     const info = await transporter.sendMail(mailOptions);
     console.log('✅ Confirmation email sent:', info.messageId);
-    
-    return {
-      success: true,
-      messageId: info.messageId,
-      message: 'Confirmation email sent successfully',
-    };
+    const result = { success: true, messageId: info.messageId, message: 'Confirmation email sent successfully' };
+    trackEmailSend('application_confirmation', applicantEmail, from, result);
+    return result;
   } catch (error) {
     console.error('❌ Error sending confirmation email:', error);
+    trackEmailSend('application_confirmation', applicantEmail, getDefaultFromEmail(), { success: false, error: error.message });
     return {
       success: false,
       error: error.message,
@@ -299,7 +359,7 @@ const sendRejectionEmail = async (applicationData, rejectionReason) => {
     console.log('📧 ============================================');
     console.log('📧 PDF Rejection Letter would be attached');
     console.log('📧 ============================================\n');
-    
+    trackEmailSend('application_rejection', applicantEmail, getDefaultFromEmail(), { success: true, message: 'preview' });
     return {
       success: true,
       message: 'Rejection email preview logged to console (service not enabled)',
@@ -308,6 +368,7 @@ const sendRejectionEmail = async (applicationData, rejectionReason) => {
   }
 
   try {
+    const from = getDefaultFromEmail();
     // Calculate appeal deadline (7 days from now)
     const appealDeadline = new Date();
     appealDeadline.setDate(appealDeadline.getDate() + 7);
@@ -351,7 +412,7 @@ const sendRejectionEmail = async (applicationData, rejectionReason) => {
     }
 
     const mailOptions = {
-      from: getDefaultFromEmail(),
+      from,
       to: applicantEmail,
       subject: 'Application Status Update - Apravas Recruitment',
       html,
@@ -380,14 +441,12 @@ const sendRejectionEmail = async (applicationData, rejectionReason) => {
 
     const info = await transporter.sendMail(mailOptions);
     console.log('✅ Rejection email sent:', info.messageId);
-    
-    return {
-      success: true,
-      messageId: info.messageId,
-      message: 'Rejection email sent successfully',
-    };
+    const result = { success: true, messageId: info.messageId, message: 'Rejection email sent successfully' };
+    trackEmailSend('application_rejection', applicantEmail, from, result);
+    return result;
   } catch (error) {
     console.error('❌ Error sending rejection email:', error);
+    trackEmailSend('application_rejection', applicantEmail, getDefaultFromEmail(), { success: false, error: error.message });
     return {
       success: false,
       error: error.message,
@@ -421,7 +480,7 @@ const sendAppealConfirmation = async (appealData) => {
     console.log(`📧 Application ID: ${applicationId}`);
     console.log('📧 Your appeal is under review. Response within 5-7 working days.');
     console.log('📧 ============================================\n');
-    
+    trackEmailSend('appeal_confirmation', applicantEmail, getDefaultFromEmail(), { success: true, message: 'preview' });
     return {
       success: true,
       message: 'Appeal confirmation email preview logged to console (service not enabled)',
@@ -430,6 +489,7 @@ const sendAppealConfirmation = async (appealData) => {
   }
 
   try {
+    const from = getDefaultFromEmail();
     // Prepare template data
     const templateData = prepareTemplateData({
       applicantName,
@@ -472,7 +532,7 @@ const sendAppealConfirmation = async (appealData) => {
     }
 
     const mailOptions = {
-      from: getDefaultFromEmail(),
+      from,
       to: applicantEmail,
       subject: 'Appeal Submitted Successfully - Apravas Recruitment',
       html,
@@ -494,19 +554,50 @@ const sendAppealConfirmation = async (appealData) => {
 
     const info = await transporter.sendMail(mailOptions);
     console.log('✅ Appeal confirmation email sent:', info.messageId);
-    
-    return {
-      success: true,
-      messageId: info.messageId,
-      message: 'Appeal confirmation email sent successfully',
-    };
+    const result = { success: true, messageId: info.messageId, message: 'Appeal confirmation email sent successfully' };
+    trackEmailSend('appeal_confirmation', applicantEmail, from, result);
+    return result;
   } catch (error) {
     console.error('❌ Error sending appeal confirmation email:', error);
+    trackEmailSend('appeal_confirmation', applicantEmail, getDefaultFromEmail(), { success: false, error: error.message });
     return {
       success: false,
       error: error.message,
       message: 'Failed to send appeal confirmation email',
     };
+  }
+};
+
+/**
+ * Send "speak to human" notification to recruitment team.
+ * Sender: default_from_email (Admin → Settings → Email or DEFAULT_FROM_EMAIL).
+ * Recipient: recruitment_email (Admin → Settings → Email or RECRUITMENT_EMAIL).
+ * Same SMTP account sends all outgoing mail (EMAIL_HOST_USER / SMTP_USER).
+ */
+const sendSpeakToHumanNotification = async (confirmationCode, sessionId) => {
+  const to = getRecruitmentEmail();
+  const from = getDefaultFromEmail();
+  if (!transporter || !isEmailServiceEnabled()) {
+    console.log('📧 Speak-to-human notification (email disabled): would send to', to, 'from', from);
+    trackEmailSend('speak_to_human', to, from, { success: true, message: 'preview (service disabled)' });
+    return { success: true, preview: true };
+  }
+  try {
+    const info = await transporter.sendMail({
+      from,
+      to,
+      subject: `Speak to human request – ${confirmationCode}`,
+      text: `A user requested to speak to a human (chatbot handoff).\n\nConfirmation code: ${confirmationCode}\nSession ID: ${sessionId || 'N/A'}\n\nPlease follow up within 24 hours.`,
+      html: `<p>A user requested to <strong>speak to a human</strong> (chatbot handoff).</p><p><strong>Confirmation code:</strong> ${confirmationCode}</p><p><strong>Session ID:</strong> ${sessionId || 'N/A'}</p><p>Please follow up within 24 hours.</p>`,
+    });
+    console.log('✅ Speak-to-human notification sent:', info.messageId);
+    const result = { success: true, messageId: info.messageId };
+    trackEmailSend('speak_to_human', to, from, result);
+    return result;
+  } catch (error) {
+    console.error('❌ Speak-to-human notification failed:', error);
+    trackEmailSend('speak_to_human', to, from, { success: false, error: error.message });
+    return { success: false, error: error.message };
   }
 };
 
@@ -516,4 +607,7 @@ module.exports = {
   sendRejectionEmail,
   sendAppealConfirmation,
   sendTestEmail,
+  sendSpeakToHumanNotification,
+  getDefaultFromEmail,
+  getRecruitmentEmail,
 };

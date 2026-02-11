@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { AppBar, Toolbar, Typography, Container, Box, Button } from '@mui/material';
-import { Logout, Home, Login } from '@mui/icons-material';
+import { Logout, Home, Login, Dashboard } from '@mui/icons-material';
 import IndiaIsraelRecruitmentChatbot from '../Chatbot/IndiaIsraelRecruitmentChatbot';
 import api from '../../utils/api';
 
@@ -60,9 +60,24 @@ const MainLayout = ({ children }) => {
               Home
             </Button>
             {mounted && (user?.id || localStorage.getItem('token')) ? (
-              <Button color="inherit" startIcon={<Logout />} onClick={handleLogout}>
-                Logout
-              </Button>
+              <>
+                <Button
+                  color="inherit"
+                  startIcon={<Dashboard />}
+                  onClick={() => {
+                    const u = user?.role ? user : JSON.parse(localStorage.getItem('user') || '{}');
+                    if (u.role === 'admin') router.push('/dashboard/admin');
+                    else if (u.role === 'employer') router.push('/dashboard/employer');
+                    else if (u.role === 'worker') router.push('/dashboard/worker');
+                    else router.push('/');
+                  }}
+                >
+                  Dashboard
+                </Button>
+                <Button color="inherit" startIcon={<Logout />} onClick={handleLogout}>
+                  Logout
+                </Button>
+              </>
             ) : (
               <Button color="inherit" startIcon={<Login />} onClick={() => router.push('/login')}>
                 {navLoginLabel}

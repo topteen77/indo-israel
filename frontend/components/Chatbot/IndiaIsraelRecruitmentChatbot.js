@@ -197,18 +197,48 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
   };
 
   const handleSuggestedAction = async (action) => {
+    // Speak to human: call handoff API so recruitment gets email + log entry, then show confirmation
+    if (action === 'speak_to_human' || action === 'contact_human') {
+      const doHandoff = async (sid) => {
+        try {
+          await api.post('/chatbot/handoff', { sessionId: sid, reason: 'user_clicked_speak_to_human' });
+        } catch (err) {
+          console.error('Handoff request failed:', err);
+        }
+      };
+      if (sessionId) {
+        await doHandoff(sessionId);
+      } else {
+        // No session yet: send one message to create session, then handoff
+        try {
+          const res = await api.post('/chatbot/message', {
+            message: 'Connect me with Apravas support',
+            sessionId: null,
+            userId: 'guest',
+          });
+          const sid = res.data?.data?.sessionId;
+          if (sid) await doHandoff(sid);
+        } catch (e) {
+          console.error('Failed to create session for handoff:', e);
+        }
+      }
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        type: 'bot',
+        content: "We've notified our team. An Apravas counselor will contact you shortly. You can also reach us via the contact details on our website.",
+        timestamp: new Date(),
+      }]);
+      return;
+    }
+
     const actionMessages = {
       'schedule_consultation': 'I want to schedule a consultation',
       'download_checklist': 'Can you send me the document checklist?',
       'check_eligibility': 'Check my eligibility',
       'fee_calculator': 'What are the total fees?',
-      'speak_to_human': 'I want to speak with a human counselor',
-      'contact_human': 'Connect me with Apravas support'
     };
-   
     const message = actionMessages[action] || action;
     setInput(message);
-    // Trigger send after a brief delay to allow input to update
     setTimeout(() => {
       handleSendMessage();
     }, 100);
