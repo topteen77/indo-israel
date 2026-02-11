@@ -1331,10 +1331,28 @@ export default function Home() {
                 Resources
               </Typography>
               <Stack spacing={1}>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', cursor: 'pointer', '&:hover': { color: 'white' } }}>
-                  Blog
+                <Typography 
+                  variant="body2" 
+                  component="a"
+                  href="/about-us.html"
+                  sx={{ color: 'rgba(255,255,255,0.7)', cursor: 'pointer', textDecoration: 'none', display: 'block', '&:hover': { color: 'white' } }}
+                >
+                  About Us
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', cursor: 'pointer', '&:hover': { color: 'white' } }}>
+                <Typography 
+                  variant="body2" 
+                  component="a"
+                  href="/services.html"
+                  sx={{ color: 'rgba(255,255,255,0.7)', cursor: 'pointer', textDecoration: 'none', display: 'block', '&:hover': { color: 'white' } }}
+                >
+                  Services
+                </Typography>
+                <Typography 
+                  variant="body2" 
+                  component="a"
+                  href="/contact-us.html"
+                  sx={{ color: 'rgba(255,255,255,0.7)', cursor: 'pointer', textDecoration: 'none', display: 'block', '&:hover': { color: 'white' } }}
+                >
                   Contact Us
                 </Typography>
                 <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', cursor: 'pointer', '&:hover': { color: 'white' } }}>
