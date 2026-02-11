@@ -23,9 +23,13 @@ export default function AdminDashboard() {
     return <div>Loading...</div>;
   }
 
+  const tabParam = router.query.tab;
+  const initialTab = tabParam !== undefined ? parseInt(String(tabParam), 10) : undefined;
+  const tabIndex = Number.isFinite(initialTab) && initialTab >= 0 ? initialTab : undefined;
+
   return (
     <MainLayout>
-      <ApravasAdminDashboard />
+      <ApravasAdminDashboard initialTab={tabIndex} />
     </MainLayout>
   );
 }

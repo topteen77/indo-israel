@@ -177,49 +177,25 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
           setSuggestedActions(result.suggestedActions);
         }
 
-        const botResponse = result.response;
-        
-        // Add bot message with typing effect
+        const botResponse = result.response || '';
+
+        // Show full response immediately (no typing effect) for fastest display
         const botMessage = {
           id: Date.now() + 1,
           type: 'bot',
-          content: '',
-          fullContent: botResponse,
+          content: botResponse,
           timestamp: new Date(),
-          isTyping: true,
           sources: result.sources || [],
           confidence: result.confidence || 'medium',
           intent: result.intent || 'general',
         };
 
         setMessages(prev => [...prev, botMessage]);
-        setTypingMessageIndex(botMessage.id);
-        setIsTyping(true);
-        
-        // Simulate typing effect
-        let index = 0;
-        typingIntervalRef.current = setInterval(() => {
-          if (index < botResponse.length) {
-            setMessages(prev => prev.map(msg => 
-              msg.id === botMessage.id 
-                ? { ...msg, content: botResponse.substring(0, index + 1) }
-                : msg
-            ));
-            index++;
-            scrollToBottom();
-          } else {
-            clearInterval(typingIntervalRef.current);
-            setMessages(prev => prev.map(msg => 
-              msg.id === botMessage.id 
-                ? { ...msg, content: botResponse, isTyping: false }
-                : msg
-            ));
-            setIsTyping(false);
-            setTypingMessageIndex(null);
-            setLoading(false);
-            setTyping(false);
-          }
-        }, 30);
+        setLoading(false);
+        setTyping(false);
+        setIsTyping(false);
+        setTypingMessageIndex(null);
+        scrollToBottom();
       } else {
         throw new Error(response.data.message || 'Failed to get response');
       }

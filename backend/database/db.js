@@ -1,6 +1,54 @@
 const Database = require('better-sqlite3');
+const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
+
+// Keys whose values are encrypted at rest (credentials / secrets)
+const ENCRYPTED_SETTING_KEYS = new Set([
+  'smtp_user', 'smtp_pass', 'interakt_api_key', 'twilio_auth_token', 'openai_api_key',
+]);
+
+const ENC_PREFIX = 'enc:';
+const ALGO = 'aes-256-gcm';
+const IV_LEN = 16;
+const KEY_LEN = 32;
+
+function getEncryptionKey() {
+  const envKey = process.env.ENCRYPTION_KEY || process.env.JWT_SECRET || 'your-secret-key';
+  const buf = Buffer.isBuffer(envKey) ? envKey : Buffer.from(envKey, 'utf8');
+  if (buf.length >= KEY_LEN) return buf.slice(0, KEY_LEN);
+  return crypto.createHash('sha256').update(buf).digest();
+}
+
+function encrypt(plainText) {
+  if (!plainText || typeof plainText !== 'string') return plainText;
+  const key = getEncryptionKey();
+  const iv = crypto.randomBytes(IV_LEN);
+  const cipher = crypto.createCipheriv(ALGO, key, iv);
+  const enc = Buffer.concat([cipher.update(plainText, 'utf8'), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  return ENC_PREFIX + iv.toString('hex') + ':' + authTag.toString('hex') + ':' + enc.toString('hex');
+}
+
+function decrypt(encrypted) {
+  if (!encrypted || typeof encrypted !== 'string' || !encrypted.startsWith(ENC_PREFIX)) return encrypted;
+  try {
+    const rest = encrypted.slice(ENC_PREFIX.length);
+    const parts = rest.split(':');
+    if (parts.length !== 3) return encrypted;
+    const [ivHex, tagHex, encHex] = parts;
+    const iv = Buffer.from(ivHex, 'hex');
+    const authTag = Buffer.from(tagHex, 'hex');
+    const enc = Buffer.from(encHex, 'hex');
+    const key = getEncryptionKey();
+    const decipher = crypto.createDecipheriv(ALGO, key, iv);
+    decipher.setAuthTag(authTag);
+    return decipher.update(enc) + decipher.final('utf8');
+  } catch (e) {
+    console.error('Decrypt setting failed:', e.message);
+    return encrypted;
+  }
+}
 
 // Database file path
 const dbPath = path.join(__dirname, '..', 'data', 'apravas.db');
@@ -488,14 +536,26 @@ initializeDatabase();
 
 function getSetting(key) {
   const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key);
-  return row ? row.value : null;
+  let value = row ? row.value : null;
+  if (value != null && ENCRYPTED_SETTING_KEYS.has(key)) {
+    value = decrypt(value);
+  }
+  return value;
 }
 
 function setSetting(key, value) {
+  let stored = value;
+  if (stored != null && typeof stored === 'string' && ENCRYPTED_SETTING_KEYS.has(key)) {
+    if (stored.startsWith(ENC_PREFIX)) {
+      stored = stored;
+    } else {
+      stored = encrypt(stored);
+    }
+  }
   db.prepare(`
     INSERT INTO app_settings (key, value, updatedAt) VALUES (?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updatedAt = CURRENT_TIMESTAMP
-  `).run(key, value);
+  `).run(key, stored);
 }
 
 module.exports = db;

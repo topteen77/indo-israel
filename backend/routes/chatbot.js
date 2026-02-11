@@ -18,6 +18,7 @@ const {
   extractEntities,
   searchKnowledgeBase,
 } = require('../services/chatbotService');
+const { logWebsiteError } = require('../utils/websiteErrorLogger');
 
 // Admin auth for agent routes
 const getAdminFromToken = (req, res, next) => {
@@ -77,13 +78,36 @@ router.post('/message', async (req, res) => {
       });
     }
 
-    // Generate response with RAG
+    // If an agent has joined this session, do not use AI: forward message to agent only. AI resumes when agent ends session.
+    const handoff = sessionId ? db.prepare('SELECT id, status FROM agent_handoffs WHERE sessionId = ?').get(sessionId) : null;
+    if (handoff && handoff.status === 'joined') {
+      try {
+        db.prepare('INSERT INTO agent_chat_messages (sessionId, role, content) VALUES (?, ?, ?)').run(sessionId, 'user', sanitizedMessage);
+      } catch (e) {
+        console.error('Persist user message for agent:', e.message);
+      }
+      const noAiMessage = "Your message has been sent to the support agent. They will reply here shortly.";
+      return res.json({
+        success: true,
+        data: {
+          response: noAiMessage,
+          sessionId,
+          intent: null,
+          entities: {},
+          sources: [],
+          confidence: 'high',
+          suggestedActions: [],
+        },
+      });
+    }
+
+    // Generate response with RAG (no active agent, or handoff not yet joined / already closed)
     const result = await generateResponse(sanitizedMessage, sessionId);
 
-    // If an agent has joined this session, persist user + assistant messages for agent view
+    // If handoff exists and was joined, we would have returned above; this path can still persist for any edge case
     try {
-      const handoff = db.prepare('SELECT id, status FROM agent_handoffs WHERE sessionId = ?').get(sessionId);
-      if (handoff && handoff.status === 'joined') {
+      const handoffAgain = db.prepare('SELECT id, status FROM agent_handoffs WHERE sessionId = ?').get(sessionId);
+      if (handoffAgain && handoffAgain.status === 'joined') {
         db.prepare('INSERT INTO agent_chat_messages (sessionId, role, content) VALUES (?, ?, ?)').run(sessionId, 'user', sanitizedMessage);
         db.prepare('INSERT INTO agent_chat_messages (sessionId, role, content) VALUES (?, ?, ?)').run(sessionId, 'assistant', result.response || '');
       }
@@ -97,6 +121,7 @@ router.post('/message', async (req, res) => {
     });
   } catch (error) {
     console.error('Error in chatbot message endpoint:', error);
+    logWebsiteError('chatbot', error.message, error.stack);
     res.status(500).json({
       success: false,
       message: 'Failed to process chatbot message',
@@ -350,9 +375,13 @@ router.post('/handoff', (req, res) => {
       ).run('waiting', name || null, mobile || null, email || null, sessionId);
     }
 
-    // Notify recruitment team by email
+    // Notify recruitment team by email (include user info and link to Live chat tab)
     const { sendSpeakToHumanNotification } = require('../services/emailService');
-    sendSpeakToHumanNotification(confirmationCode, sessionId).catch((err) => {
+    sendSpeakToHumanNotification(confirmationCode, sessionId, {
+      userName: name,
+      userMobile: mobile,
+      userEmail: email,
+    }).catch((err) => {
       console.error('Failed to send speak-to-human notification email:', err);
     });
 
