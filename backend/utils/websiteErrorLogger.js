@@ -57,22 +57,13 @@ function readLastLines(maxLines = 500) {
 }
 
 /**
- * Get entries for admin view: if ≤10 errors today, return today's; else return last 1 hour.
+ * Get entries for admin view: last N lines from the log (no date filter) so something always shows when the log has content.
  */
 function getRecentErrors(lineLimit = 500) {
   const entries = readLastLines(lineLimit);
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().slice(0, 10);
-  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).getTime();
-
-  const parseTs = (ts) => (ts ? new Date(ts).getTime() : 0);
-
-  const todayEntries = entries.filter((e) => e.ts && e.ts.startsWith(todayStart));
-  if (todayEntries.length <= 10) {
-    return { entries: todayEntries.reverse(), period: 'today' };
-  }
-  const lastHourEntries = entries.filter((e) => parseTs(e.ts) >= oneHourAgo);
-  return { entries: lastHourEntries.reverse(), period: 'last_hour' };
+  const reversed = [...entries].reverse();
+  const period = reversed.length > 0 ? `last ${reversed.length} entries` : 'no entries';
+  return { entries: reversed, period };
 }
 
 module.exports = { logWebsiteError, readLastLines, getRecentErrors };

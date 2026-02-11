@@ -1023,7 +1023,7 @@ const ApravasAdminDashboard = ({ initialTab }) => {
           <CardContent>
             <Typography variant="h6" gutterBottom>Website errors</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Most recent errors (limited lines). Showing {websiteErrorsData.period === 'today' ? "today's" : 'last hour'} entries. If more than 10 errors today, only the last hour is shown.
+              {websiteErrorsData.period === 'no entries' ? 'No errors logged yet. Chatbot and rate-limit errors appear here.' : `Showing ${websiteErrorsData.period} from the log.`}
             </Typography>
             <Box display="flex" alignItems="center" gap={1} sx={{ mb: 2 }}>
               <Button size="small" startIcon={websiteErrorsLoading ? <CircularProgress size={16} /> : <Refresh />} onClick={fetchWebsiteErrors} disabled={websiteErrorsLoading}>
@@ -1033,7 +1033,7 @@ const ApravasAdminDashboard = ({ initialTab }) => {
             {websiteErrorsLoading && websiteErrorsData.entries.length === 0 ? (
               <Typography color="text.secondary">Loading…</Typography>
             ) : websiteErrorsData.entries.length === 0 ? (
-              <Typography color="text.secondary">No recent errors.</Typography>
+              <Typography color="text.secondary">No website errors in the log yet. Errors from the chatbot and rate limits will appear here after they occur.</Typography>
             ) : (
               <Paper variant="outlined" sx={{ p: 2, maxHeight: 480, overflow: 'auto', bgcolor: '#fafafa' }}>
                 <Box component="pre" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', m: 0 }}>
