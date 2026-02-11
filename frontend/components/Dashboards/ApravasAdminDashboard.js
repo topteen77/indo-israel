@@ -6,12 +6,14 @@ import {
   Alert, FormControl, InputLabel, Select, MenuItem,
   Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Checkbox, FormControlLabel, Paper,
+  InputAdornment, IconButton,
 } from '@mui/material';
 import {
   TrendingUp, TrendingDown, People, Work, AttachMoney,
   Speed, CheckCircle, Schedule, Assessment,
-  Visibility, Download, FilterList, Refresh, SafetyCheck, Chat,
+  Visibility, VisibilityOff, Download, FilterList, Refresh, SafetyCheck, Chat,
   PersonAdd, Edit as EditIcon, Settings as SettingsIcon, Email as EmailIcon,
+  Warning,
 } from '@mui/icons-material';
 import AdminSafetyDashboard from '../Safety/AdminSafetyDashboard';
 import { Tab, Tabs } from '@mui/material';
@@ -22,12 +24,19 @@ import {
 } from 'recharts';
 import api from '../../utils/api';
 
-const ApravasAdminDashboard = () => {
+const ApravasAdminDashboard = ({ initialTab }) => {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState('30d');
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
+
+  // Open a specific tab from URL (e.g. /dashboard/admin?tab=6 for Live chat)
+  useEffect(() => {
+    if (initialTab !== undefined && Number.isFinite(initialTab) && initialTab >= 0) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   const [whatsappLog, setWhatsappLog] = useState({ items: [], total: 0 });
   const [whatsappLogLoading, setWhatsappLogLoading] = useState(false);
   const [whatsappLogFilter, setWhatsappLogFilter] = useState({ status: '', type: '' });
@@ -43,12 +52,16 @@ const ApravasAdminDashboard = () => {
   const [userFormError, setUserFormError] = useState('');
   const [savingUser, setSavingUser] = useState(false);
   const [editingUserId, setEditingUserId] = useState(null);
-  // Settings tab (admin: third-party Email, WhatsApp, SMS)
-  const [tpSettings, setTpSettings] = useState({ email: {}, whatsapp: {}, sms: {} });
-  const [tpEdit, setTpEdit] = useState({ email: {}, whatsapp: {}, sms: {} });
+  // Settings tab (admin: third-party Email, WhatsApp, SMS, OpenAI, Website)
+  const [tpSettings, setTpSettings] = useState({ email: {}, whatsapp: {}, sms: {}, openai: {}, website: {} });
+  const [tpEdit, setTpEdit] = useState({ email: {}, whatsapp: {}, sms: {}, openai: {}, website: {} });
   const [tpLoading, setTpLoading] = useState(false);
   const [tpSaving, setTpSaving] = useState(false);
   const [tpError, setTpError] = useState('');
+  const [showSecret, setShowSecret] = useState({});
+  const toggleShowSecret = (fieldId) => {
+    setShowSecret((prev) => ({ ...prev, [fieldId]: !prev[fieldId] }));
+  };
   // Live chat (agent handoff)
   const [waitingSessions, setWaitingSessions] = useState([]);
   const [waitingSessionsLoading, setWaitingSessionsLoading] = useState(false);
@@ -59,6 +72,8 @@ const ApravasAdminDashboard = () => {
   const [agentMessageInput, setAgentMessageInput] = useState('');
   const [sendingAgentMessage, setSendingAgentMessage] = useState(false);
   const liveChatPollRef = useRef(null);
+  const [websiteErrorsLoading, setWebsiteErrorsLoading] = useState(false);
+  const [websiteErrorsData, setWebsiteErrorsData] = useState({ entries: [], period: 'today' });
 
   useEffect(() => {
     fetchAnalytics();
@@ -154,7 +169,7 @@ const ApravasAdminDashboard = () => {
     setTpError('');
     try {
       const res = await api.get('/admin/settings');
-      const data = res.data?.data ?? { general: {}, email: {}, whatsapp: {}, sms: {} };
+      const data = res.data?.data ?? { email: {}, whatsapp: {}, sms: {}, openai: {}, website: {} };
       setTpSettings(data);
       setTpEdit(data);
     } catch (err) {
@@ -166,8 +181,24 @@ const ApravasAdminDashboard = () => {
   };
 
   useEffect(() => {
-    if (activeTab === 6) fetchThirdPartySettings();
+    if (activeTab === 7) fetchThirdPartySettings();
   }, [activeTab]);
+  useEffect(() => {
+    if (activeTab === 5) fetchWebsiteErrors();
+  }, [activeTab]);
+
+  const fetchWebsiteErrors = async () => {
+    setWebsiteErrorsLoading(true);
+    try {
+      const res = await api.get('/admin/website-errors', { params: { lines: 500 } });
+      setWebsiteErrorsData(res.data?.data ?? { entries: [], period: 'today' });
+    } catch (err) {
+      console.error('Failed to fetch website errors:', err);
+      setWebsiteErrorsData({ entries: [], period: 'today' });
+    } finally {
+      setWebsiteErrorsLoading(false);
+    }
+  };
 
   const fetchWaitingSessions = async () => {
     setWaitingSessionsLoading(true);
@@ -183,7 +214,7 @@ const ApravasAdminDashboard = () => {
   };
 
   useEffect(() => {
-    if (activeTab === 5) fetchWaitingSessions();
+    if (activeTab === 6) fetchWaitingSessions();
   }, [activeTab]);
 
   const fetchSessionMessages = async (sid) => {
@@ -240,7 +271,7 @@ const ApravasAdminDashboard = () => {
   };
 
   useEffect(() => {
-    if (activeTab !== 5 || !joinedSessionId) return;
+    if (activeTab !== 6 || !joinedSessionId) return;
     liveChatPollRef.current = setInterval(() => fetchSessionMessages(joinedSessionId), 3000);
     return () => {
       if (liveChatPollRef.current) clearInterval(liveChatPollRef.current);
@@ -259,10 +290,11 @@ const ApravasAdminDashboard = () => {
     setTpError('');
     try {
       const res = await api.put('/admin/settings', {
-        general: tpEdit.general,
         email: tpEdit.email,
         whatsapp: tpEdit.whatsapp,
         sms: tpEdit.sms,
+        openai: tpEdit.openai,
+        website: tpEdit.website,
       });
       setTpSettings(res.data?.data ?? tpEdit);
       setTpEdit(res.data?.data ?? tpEdit);
@@ -470,6 +502,7 @@ const ApravasAdminDashboard = () => {
         <Tab label="WhatsApp Log" icon={<Chat />} />
         <Tab label="Users" icon={<People />} />
         <Tab label="Email Log" icon={<EmailIcon />} />
+        <Tab label="Website errors" icon={<Warning />} />
         <Tab label="Live chat" icon={<Chat />} />
         <Tab label="Settings" icon={<SettingsIcon />} />
       </Tabs>
@@ -984,9 +1017,42 @@ const ApravasAdminDashboard = () => {
         </Card>
       )}
 
-      {/* Settings Tab – Third-party: Email, WhatsApp, SMS */}
-      {/* Live chat tab: waiting sessions + join + chat with user */}
+      {/* Website errors tab */}
       {activeTab === 5 && (
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>Website errors</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Most recent errors (limited lines). Showing {websiteErrorsData.period === 'today' ? "today's" : 'last hour'} entries. If more than 10 errors today, only the last hour is shown.
+            </Typography>
+            <Box display="flex" alignItems="center" gap={1} sx={{ mb: 2 }}>
+              <Button size="small" startIcon={websiteErrorsLoading ? <CircularProgress size={16} /> : <Refresh />} onClick={fetchWebsiteErrors} disabled={websiteErrorsLoading}>
+                Refresh
+              </Button>
+            </Box>
+            {websiteErrorsLoading && websiteErrorsData.entries.length === 0 ? (
+              <Typography color="text.secondary">Loading…</Typography>
+            ) : websiteErrorsData.entries.length === 0 ? (
+              <Typography color="text.secondary">No recent errors.</Typography>
+            ) : (
+              <Paper variant="outlined" sx={{ p: 2, maxHeight: 480, overflow: 'auto', bgcolor: '#fafafa' }}>
+                <Box component="pre" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', m: 0 }}>
+                  {websiteErrorsData.entries.map((e, i) => (
+                    <Box key={i} sx={{ mb: 0.5 }}>
+                      {e.ts && <Typography component="span" variant="caption" color="text.secondary">[{e.ts}] </Typography>}
+                      {e.source && <Typography component="span" variant="caption" color="primary">[{e.source}] </Typography>}
+                      <Typography component="span" variant="caption">{e.message}</Typography>
+                    </Box>
+                  ))}
+                </Box>
+              </Paper>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Live chat tab: waiting sessions + join + chat with user */}
+      {activeTab === 6 && (
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>Chat join requests</Typography>
@@ -1081,44 +1147,13 @@ const ApravasAdminDashboard = () => {
         </Card>
       )}
 
-      {activeTab === 6 && (
+      {activeTab === 7 && (
         <Box display="flex" flexDirection="column" gap={3}>
           {tpError && <Alert severity="error" onClose={() => setTpError('')}>{tpError}</Alert>}
           {tpLoading ? (
             <Box display="flex" alignItems="center" gap={2}><CircularProgress size={24} /> Loading settings…</Box>
           ) : (
             <>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom color="primary">General (Login page &amp; nav)</Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        label="Nav login button label"
-                        value={tpEdit.general?.nav_login_label ?? ''}
-                        onChange={(e) => updateTpEdit('general', 'nav_login_label', e.target.value)}
-                        placeholder="Login"
-                        fullWidth
-                        size="small"
-                        helperText="Text shown on the top navigation Login button"
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        label="Login page credentials (JSON array)"
-                        value={tpEdit.general?.login_page_credentials ?? ''}
-                        onChange={(e) => updateTpEdit('general', 'login_page_credentials', e.target.value)}
-                        fullWidth
-                        multiline
-                        minRows={6}
-                        size="small"
-                        placeholder='[{"role":"employer","email":"employer@israel.com","password":"employer123","name":"Israeli Employer","description":"Post jobs"}]'
-                        helperText='Array of objects: role, email, password, name, description. Shown as test credential cards on /login.'
-                      />
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom color="primary">Email</Typography>
@@ -1173,6 +1208,82 @@ const ApravasAdminDashboard = () => {
                         size="small"
                       />
                     </Grid>
+                    <Grid item xs={12}><Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1 }}>SMTP (overrides .env when set)</Typography></Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="SMTP host"
+                        value={tpEdit.email?.smtp_host ?? ''}
+                        onChange={(e) => updateTpEdit('email', 'smtp_host', e.target.value)}
+                        placeholder="e.g. email-smtp.ap-south-1.amazonaws.com"
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        label="SMTP port"
+                        value={tpEdit.email?.smtp_port ?? ''}
+                        onChange={(e) => updateTpEdit('email', 'smtp_port', e.target.value)}
+                        placeholder="587"
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <FormControl fullWidth>
+                        <Box display="flex" alignItems="center" gap={1} sx={{ pt: 1 }}>
+                          <input
+                            type="checkbox"
+                            id="smtp_secure"
+                            checked={tpEdit.email?.smtp_secure === 'true'}
+                            onChange={(e) => updateTpEdit('email', 'smtp_secure', e.target.checked ? 'true' : '')}
+                          />
+                          <Typography component="label" htmlFor="smtp_secure">Use TLS/SSL (secure)</Typography>
+                        </Box>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="SMTP user"
+                        type={showSecret.smtp_user ? 'text' : 'password'}
+                        value={tpEdit.email?.smtp_user ?? ''}
+                        onChange={(e) => updateTpEdit('email', 'smtp_user', e.target.value)}
+                        placeholder="Leave blank to keep current"
+                        fullWidth
+                        size="small"
+                        helperText="Shown masked when set. Enter new value to replace."
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton onClick={() => toggleShowSecret('smtp_user')} edge="end" size="small" aria-label={showSecret.smtp_user ? 'Hide' : 'View'}>
+                                {showSecret.smtp_user ? <VisibilityOff /> : <Visibility />}
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="SMTP password"
+                        type={showSecret.smtp_pass ? 'text' : 'password'}
+                        value={tpEdit.email?.smtp_pass ?? ''}
+                        onChange={(e) => updateTpEdit('email', 'smtp_pass', e.target.value)}
+                        placeholder="Leave blank to keep current"
+                        fullWidth
+                        size="small"
+                        helperText="Shown masked when set. Enter new value to replace."
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton onClick={() => toggleShowSecret('smtp_pass')} edge="end" size="small" aria-label={showSecret.smtp_pass ? 'Hide' : 'View'}>
+                                {showSecret.smtp_pass ? <VisibilityOff /> : <Visibility />}
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
                   </Grid>
                 </CardContent>
               </Card>
@@ -1196,12 +1307,22 @@ const ApravasAdminDashboard = () => {
                     <Grid item xs={12}>
                       <TextField
                         label="Interakt API key (Base64)"
-                        type="password"
+                        type={showSecret.interakt_api_key ? 'text' : 'password'}
                         value={tpEdit.whatsapp?.interakt_api_key ?? ''}
                         onChange={(e) => updateTpEdit('whatsapp', 'interakt_api_key', e.target.value)}
                         placeholder="Leave blank to keep current"
                         fullWidth
                         size="small"
+                        helperText="Shown masked when set. Enter new value to replace."
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton onClick={() => toggleShowSecret('interakt_api_key')} edge="end" size="small" aria-label={showSecret.interakt_api_key ? 'Hide' : 'View'}>
+                                {showSecret.interakt_api_key ? <VisibilityOff /> : <Visibility />}
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
                       />
                     </Grid>
                     <Grid item xs={12} md={4}>
@@ -1263,12 +1384,22 @@ const ApravasAdminDashboard = () => {
                     <Grid item xs={12} md={6}>
                       <TextField
                         label="Twilio Auth Token"
-                        type="password"
+                        type={showSecret.twilio_auth_token ? 'text' : 'password'}
                         value={tpEdit.sms?.twilio_auth_token ?? ''}
                         onChange={(e) => updateTpEdit('sms', 'twilio_auth_token', e.target.value)}
                         placeholder="Leave blank to keep current"
                         fullWidth
                         size="small"
+                        helperText="Shown masked when set. Enter new value to replace."
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton onClick={() => toggleShowSecret('twilio_auth_token')} edge="end" size="small" aria-label={showSecret.twilio_auth_token ? 'Hide' : 'View'}>
+                                {showSecret.twilio_auth_token ? <VisibilityOff /> : <Visibility />}
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
                       />
                     </Grid>
                     <Grid item xs={12} md={6}>
@@ -1276,6 +1407,93 @@ const ApravasAdminDashboard = () => {
                         label="Twilio phone number"
                         value={tpEdit.sms?.twilio_phone_number ?? ''}
                         onChange={(e) => updateTpEdit('sms', 'twilio_phone_number', e.target.value)}
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom color="primary">OpenAI (Chatbot)</Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <TextField
+                        label="OpenAI API key"
+                        type={showSecret.openai_api_key ? 'text' : 'password'}
+                        value={tpEdit.openai?.openai_api_key ?? ''}
+                        onChange={(e) => updateTpEdit('openai', 'openai_api_key', e.target.value)}
+                        placeholder="Leave blank to keep current"
+                        fullWidth
+                        size="small"
+                        helperText="Shown masked when set. Enter new value to replace."
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton onClick={() => toggleShowSecret('openai_api_key')} edge="end" size="small" aria-label={showSecret.openai_api_key ? 'Hide' : 'View'}>
+                                {showSecret.openai_api_key ? <VisibilityOff /> : <Visibility />}
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="OpenAI model"
+                        value={tpEdit.openai?.openai_model ?? ''}
+                        onChange={(e) => updateTpEdit('openai', 'openai_model', e.target.value)}
+                        placeholder="gpt-4o-mini"
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom color="primary">Website (CORS &amp; Chatbot)</Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <TextField
+                        label="CORS origins (comma-separated)"
+                        value={tpEdit.website?.cors_origins ?? ''}
+                        onChange={(e) => updateTpEdit('website', 'cors_origins', e.target.value)}
+                        placeholder="https://app.apravas.com,https://www.apravas.com"
+                        fullWidth
+                        size="small"
+                        multiline
+                        minRows={2}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        label="Chatbot rate limit (max requests)"
+                        value={tpEdit.website?.chatbot_rate_limit_max ?? ''}
+                        onChange={(e) => updateTpEdit('website', 'chatbot_rate_limit_max', e.target.value)}
+                        placeholder="100"
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        label="Chatbot rate limit window (ms)"
+                        value={tpEdit.website?.chatbot_rate_limit_window ?? ''}
+                        onChange={(e) => updateTpEdit('website', 'chatbot_rate_limit_window', e.target.value)}
+                        placeholder="3600000"
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        label="Chatbot session timeout (ms)"
+                        value={tpEdit.website?.chatbot_session_timeout ?? ''}
+                        onChange={(e) => updateTpEdit('website', 'chatbot_session_timeout', e.target.value)}
+                        placeholder="7776000000"
                         fullWidth
                         size="small"
                       />

@@ -1,9 +1,7 @@
 /**
- * Admin-only routes for third-party integrations: Email, WhatsApp, SMS.
- * GET/PUT /api/admin/settings
+ * Admin-only routes: GET/PUT /api/admin/settings, GET /api/admin/website-errors
  */
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const router = express.Router();
 const db = require('../database/db');
 
@@ -12,7 +10,7 @@ const getAdminFromToken = (req, res, next) => {
   const token = authHeader?.replace('Bearer ', '') || req.query.token || req.query.role;
   if (token && token !== 'admin' && !token.includes('admin')) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      const decoded = require('jsonwebtoken').verify(token, process.env.JWT_SECRET || 'your-secret-key');
       const user = db.prepare('SELECT id, role FROM users WHERE id = ?').get(decoded.id);
       if (user) {
         req.user = { id: user.id, role: user.role };
@@ -42,16 +40,20 @@ function maskSecret(value) {
   return '••••' + value.slice(-4);
 }
 
-const GENERAL_KEYS = ['nav_login_label', 'login_page_credentials', 'show_demo_credentials'];
-const EMAIL_KEYS = ['default_from_email', 'email_service_enabled', 'recruitment_email', 'recruitment_phone', 'recruitment_whatsapp'];
+const EMAIL_KEYS = ['default_from_email', 'email_service_enabled', 'recruitment_email', 'recruitment_phone', 'recruitment_whatsapp', 'smtp_host', 'smtp_port', 'smtp_secure', 'smtp_user', 'smtp_pass'];
+const EMAIL_SECRET_KEYS = ['smtp_user', 'smtp_pass'];
 const WHATSAPP_KEYS = ['whatsapp_enabled', 'emergency_template_name', 'application_confirmation_template', 'application_rejection_template'];
 const WHATSAPP_SECRET_KEYS = ['interakt_api_key'];
 const SMS_KEYS = ['sms_enabled', 'twilio_account_sid', 'twilio_phone_number'];
 const SMS_SECRET_KEYS = ['twilio_auth_token'];
+const OPENAI_KEYS = ['openai_model'];
+const OPENAI_SECRET_KEYS = ['openai_api_key'];
+const WEBSITE_KEYS = ['cors_origins', 'chatbot_rate_limit_max', 'chatbot_rate_limit_window', 'chatbot_session_timeout'];
 
 function getSettings(keys, secretKeys = []) {
   const out = {};
   for (const k of keys) {
+    if (secretKeys.includes(k)) continue;
     const v = db.getSetting(k);
     out[k] = v !== null && v !== undefined ? v : '';
   }
@@ -62,19 +64,16 @@ function getSettings(keys, secretKeys = []) {
   return out;
 }
 
-/**
- * GET /api/admin/settings
- * Returns { email: {...}, whatsapp: {...}, sms: {...} }. Secrets are masked.
- */
 router.get('/settings', getAdminFromToken, requireAdmin, (req, res) => {
   try {
-    const general = getSettings(GENERAL_KEYS);
-    const email = getSettings(EMAIL_KEYS);
+    const email = getSettings(EMAIL_KEYS, EMAIL_SECRET_KEYS);
     const whatsapp = getSettings([...WHATSAPP_KEYS, ...WHATSAPP_SECRET_KEYS], WHATSAPP_SECRET_KEYS);
     const sms = getSettings(SMS_KEYS, SMS_SECRET_KEYS);
+    const openai = getSettings([...OPENAI_KEYS, ...OPENAI_SECRET_KEYS], OPENAI_SECRET_KEYS);
+    const website = getSettings(WEBSITE_KEYS);
     res.json({
       success: true,
-      data: { general, email, whatsapp, sms },
+      data: { email, whatsapp, sms, openai, website },
     });
   } catch (e) {
     console.error('Get admin settings error:', e);
@@ -82,17 +81,13 @@ router.get('/settings', getAdminFromToken, requireAdmin, (req, res) => {
   }
 });
 
-/**
- * PUT /api/admin/settings
- * Body: { email?: {...}, whatsapp?: {...}, sms?: {...} }
- * Empty or placeholder (••••) values for secrets leave existing value unchanged.
- */
 router.put('/settings', getAdminFromToken, requireAdmin, (req, res) => {
   try {
     const body = req.body || {};
-    const update = (keys, section) => {
+    const update = (keys, section, skipKeys = []) => {
       if (!section || typeof section !== 'object') return;
       for (const k of keys) {
+        if (skipKeys.includes(k)) continue;
         if (section[k] !== undefined && section[k] !== null) {
           const v = String(section[k]).trim();
           db.setSetting(k, v);
@@ -111,32 +106,56 @@ router.put('/settings', getAdminFromToken, requireAdmin, (req, res) => {
     };
 
     if (body.email) {
-      update(EMAIL_KEYS, body.email);
+      update(EMAIL_KEYS, body.email, EMAIL_SECRET_KEYS);
+      updateSecrets(EMAIL_SECRET_KEYS, body.email);
+      try {
+        const { reinitializeEmailService } = require('../services/emailService');
+        if (reinitializeEmailService) reinitializeEmailService();
+      } catch (e) {
+        console.error('Email reinit after settings save:', e.message);
+      }
     }
     if (body.whatsapp) {
-      update(WHATSAPP_KEYS, body.whatsapp);
+      update([...WHATSAPP_KEYS, ...WHATSAPP_SECRET_KEYS], body.whatsapp, WHATSAPP_SECRET_KEYS);
       updateSecrets(WHATSAPP_SECRET_KEYS, body.whatsapp);
     }
     if (body.sms) {
-      update(SMS_KEYS, body.sms);
+      update(SMS_KEYS, body.sms, SMS_SECRET_KEYS);
       updateSecrets(SMS_SECRET_KEYS, body.sms);
     }
-    if (body.general) {
-      update(GENERAL_KEYS, body.general);
+    if (body.openai) {
+      update([...OPENAI_KEYS, ...OPENAI_SECRET_KEYS], body.openai, OPENAI_SECRET_KEYS);
+      updateSecrets(OPENAI_SECRET_KEYS, body.openai);
+    }
+    if (body.website) {
+      update(WEBSITE_KEYS, body.website);
     }
 
-    const general = getSettings(GENERAL_KEYS);
-    const email = getSettings(EMAIL_KEYS);
+    const email = getSettings(EMAIL_KEYS, EMAIL_SECRET_KEYS);
     const whatsapp = getSettings([...WHATSAPP_KEYS, ...WHATSAPP_SECRET_KEYS], WHATSAPP_SECRET_KEYS);
     const sms = getSettings(SMS_KEYS, SMS_SECRET_KEYS);
+    const openai = getSettings([...OPENAI_KEYS, ...OPENAI_SECRET_KEYS], OPENAI_SECRET_KEYS);
+    const website = getSettings(WEBSITE_KEYS);
     res.json({
       success: true,
-      data: { general, email, whatsapp, sms },
+      data: { email, whatsapp, sms, openai, website },
       message: 'Settings updated',
     });
   } catch (e) {
     console.error('Update admin settings error:', e);
     res.status(500).json({ success: false, message: 'Failed to update settings' });
+  }
+});
+
+router.get('/website-errors', getAdminFromToken, requireAdmin, (req, res) => {
+  try {
+    const { getRecentErrors } = require('../utils/websiteErrorLogger');
+    const lineLimit = Math.min(parseInt(req.query.lines, 10) || 500, 1000);
+    const { entries, period } = getRecentErrors(lineLimit);
+    res.json({ success: true, data: { entries, period } });
+  } catch (e) {
+    console.error('Get website errors:', e);
+    res.status(500).json({ success: false, message: 'Failed to load error log' });
   }
 });
 

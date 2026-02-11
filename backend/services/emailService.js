@@ -76,27 +76,39 @@ function getRecruitmentEmail() {
   return getSetting('recruitment_email') || process.env.RECRUITMENT_EMAIL || 'recruitment@apravas.com';
 }
 
-// Email service configuration
+// Email service configuration (admin settings override .env)
 let transporter = null;
+
+function getSmtpConfig() {
+  const host = getSetting('smtp_host') || process.env.EMAIL_HOST || process.env.SMTP_HOST || 'smtp.gmail.com';
+  const port = parseInt(getSetting('smtp_port') || process.env.EMAIL_PORT || process.env.SMTP_PORT || '587', 10);
+  const secureSetting = (getSetting('smtp_secure') || process.env.SMTP_SECURE || '') === 'true';
+  // Port 587 uses STARTTLS (upgrade after connect). "secure" must be false or we get "wrong version number".
+  // Port 465 uses implicit SSL from the start, so secure should be true.
+  const secure = port === 465 ? secureSetting : false;
+  const user = getSetting('smtp_user') || process.env.EMAIL_HOST_USER || process.env.SMTP_USER;
+  const pass = getSetting('smtp_pass') || process.env.EMAIL_HOST_PASSWORD || process.env.SMTP_PASS;
+  return { host, port, secure, auth: user && pass ? { user, pass } : undefined };
+}
 
 const initializeEmailService = () => {
   if (!isEmailServiceEnabled()) {
-    console.log('Email service is disabled. Enable in Admin → Settings → Email or set EMAIL_SERVICE_ENABLED=true in .env');
+    transporter = null;
+    console.log('Email service is disabled. Enable in Admin → Settings → Email');
     return false;
   }
-
-  // Create transporter
+  const cfg = getSmtpConfig();
+  if (!cfg.auth) {
+    transporter = null;
+    console.error('Email service: SMTP user/password not set. Configure in Admin → Settings → Email or .env');
+    return false;
+  }
   transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.EMAIL_PORT || process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
-    auth: {
-      user: process.env.EMAIL_HOST_USER || process.env.SMTP_USER,
-      pass: process.env.EMAIL_HOST_PASSWORD || process.env.SMTP_PASS,
-    },
+    host: cfg.host,
+    port: cfg.port,
+    secure: cfg.secure,
+    auth: cfg.auth,
   });
-
-  // Verify connection
   transporter.verify((error, success) => {
     if (error) {
       console.error('Email service configuration error:', error);
@@ -104,9 +116,13 @@ const initializeEmailService = () => {
       console.log('✅ Email service is ready to send messages');
     }
   });
-
   return true;
 };
+
+function reinitializeEmailService() {
+  transporter = null;
+  return initializeEmailService();
+}
 
 // Initialize on module load (server.js also calls initializeEmailService() after dotenv for correct order)
 if (isEmailServiceEnabled()) {
@@ -570,15 +586,51 @@ const sendAppealConfirmation = async (appealData) => {
 
 /**
  * Send "speak to human" notification to recruitment team.
- * Sender: default_from_email (Admin → Settings → Email or DEFAULT_FROM_EMAIL).
- * Recipient: recruitment_email (Admin → Settings → Email or RECRUITMENT_EMAIL).
- * Same SMTP account sends all outgoing mail (EMAIL_HOST_USER / SMTP_USER).
+ * Includes user info (name, mobile, email) and a link to open the Live chat tab in admin.
+ * Sender: default_from_email. Recipient: recruitment_email.
  */
-const sendSpeakToHumanNotification = async (confirmationCode, sessionId) => {
+const sendSpeakToHumanNotification = async (confirmationCode, sessionId, userInfo = {}) => {
   const to = getRecruitmentEmail();
   const from = getDefaultFromEmail();
+  const baseUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const liveChatUrl = `${baseUrl}/dashboard/admin?tab=6`;
+
+  const userName = userInfo.userName != null ? String(userInfo.userName).trim() : '';
+  const userMobile = userInfo.userMobile != null ? String(userInfo.userMobile).trim() : '';
+  const userEmail = userInfo.userEmail != null ? String(userInfo.userEmail).trim() : '';
+
+  const text = [
+    'A user requested to speak to a human (chatbot handoff).',
+    '',
+    'Confirmation code: ' + confirmationCode,
+    'Session ID: ' + (sessionId || 'N/A'),
+    '',
+    'User information (same as in admin):',
+    'Name: ' + (userName || '—'),
+    'Mobile: ' + (userMobile || '—'),
+    'Email: ' + (userEmail || '—'),
+    '',
+    'Open Live chat: ' + liveChatUrl,
+    '',
+    'Please follow up within 24 hours.',
+  ].join('\n');
+
+  const html = [
+    '<p>A user requested to <strong>speak to a human</strong> (chatbot handoff).</p>',
+    '<p><strong>Confirmation code:</strong> ' + confirmationCode + '</p>',
+    '<p><strong>Session ID:</strong> ' + (sessionId || 'N/A') + '</p>',
+    '<p><strong>User information</strong> (same as in admin):</p>',
+    '<ul>',
+    '<li><strong>Name:</strong> ' + (userName || '—') + '</li>',
+    '<li><strong>Mobile:</strong> ' + (userMobile || '—') + '</li>',
+    '<li><strong>Email:</strong> ' + (userEmail || '—') + '</li>',
+    '</ul>',
+    '<p><a href="' + liveChatUrl + '" style="display:inline-block;padding:8px 16px;background:#7B0FFF;color:#fff;text-decoration:none;border-radius:6px;">Open Live chat</a></p>',
+    '<p>Please follow up within 24 hours.</p>',
+  ].join('');
+
   if (!transporter || !isEmailServiceEnabled()) {
-    console.log('📧 Speak-to-human notification (email disabled): would send to', to, 'from', from);
+    console.log('📧 Speak-to-human notification (email disabled): would send to', to);
     trackEmailSend('speak_to_human', to, from, { success: true, message: 'preview (service disabled)' });
     return { success: true, preview: true };
   }
@@ -587,8 +639,8 @@ const sendSpeakToHumanNotification = async (confirmationCode, sessionId) => {
       from,
       to,
       subject: `Speak to human request – ${confirmationCode}`,
-      text: `A user requested to speak to a human (chatbot handoff).\n\nConfirmation code: ${confirmationCode}\nSession ID: ${sessionId || 'N/A'}\n\nPlease follow up within 24 hours.`,
-      html: `<p>A user requested to <strong>speak to a human</strong> (chatbot handoff).</p><p><strong>Confirmation code:</strong> ${confirmationCode}</p><p><strong>Session ID:</strong> ${sessionId || 'N/A'}</p><p>Please follow up within 24 hours.</p>`,
+      text,
+      html,
     });
     console.log('✅ Speak-to-human notification sent:', info.messageId);
     const result = { success: true, messageId: info.messageId };
@@ -603,6 +655,7 @@ const sendSpeakToHumanNotification = async (confirmationCode, sessionId) => {
 
 module.exports = {
   initializeEmailService,
+  reinitializeEmailService,
   sendApplicationConfirmation,
   sendRejectionEmail,
   sendAppealConfirmation,

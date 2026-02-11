@@ -7,17 +7,20 @@ const rateLimit = require('express-rate-limit');
 const pathToRootEnv = path.resolve(__dirname, '..', '.env');
 require('dotenv').config({ path: pathToRootEnv });
 
-// Initialize email service (SES/SMTP) after env is loaded so it uses .env credentials
+const db = require('./database/db');
+const getSetting = db.getSetting || (() => null);
+
+// Initialize email service (SES/SMTP) after env is loaded; admin settings override .env
 const { initializeEmailService } = require('./services/emailService');
 initializeEmailService();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CORS: allow origins from CORS_ORIGINS (comma-separated), or same host (any port), or allow all when unset
-const corsOrigins = process.env.CORS_ORIGINS;
+// CORS: admin setting cors_origins (or .env CORS_ORIGINS) – read per request so changes apply without restart
 const corsOptions = {
   origin: (origin, callback) => {
+    const corsOrigins = getSetting('cors_origins') || process.env.CORS_ORIGINS;
     const allowed = corsOrigins
       ? corsOrigins.split(',').map(s => s.trim()).filter(Boolean)
       : [];
@@ -43,9 +46,9 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Chatbot rate limit: 100 requests per hour per IP (configurable via env)
-const chatbotRateLimitWindow = parseInt(process.env.CHATBOT_RATE_LIMIT_WINDOW_MS || '3600000', 10);
-const chatbotRateLimitMax = parseInt(process.env.CHATBOT_RATE_LIMIT_MAX || '100', 10);
+// Chatbot rate limit: admin settings (chatbot_rate_limit_max, chatbot_rate_limit_window) or .env
+const chatbotRateLimitWindow = parseInt(getSetting('chatbot_rate_limit_window') || process.env.CHATBOT_RATE_LIMIT_WINDOW_MS || process.env.CHATBOT_RATE_LIMIT_WINDOW || '3600000', 10);
+const chatbotRateLimitMax = parseInt(getSetting('chatbot_rate_limit_max') || process.env.CHATBOT_RATE_LIMIT_MAX || '100', 10);
 const chatbotLimiter = rateLimit({
   windowMs: chatbotRateLimitWindow,
   max: chatbotRateLimitMax,

@@ -6,6 +6,8 @@
 const { OpenAI } = require('openai');
 const fs = require('fs');
 const path = require('path');
+const db = require('../database/db');
+const getSetting = db.getSetting || (() => null);
 
 // Ensure .env is loaded when this module is required (e.g. from tests or before server.js)
 if (!process.env.OPENAI_API_KEY) {
@@ -13,21 +15,24 @@ if (!process.env.OPENAI_API_KEY) {
   require('dotenv').config({ path: pathToRootEnv });
 }
 
-// Initialize OpenAI client
-// API key should be set via environment variable: OPENAI_API_KEY
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-if (!OPENAI_API_KEY) {
-  console.warn('⚠️ OPENAI_API_KEY not set. Chatbot will not work without it.');
+// OpenAI client: admin setting openai_api_key (or .env) – cached by key so admin changes apply without restart
+let _openaiCache = { key: null, client: null };
+function getOpenAI() {
+  const key = getSetting('openai_api_key') || process.env.OPENAI_API_KEY;
+  if (!key) return null;
+  if (_openaiCache.key === key) return _openaiCache.client;
+  _openaiCache = { key, client: new OpenAI({ apiKey: key }) };
+  return _openaiCache.client;
 }
-const openai = OPENAI_API_KEY ? new OpenAI({
-  apiKey: OPENAI_API_KEY,
-}) : null;
+
+function getOpenAIModel() {
+  return getSetting('openai_model') || process.env.OPENAI_MODEL || 'gpt-4o-mini';
+}
 
 // Configuration (tuned for faster response: fewer tokens, less context)
 const CONFIG = {
-  MODEL: "gpt-4o-mini",
   TEMPERATURE: 0.3, // Lower for factual accuracy
-  MAX_TOKENS: 800,  // Reduced from 1500 for faster completion
+  MAX_TOKENS: 600,  // Lower for faster completion
   TOP_P: 1,
   FREQUENCY_PENALTY: 0,
   PRESENCE_PENALTY: 0,
@@ -70,8 +75,11 @@ loadKnowledgeBase();
 // ============================================================================
 
 const activeSessions = new Map();
-// GDPR: configurable session retention. Default 24h; set CHATBOT_SESSION_TIMEOUT_MS (e.g. 90 days = 90*24*60*60*1000).
-const SESSION_TIMEOUT = parseInt(process.env.CHATBOT_SESSION_TIMEOUT_MS || '', 10) || 24 * 60 * 60 * 1000;
+// GDPR: configurable session retention. Admin setting chatbot_session_timeout or .env (ms).
+function getSessionTimeout() {
+  const v = getSetting('chatbot_session_timeout') || process.env.CHATBOT_SESSION_TIMEOUT_MS || process.env.CHATBOT_SESSION_TIMEOUT || '';
+  return parseInt(v, 10) || 24 * 60 * 60 * 1000;
+}
 
 class UserContext {
   constructor(userId, sessionId) {
@@ -135,7 +143,7 @@ function updateSession(sessionId, updates) {
 function cleanupExpiredSessions() {
   const now = new Date();
   for (const [sessionId, context] of activeSessions.entries()) {
-    if (now - context.lastActivity > SESSION_TIMEOUT) {
+    if (now - context.lastActivity > getSessionTimeout()) {
       activeSessions.delete(sessionId);
     }
   }
@@ -278,6 +286,8 @@ function extractEntities(message) {
 
 async function getEmbedding(text) {
   try {
+    const openai = getOpenAI();
+    if (!openai) return [];
     const response = await openai.embeddings.create({
       model: CONFIG.EMBEDDING_MODEL,
       input: text,
@@ -394,10 +404,12 @@ async function searchKnowledgeBase(query, country = null, visaType = null, topK 
 // ============================================================================
 
 async function _getChatBotResponse(messages) {
+  const openai = getOpenAI();
+  if (!openai) return '';
   try {
     const completion = await openai.chat.completions.create({
       messages: messages,
-      model: CONFIG.MODEL,
+      model: getOpenAIModel(),
       temperature: CONFIG.TEMPERATURE,
       max_tokens: CONFIG.MAX_TOKENS,
       top_p: CONFIG.TOP_P,
@@ -442,7 +454,7 @@ CRITICAL INSTRUCTIONS:
   if (relevantDocs && relevantDocs.length > 0) {
     prompt += `\nIMPORTANT: You have ${relevantDocs.length} official government document(s) provided below. USE THIS INFORMATION to answer the user's question.\n\n`;
     prompt += 'Official Government Information:\n';
-    const maxContentLen = userMessage && userMessage.toLowerCase().includes('visa type') ? 1200 : 600;
+    const maxContentLen = userMessage && userMessage.toLowerCase().includes('visa type') ? 900 : 450;
     for (const doc of relevantDocs) {
       prompt += `\n---\nSource: ${doc.source_authority || 'Official Source'} (${doc.country || 'N/A'})\n`;
       prompt += `Title: ${doc.title || 'N/A'}\n`;
@@ -460,6 +472,7 @@ CRITICAL INSTRUCTIONS:
 }
 
 async function generateResponse(userMessage, sessionId = null) {
+  const timings = { start: Date.now() };
   try {
     // Get or create session
     let context = sessionId ? getSession(sessionId) : null;
@@ -468,8 +481,10 @@ async function generateResponse(userMessage, sessionId = null) {
     }
 
     // Classify intent and extract entities
+    const t0 = Date.now();
     const { intent, confidence: intentConfidence } = classifyIntent(userMessage);
     const entities = extractEntities(userMessage);
+    timings.intent = Date.now() - t0;
 
     // Update context with extracted entities
     if (entities.country) context.targetCountry = entities.country;
@@ -478,15 +493,19 @@ async function generateResponse(userMessage, sessionId = null) {
     if (entities.experienceYears) context.workExperienceYears = entities.experienceYears;
 
     // Search knowledge base
+    const t1 = Date.now();
     const relevantDocs = await searchKnowledgeBase(
       userMessage,
       context.targetCountry,
       context.visaType,
       CONFIG.MAX_CONTEXT_DOCS
     );
+    timings.search = Date.now() - t1;
 
     // Build system prompt with context
+    const t2 = Date.now();
     const systemPrompt = buildSystemPrompt(context, relevantDocs, userMessage);
+    timings.prompt = Date.now() - t2;
 
     // Prepare messages for OpenAI
     const messages = [
@@ -505,8 +524,12 @@ async function generateResponse(userMessage, sessionId = null) {
     // Add current user message
     messages.push({ role: 'user', content: userMessage });
 
-    // Generate response
+    // Generate response (main latency is usually here)
+    const t3 = Date.now();
     const aiResponse = await _getChatBotResponse(messages);
+    timings.openai = Date.now() - t3;
+    timings.total = Date.now() - timings.start;
+    console.log('[Chatbot timing]', JSON.stringify(timings), 'ms');
 
     // Validate and enhance response
     let validatedResponse = validateResponse(aiResponse, relevantDocs);
