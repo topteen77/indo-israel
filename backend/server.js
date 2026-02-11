@@ -48,13 +48,22 @@ app.use(cors(corsOptions));
 
 // Chatbot rate limit: admin settings (chatbot_rate_limit_max, chatbot_rate_limit_window) or .env
 const chatbotRateLimitWindow = parseInt(getSetting('chatbot_rate_limit_window') || process.env.CHATBOT_RATE_LIMIT_WINDOW_MS || process.env.CHATBOT_RATE_LIMIT_WINDOW || '3600000', 10);
-const chatbotRateLimitMax = parseInt(getSetting('chatbot_rate_limit_max') || process.env.CHATBOT_RATE_LIMIT_MAX || '100', 10);
+const chatbotRateLimitMax = parseInt(getSetting('chatbot_rate_limit_max') || process.env.CHATBOT_RATE_LIMIT_MAX || '300', 10);
 const chatbotLimiter = rateLimit({
   windowMs: chatbotRateLimitWindow,
   max: chatbotRateLimitMax,
   message: { success: false, message: 'Too many requests. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    try {
+      const { logWebsiteError } = require('./utils/websiteErrorLogger');
+      logWebsiteError('rate_limit', 'Chatbot rate limit exceeded', `IP: ${req.ip || req.socket?.remoteAddress}`);
+    } catch (e) {
+      console.error('Website error log:', e.message);
+    }
+    res.status(429).json({ success: false, message: 'Too many requests. Please try again later.' });
+  },
 });
 
 app.use(express.json());

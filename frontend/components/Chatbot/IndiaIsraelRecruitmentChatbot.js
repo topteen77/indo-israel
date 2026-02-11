@@ -202,10 +202,14 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
 
     } catch (error) {
       console.error('Chatbot API error:', error);
+      const backendMessage = error.response?.data?.message;
+      const displayMessage = backendMessage && backendMessage.trim()
+        ? backendMessage
+        : 'I encountered an error processing your request. Please try again or contact support at support@apravas.com';
       const errorMessage = {
         id: Date.now() + 1,
         type: 'bot',
-        content: 'I encountered an error processing your request. Please try again or contact support at support@apravas.com',
+        content: displayMessage,
         error: true,
         timestamp: new Date()
       };
