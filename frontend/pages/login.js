@@ -63,9 +63,15 @@ export default function LoginPage() {
       if (data.success) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        if (data.user.role === 'admin') router.push('/dashboard/admin');
+        const nextUrl = typeof router.query.next === 'string' ? decodeURIComponent(router.query.next) : '';
+        const isEmployerPath = nextUrl.startsWith('/dashboard/employer');
+        const isAllowedNext = nextUrl && (nextUrl.startsWith('/dashboard/') || nextUrl.startsWith('/'));
+        if (data.user.role === 'employer' && isAllowedNext && isEmployerPath) {
+          router.push(nextUrl);
+        } else if (data.user.role === 'admin') router.push('/dashboard/admin');
         else if (data.user.role === 'employer') router.push('/dashboard/employer');
         else if (data.user.role === 'worker') router.push('/dashboard/worker');
+        else router.push(nextUrl || '/');
       } else {
         setError(data.message || 'Login failed. Please check your credentials.');
       }
@@ -102,9 +108,15 @@ export default function LoginPage() {
       if (data.success) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        if (data.user.role === 'admin') router.push('/dashboard/admin');
+        const nextUrl = typeof router.query.next === 'string' ? decodeURIComponent(router.query.next) : '';
+        const isEmployerPath = nextUrl.startsWith('/dashboard/employer');
+        const isAllowedNext = nextUrl && (nextUrl.startsWith('/dashboard/') || nextUrl.startsWith('/'));
+        if (data.user.role === 'employer' && isAllowedNext && isEmployerPath) {
+          router.push(nextUrl);
+        } else if (data.user.role === 'admin') router.push('/dashboard/admin');
         else if (data.user.role === 'employer') router.push('/dashboard/employer');
         else if (data.user.role === 'worker') router.push('/dashboard/worker');
+        else router.push(nextUrl || '/');
       } else {
         setError(data.message || 'Login failed.');
       }

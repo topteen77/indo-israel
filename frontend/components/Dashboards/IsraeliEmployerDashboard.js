@@ -56,18 +56,28 @@ const IsraeliEmployerDashboard = () => {
     fetchDashboardData();
     const interval = setInterval(fetchDashboardData, 120000); // 2 min refresh
     
-    // Check if we should open the post job dialog (from homepage)
+    // Check if we should open the post job dialog or switch tab (from homepage/footer)
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const shouldOpenPostJob = urlParams.get('openPostJob') === 'true' || 
                                 sessionStorage.getItem('openPostJob') === 'true';
+      const tabParam = urlParams.get('tab');
+      const tabIndex = tabParam !== null && tabParam !== '' ? parseInt(tabParam, 10) : NaN;
       
       if (shouldOpenPostJob) {
         setPostJobDialogOpen(true);
-        // Clear the flag
         sessionStorage.removeItem('openPostJob');
-        // Clean up URL
-        const newUrl = window.location.pathname;
+      }
+      if (Number.isFinite(tabIndex) && tabIndex >= 0 && tabIndex <= 3) {
+        setActiveTab(tabIndex);
+      }
+      // Clean up URL if we had openPostJob or tab
+      if (shouldOpenPostJob || (Number.isFinite(tabIndex) && tabIndex >= 0)) {
+        const cleanSearch = new URLSearchParams(window.location.search);
+        cleanSearch.delete('openPostJob');
+        cleanSearch.delete('tab');
+        const newSearch = cleanSearch.toString();
+        const newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '');
         window.history.replaceState({}, '', newUrl);
       }
     }

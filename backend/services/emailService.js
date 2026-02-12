@@ -653,6 +653,74 @@ const sendSpeakToHumanNotification = async (confirmationCode, sessionId, userInf
   }
 };
 
+/**
+ * Send contact form enquiry to recruitment (admin) email.
+ * Body: { name, email, phone?, country?, message? }
+ */
+const sendContactEnquiry = async (payload) => {
+  const to = getRecruitmentEmail();
+  const from = getDefaultFromEmail();
+  const name = (payload.name != null ? String(payload.name).trim() : '') || '—';
+  const email = (payload.email != null ? String(payload.email).trim() : '') || '—';
+  const phone = (payload.phone != null ? String(payload.phone).trim() : '') || '—';
+  const country = (payload.country != null ? String(payload.country).trim() : '') || '—';
+  const message = (payload.message != null ? String(payload.message).trim() : '') || '—';
+
+  const text = [
+    'New contact form enquiry from the website.',
+    '',
+    'Name: ' + name,
+    'Email: ' + email,
+    'Phone: ' + phone,
+    'Country: ' + country,
+    '',
+    'Message:',
+    message,
+  ].join('\n');
+
+  const html = [
+    '<p><strong>New contact form enquiry</strong> from the website.</p>',
+    '<p><strong>Name:</strong> ' + escapeHtml(name) + '</p>',
+    '<p><strong>Email:</strong> ' + escapeHtml(email) + '</p>',
+    '<p><strong>Phone:</strong> ' + escapeHtml(phone) + '</p>',
+    '<p><strong>Country:</strong> ' + escapeHtml(country) + '</p>',
+    '<p><strong>Message:</strong></p>',
+    '<p style="white-space:pre-wrap;">' + escapeHtml(message) + '</p>',
+  ].join('');
+
+  if (!transporter || !isEmailServiceEnabled()) {
+    console.log('📧 Contact enquiry (email disabled): would send to', to);
+    trackEmailSend('contact_enquiry', to, from, { success: true, message: 'preview (service disabled)' });
+    return { success: true, preview: true };
+  }
+  try {
+    const info = await transporter.sendMail({
+      from,
+      to,
+      subject: `Contact enquiry from ${name}`,
+      text,
+      html,
+    });
+    console.log('✅ Contact enquiry sent:', info.messageId);
+    const result = { success: true, messageId: info.messageId };
+    trackEmailSend('contact_enquiry', to, from, result);
+    return result;
+  } catch (error) {
+    console.error('❌ Contact enquiry failed:', error);
+    trackEmailSend('contact_enquiry', to, from, { success: false, error: error.message });
+    return { success: false, error: error.message };
+  }
+};
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 module.exports = {
   initializeEmailService,
   reinitializeEmailService,
@@ -661,6 +729,7 @@ module.exports = {
   sendAppealConfirmation,
   sendTestEmail,
   sendSpeakToHumanNotification,
+  sendContactEnquiry,
   getDefaultFromEmail,
   getRecruitmentEmail,
 };

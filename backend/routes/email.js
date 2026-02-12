@@ -6,7 +6,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 const db = require('../database/db');
-const { sendTestEmail } = require('../services/emailService');
+const { sendTestEmail, sendContactEnquiry } = require('../services/emailService');
 
 const getAdminFromToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -105,6 +105,48 @@ router.put('/settings', getAdminFromToken, requireAdmin, (req, res) => {
   } catch (e) {
     console.error('Update email settings error:', e);
     res.status(500).json({ success: false, message: 'Failed to update email settings' });
+  }
+});
+
+/**
+ * POST /api/email/contact-enquiry
+ * Public. Send contact form submission to recruitment (admin) email.
+ * Body: { name, email, phone?, country?, message? }
+ */
+router.post('/contact-enquiry', async (req, res) => {
+  try {
+    const { name, email, phone, country, message } = req.body || {};
+    const nameTrim = name != null ? String(name).trim() : '';
+    const emailTrim = email != null ? String(email).trim() : '';
+    if (!nameTrim) {
+      return res.status(400).json({ success: false, message: 'Full name is required' });
+    }
+    if (!emailTrim) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
+    const result = await sendContactEnquiry({
+      name: nameTrim,
+      email: emailTrim,
+      phone: phone != null ? String(phone).trim() : '',
+      country: country != null ? String(country).trim() : '',
+      message: message != null ? String(message).trim() : '',
+    });
+    if (!result.success && !result.preview) {
+      return res.status(500).json({
+        success: false,
+        message: result.error || 'Failed to send enquiry',
+      });
+    }
+    res.json({
+      success: true,
+      message: 'Your enquiry has been sent. We will contact you shortly.',
+    });
+  } catch (e) {
+    console.error('Contact enquiry route error:', e);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send enquiry. Please try again later.',
+    });
   }
 });
 

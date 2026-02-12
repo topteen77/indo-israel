@@ -59,6 +59,8 @@ import {
   Send,
 } from '@mui/icons-material';
 import IndiaIsraelRecruitmentChatbot from '../components/Chatbot/IndiaIsraelRecruitmentChatbot';
+import Header from '../components/Layout/Header';
+import Footer from '../components/Layout/Footer';
 import { API_BASE_URL } from '../utils/api';
 
 export default function Home() {
@@ -189,85 +191,7 @@ export default function Home() {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff', position: 'relative' }}>
-      {/* Top Navigation Bar */}
-      <Box
-        sx={{
-          bgcolor: 'white',
-          borderBottom: '1px solid #e0e0e0',
-          py: 2,
-          position: 'sticky',
-          top: 0,
-          zIndex: 1000,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-        }}
-      >
-        <Container maxWidth="xl">
-          <Box display="flex" justifyContent="space-between" alignItems="center">
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 800,
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                cursor: 'pointer',
-              }}
-              onClick={() => router.push('/')}
-            >
-              APRAVAS
-            </Typography>
-            <Stack direction="row" spacing={2} alignItems="center">
-              <Button
-                variant="outlined"
-                startIcon={<HomeIcon />}
-                onClick={() => router.push('/')}
-                sx={{ borderRadius: '25px', px: 3 }}
-              >
-                Home
-              </Button>
-              {mounted && user ? (
-                <>
-                  <Button
-                    variant="outlined"
-                    startIcon={<Dashboard />}
-                    onClick={() => {
-                      if (user.role === 'admin') router.push('/dashboard/admin');
-                      else if (user.role === 'employer') router.push('/dashboard/employer');
-                      else if (user.role === 'worker') router.push('/dashboard/worker');
-                      else router.push('/');
-                    }}
-                    sx={{ borderRadius: '25px', px: 3 }}
-                  >
-                    Dashboard
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    onClick={() => {
-                      localStorage.removeItem('token');
-                      localStorage.removeItem('user');
-                      setUser(null);
-                      router.push('/');
-                    }}
-                    sx={{ borderRadius: '25px', px: 3 }}
-                  >
-                    Logout
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  variant="outlined"
-                  onClick={() => router.push('/login')}
-                  sx={{ borderRadius: '25px', px: 3 }}
-                >
-                  Login
-                </Button>
-              )}
-            </Stack>
-          </Box>
-        </Container>
-      </Box>
-
+      <Header />
       <Container maxWidth="xl">
         {/* Hero Section - Enhanced */}
         <Box
@@ -1290,100 +1214,7 @@ export default function Home() {
           </Box>
         </Box>
       </Container>
-
-      {/* Footer */}
-      <Box
-        sx={{
-          bgcolor: '#1a1a1a',
-          color: 'white',
-          py: 6,
-          mt: 8,
-        }}
-      >
-        <Container maxWidth="xl">
-          <Grid container spacing={4}>
-            <Grid item xs={12} md={4}>
-              <Typography variant="h5" sx={{ fontWeight: 800, mb: 2 }}>
-                APRAVAS
-              </Typography>
-              <Typography variant="body2" color="rgba(255,255,255,0.7)">
-                India-Israel #1 Recruitment Platform connecting skilled workers with opportunities.
-              </Typography>
-            </Grid>
-            <Grid item xs={12} md={2}>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Jobs
-              </Typography>
-              <Stack spacing={1}>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', cursor: 'pointer', '&:hover': { color: 'white' } }}>
-                  Work From Home Jobs
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', cursor: 'pointer', '&:hover': { color: 'white' } }}>
-                  Part Time Jobs
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', cursor: 'pointer', '&:hover': { color: 'white' } }}>
-                  Jobs for Freshers
-                </Typography>
-              </Stack>
-            </Grid>
-            <Grid item xs={12} md={2}>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Resources
-              </Typography>
-              <Stack spacing={1}>
-                <Typography 
-                  variant="body2" 
-                  component="a"
-                  href="/about-us.html"
-                  sx={{ color: 'rgba(255,255,255,0.7)', cursor: 'pointer', textDecoration: 'none', display: 'block', '&:hover': { color: 'white' } }}
-                >
-                  About Us
-                </Typography>
-                <Typography 
-                  variant="body2" 
-                  component="a"
-                  href="/services.html"
-                  sx={{ color: 'rgba(255,255,255,0.7)', cursor: 'pointer', textDecoration: 'none', display: 'block', '&:hover': { color: 'white' } }}
-                >
-                  Services
-                </Typography>
-                <Typography 
-                  variant="body2" 
-                  component="a"
-                  href="/contact-us.html"
-                  sx={{ color: 'rgba(255,255,255,0.7)', cursor: 'pointer', textDecoration: 'none', display: 'block', '&:hover': { color: 'white' } }}
-                >
-                  Contact Us
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', cursor: 'pointer', '&:hover': { color: 'white' } }}>
-                  Privacy Policy
-                </Typography>
-              </Stack>
-            </Grid>
-            <Grid item xs={12} md={2}>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                For Employers
-              </Typography>
-              <Stack spacing={1}>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', cursor: 'pointer', '&:hover': { color: 'white' } }}>
-                  Post a Job
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', cursor: 'pointer', '&:hover': { color: 'white' } }}>
-                  Browse Candidates
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', cursor: 'pointer', '&:hover': { color: 'white' } }}>
-                  Pricing
-                </Typography>
-              </Stack>
-            </Grid>
-          </Grid>
-          <Divider sx={{ my: 4, bgcolor: 'rgba(255,255,255,0.1)' }} />
-          <Typography variant="body2" textAlign="center" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-            © 2026 Apravas | All rights reserved
-          </Typography>
-        </Container>
-      </Box>
-
+      <Footer />
       {/* Enquiry Form Dialog */}
       <Dialog
         open={enquiryDialogOpen}
