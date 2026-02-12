@@ -77,7 +77,7 @@ const Footer = () => {
               <Typography component="a" href="/about-us" variant="body2" sx={linkBlockSx}>About Us</Typography>
               <Typography component="a" href="/services" variant="body2" sx={linkBlockSx}>Services</Typography>
               <Typography component="a" href="/contact-us" variant="body2" sx={linkBlockSx}>Contact Us</Typography>
-              <Typography variant="body2" sx={linkSx}>Privacy Policy</Typography>
+              <Typography component="a" href="/privacy-policy" variant="body2" sx={linkBlockSx}>Privacy Policy</Typography>
             </Stack>
           </Grid>
           <Grid item xs={12} md={2}>
