@@ -66,7 +66,16 @@ export default function LoginPage() {
         const nextUrl = typeof router.query.next === 'string' ? decodeURIComponent(router.query.next) : '';
         const isEmployerPath = nextUrl.startsWith('/dashboard/employer');
         const isAllowedNext = nextUrl && (nextUrl.startsWith('/dashboard/') || nextUrl.startsWith('/'));
-        if (data.user.role === 'employer' && isAllowedNext && isEmployerPath) {
+        
+        // If trying to access employer dashboard but not logged in as employer
+        if (isEmployerPath && data.user.role !== 'employer') {
+          // Redirect to appropriate dashboard with message
+          if (data.user.role === 'admin') router.push('/dashboard/admin');
+          else if (data.user.role === 'worker') router.push('/dashboard/worker');
+          else router.push('/');
+          // Could show a message here that they need to login as employer
+        } else if (data.user.role === 'employer' && isAllowedNext && isEmployerPath) {
+          // Employer accessing employer dashboard - allow it
           router.push(nextUrl);
         } else if (data.user.role === 'admin') router.push('/dashboard/admin');
         else if (data.user.role === 'employer') router.push('/dashboard/employer');
@@ -111,7 +120,16 @@ export default function LoginPage() {
         const nextUrl = typeof router.query.next === 'string' ? decodeURIComponent(router.query.next) : '';
         const isEmployerPath = nextUrl.startsWith('/dashboard/employer');
         const isAllowedNext = nextUrl && (nextUrl.startsWith('/dashboard/') || nextUrl.startsWith('/'));
-        if (data.user.role === 'employer' && isAllowedNext && isEmployerPath) {
+        
+        // If trying to access employer dashboard but not logged in as employer
+        if (isEmployerPath && data.user.role !== 'employer') {
+          // Redirect to appropriate dashboard with message
+          if (data.user.role === 'admin') router.push('/dashboard/admin');
+          else if (data.user.role === 'worker') router.push('/dashboard/worker');
+          else router.push('/');
+          // Could show a message here that they need to login as employer
+        } else if (data.user.role === 'employer' && isAllowedNext && isEmployerPath) {
+          // Employer accessing employer dashboard - allow it
           router.push(nextUrl);
         } else if (data.user.role === 'admin') router.push('/dashboard/admin');
         else if (data.user.role === 'employer') router.push('/dashboard/employer');

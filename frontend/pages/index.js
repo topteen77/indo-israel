@@ -809,19 +809,22 @@ export default function Home() {
                     <Button
                       variant="contained"
                       endIcon={<ArrowForward />}
-                      onClick={async () => {
-                        // Check if user is already logged in as employer
+                      onClick={() => {
+                        // Check if user is already logged in
                         const token = localStorage.getItem('token');
                         const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
                         
                         if (token && storedUser.role === 'employer') {
-                          // Already logged in as employer, navigate directly
+                          // Already logged in as employer, navigate directly to post job
                           router.push('/dashboard/employer?openPostJob=true');
+                        } else if (token && storedUser.role) {
+                          // Logged in but not as employer, redirect to login to switch account
+                          const returnUrl = encodeURIComponent('/dashboard/employer?openPostJob=true');
+                          router.push(`/login?next=${returnUrl}`);
                         } else {
-                          // Set flag to open post job dialog after login
-                          sessionStorage.setItem('openPostJob', 'true');
-                          // Login as employer
-                          await quickLogin('employer');
+                          // Not logged in, redirect to login page with return URL
+                          const returnUrl = encodeURIComponent('/dashboard/employer?openPostJob=true');
+                          router.push(`/login?next=${returnUrl}`);
                         }
                       }}
                       sx={{
