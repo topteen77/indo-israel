@@ -822,7 +822,7 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
             flex: 1,
             overflow: 'auto',
             p: 0,
-            pb: suggestedActions.length > 0 ? '120px' : '80px', // Add padding for suggested actions and input field
+            pb: suggestedActions.length > 0 ? '140px' : '80px', // Add padding for suggested actions and input field
             background: 'linear-gradient(240deg, rgba(237, 246, 255, 1) 0%, rgba(252, 246, 255, 1) 20%, rgba(255, 255, 255, 1) 40%, rgba(255, 255, 255, 1) 60%, rgba(248, 242, 255, 1) 80%, rgba(237, 246, 255, 1) 100%)',
           }}
         >
@@ -1039,8 +1039,20 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
                         </Typography>
                         <Box sx={{ 
                           display: 'flex', 
-                          flexDirection: 'column',
-                          gap: 1 
+                          flexDirection: 'row',
+                          flexWrap: 'wrap',
+                          gap: 1,
+                          overflowX: 'auto',
+                          '&::-webkit-scrollbar': {
+                            height: '4px',
+                          },
+                          '&::-webkit-scrollbar-track': {
+                            background: 'transparent',
+                          },
+                          '&::-webkit-scrollbar-thumb': {
+                            background: 'rgba(123, 15, 255, 0.3)',
+                            borderRadius: '10px',
+                          },
                         }}>
                           {message.suggestedQuestions.map((question, idx) => (
                             <Chip
@@ -1048,9 +1060,9 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
                               label={question}
                               onClick={() => sendSuggestedQuestion(question)}
                               sx={{
-                                justifyContent: 'flex-start',
+                                maxWidth: 'fit-content',
                                 height: 'auto',
-                                py: 1,
+                                py: 0.75,
                                 px: 1.5,
                                 bgcolor: 'rgba(123, 15, 255, 0.05)',
                                 border: '1px solid rgba(123, 15, 255, 0.2)',
@@ -1058,20 +1070,16 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
                                 fontSize: '12px',
                                 fontWeight: 400,
                                 cursor: 'pointer',
-                                textAlign: 'left',
-                                whiteSpace: 'normal',
+                                whiteSpace: 'nowrap',
                                 '&:hover': {
                                   bgcolor: 'rgba(123, 15, 255, 0.1)',
                                   borderColor: 'rgba(123, 15, 255, 0.4)',
-                                  transform: 'translateX(4px)',
+                                  transform: 'translateY(-2px)',
                                 },
                                 transition: 'all 0.2s ease',
                                 '& .MuiChip-label': {
-                                  display: 'block',
-                                  whiteSpace: 'normal',
-                                  overflow: 'visible',
-                                  textOverflow: 'clip',
                                   padding: '4px 8px',
+                                  whiteSpace: 'nowrap',
                                 },
                               }}
                             />
@@ -1346,12 +1354,13 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
               overflowX: 'auto',
               flexWrap: 'wrap',
               position: 'absolute',
-              bottom: '80px', // Position above the input field (input is ~65px tall + spacing)
+              bottom: '70px', // Position above the input field (input is ~60px tall)
               left: '50%',
               transform: 'translateX(-50%)',
               width: '70%',
               maxWidth: '600px',
               zIndex: 10,
+              minHeight: '40px', // Ensure minimum height for visibility
               boxShadow: '0 -2px 8px rgba(0,0,0,0.1)',
               borderRadius: '12px 12px 0 0',
               '@media (max-width: 575px)': {
@@ -1362,6 +1371,7 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
                 width: '100%',
                 maxWidth: '100%',
                 borderRadius: 0,
+                mb: 1,
               },
               '&::-webkit-scrollbar': {
                 height: '4px',
@@ -1423,6 +1433,7 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
               position: 'relative',
               bottom: 'auto',
               maxWidth: '100%',
+              mt: suggestedActions.length > 0 ? 1 : 0,
             },
           }}
         >
