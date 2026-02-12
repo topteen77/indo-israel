@@ -1354,12 +1354,12 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
               overflowX: 'auto',
               flexWrap: 'wrap',
               position: 'absolute',
-              bottom: '70px', // Position above the input field (input is ~60px tall)
+              bottom: '85px', // Position above the input field with proper spacing
               left: '50%',
               transform: 'translateX(-50%)',
               width: '70%',
               maxWidth: '600px',
-              zIndex: 10,
+              zIndex: 12, // Higher than input area to ensure visibility
               minHeight: '40px', // Ensure minimum height for visibility
               boxShadow: '0 -2px 8px rgba(0,0,0,0.1)',
               borderRadius: '12px 12px 0 0',
