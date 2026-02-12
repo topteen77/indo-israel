@@ -1341,8 +1341,8 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
           </Box>
         </DialogContent>
 
-        {/* Suggested Actions */}
-        {suggestedActions.length > 0 && (
+        {/* Suggested Actions - Only show "Speak To Human" for now */}
+        {consentGiven && (
           <Box
             sx={{
               px: 2,
@@ -1385,26 +1385,23 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
               },
             }}
           >
-            {suggestedActions.map((action, idx) => (
-              <Chip
-                key={idx}
-                label={action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                onClick={() => handleSuggestedAction(action)}
-                sx={{
-                  bgcolor: '#f1f5f9',
-                  border: '1px solid #e2e8f0',
-                  color: '#475569',
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                  '&:hover': {
-                    bgcolor: '#7B0FFF',
-                    color: 'white',
-                    borderColor: '#7B0FFF',
-                  },
-                  transition: 'all 0.2s',
-                }}
-              />
-            ))}
+            <Chip
+              label="Speak To Human"
+              onClick={() => handleSuggestedAction('speak_to_human')}
+              sx={{
+                bgcolor: '#f1f5f9',
+                border: '1px solid #e2e8f0',
+                color: '#475569',
+                fontSize: '12px',
+                cursor: 'pointer',
+                '&:hover': {
+                  bgcolor: '#7B0FFF',
+                  color: 'white',
+                  borderColor: '#7B0FFF',
+                },
+                transition: 'all 0.2s',
+              }}
+            />
           </Box>
         )}
 
