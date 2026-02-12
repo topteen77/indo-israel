@@ -39,7 +39,7 @@ const Footer = () => {
     <Box sx={{ bgcolor: '#1a1a1a', color: 'white', py: 6, mt: 8 }}>
       <Container maxWidth="xl">
         <Grid container spacing={4}>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={3}>
             <Typography variant="h5" sx={{ fontWeight: 800, mb: 2 }}>
               APRAVAS
             </Typography>
@@ -47,15 +47,17 @@ const Footer = () => {
               India-Israel #1 Recruitment Platform connecting skilled workers with opportunities.
             </Typography>
           </Grid>
-          <Grid item xs={12} md={2}>
+          <Grid item xs={12} sm={6} md={2}>
             <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-              Jobs
+              Popular Job Searches
             </Typography>
             <Stack spacing={1}>
               {[
-                { label: 'Work From Home Jobs', search: 'Work from Home Jobs' },
-                { label: 'Part Time Jobs', search: 'Part Time Jobs' },
                 { label: 'Jobs for Freshers', search: 'Jobs for Freshers' },
+                { label: 'Work from Home Jobs', search: 'Work from Home Jobs' },
+                { label: 'Part Time Jobs', search: 'Part Time Jobs' },
+                { label: 'Jobs for Women', search: 'Jobs for Women' },
+                { label: 'Full Time Jobs', search: 'Full Time Jobs' },
               ].map(({ label, search }) => (
                 <Typography
                   key={label}
@@ -69,7 +71,38 @@ const Footer = () => {
               ))}
             </Stack>
           </Grid>
-          <Grid item xs={12} md={2}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+              Job Categories
+            </Typography>
+            <Stack spacing={1}>
+              {[
+                'Construction',
+                'Healthcare',
+                'Agriculture',
+                'Hospitality',
+                'IT Support',
+                'Nursing',
+                'Cooking/Chef',
+                'Cleaning',
+                'Security',
+                'Driver',
+                'Electrician',
+                'Plumber',
+              ].map((category) => (
+                <Typography
+                  key={category}
+                  component="a"
+                  href={`/jobs?category=${encodeURIComponent(category)}`}
+                  variant="body2"
+                  sx={linkBlockSx}
+                >
+                  {category}
+                </Typography>
+              ))}
+            </Stack>
+          </Grid>
+          <Grid item xs={12} sm={6} md={2}>
             <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
               Resources
             </Typography>
@@ -80,7 +113,7 @@ const Footer = () => {
               <Typography component="a" href="/privacy-policy" variant="body2" sx={linkBlockSx}>Privacy Policy</Typography>
             </Stack>
           </Grid>
-          <Grid item xs={12} md={2}>
+          <Grid item xs={12} sm={6} md={2}>
             <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
               For Employers
             </Typography>
