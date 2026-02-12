@@ -135,6 +135,98 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
     },
   ];
 
+  // Generate suggested questions based on conversation context
+  const generateSuggestedQuestions = (userQuestion, botResponse, intent) => {
+    const userLower = (userQuestion || '').toLowerCase();
+    const responseLower = (botResponse || '').toLowerCase();
+    const suggestions = [];
+
+    // Visa-related questions
+    if (userLower.includes('visa') || responseLower.includes('visa')) {
+      if (!userLower.includes('type')) {
+        suggestions.push('What are the different types of visas available?');
+      }
+      if (!userLower.includes('process') && !userLower.includes('step')) {
+        suggestions.push('What is the step-by-step visa application process?');
+      }
+      if (!userLower.includes('document') && !userLower.includes('requirement')) {
+        suggestions.push('What documents are required for visa application?');
+      }
+      if (!userLower.includes('time') && !userLower.includes('duration') && !userLower.includes('how long')) {
+        suggestions.push('How long does the visa process take?');
+      }
+    }
+
+    // Document-related questions
+    if (userLower.includes('document') || responseLower.includes('document')) {
+      if (!userLower.includes('checklist')) {
+        suggestions.push('Can you provide a complete document checklist?');
+      }
+      if (!userLower.includes('attest') && !userLower.includes('verify')) {
+        suggestions.push('How do I get my documents attested?');
+      }
+      if (!userLower.includes('translat')) {
+        suggestions.push('Do I need to translate my documents?');
+      }
+    }
+
+    // Job/Employment related
+    if (userLower.includes('job') || userLower.includes('work') || userLower.includes('employment') || 
+        responseLower.includes('job') || responseLower.includes('work') || responseLower.includes('employment')) {
+      if (!userLower.includes('skill') && !userLower.includes('qualification')) {
+        suggestions.push('What skills and qualifications are required?');
+      }
+      if (!userLower.includes('salary') && !userLower.includes('wage') && !userLower.includes('benefit')) {
+        suggestions.push('What is the salary and benefits package?');
+      }
+      if (!userLower.includes('employer') && !userLower.includes('company')) {
+        suggestions.push('How do I verify if the employer is legitimate?');
+      }
+    }
+
+    // Application/Process related
+    if (userLower.includes('apply') || userLower.includes('application') || 
+        responseLower.includes('apply') || responseLower.includes('application')) {
+      if (!userLower.includes('fee') && !userLower.includes('cost') && !userLower.includes('price')) {
+        suggestions.push('What are the application fees?');
+      }
+      if (!userLower.includes('eligibility') && !userLower.includes('qualify')) {
+        suggestions.push('Am I eligible to apply?');
+      }
+      if (!userLower.includes('time') && !userLower.includes('duration')) {
+        suggestions.push('How long does the application process take?');
+      }
+    }
+
+    // Fees/Cost related
+    if (userLower.includes('fee') || userLower.includes('cost') || userLower.includes('price') ||
+        responseLower.includes('fee') || responseLower.includes('cost') || responseLower.includes('price')) {
+      if (!userLower.includes('total')) {
+        suggestions.push('What is the total cost including all fees?');
+      }
+      if (!userLower.includes('payment') && !userLower.includes('pay')) {
+        suggestions.push('What are the payment methods?');
+      }
+    }
+
+    // General follow-up questions (if no specific suggestions)
+    if (suggestions.length === 0) {
+      suggestions.push('Can you provide more details?');
+      suggestions.push('What are the next steps?');
+      suggestions.push('Are there any additional requirements?');
+    }
+
+    // Add common questions if we have space
+    if (suggestions.length < 3) {
+      if (!userLower.includes('contact') && !userLower.includes('help')) {
+        suggestions.push('How can I contact Apravas for assistance?');
+      }
+    }
+
+    // Limit to 3-4 suggestions
+    return suggestions.slice(0, 4);
+  };
+
   const handleSendMessage = async () => {
     const messageText = input.trim();
     if (!messageText || loading) return;
@@ -179,6 +271,9 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
 
         const botResponse = result.response || '';
 
+        // Generate suggested questions based on context
+        const suggestedQuestions = generateSuggestedQuestions(messageText, botResponse, result.intent);
+
         // Show full response immediately (no typing effect) for fastest display
         const botMessage = {
           id: Date.now() + 1,
@@ -188,6 +283,7 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
           sources: result.sources || [],
           confidence: result.confidence || 'medium',
           intent: result.intent || 'general',
+          suggestedQuestions: suggestedQuestions, // Add suggested questions
         };
 
         setMessages(prev => [...prev, botMessage]);
@@ -375,6 +471,84 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
     setTimeout(() => {
       handleSendMessage();
     }, 100);
+  };
+
+  // Helper function to send a message directly (for suggested questions)
+  const sendSuggestedQuestion = async (question) => {
+    if (!consentGiven || loading) return;
+
+    const userMessage = {
+      id: Date.now(),
+      type: 'user',
+      content: question,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setLoading(true);
+    setTyping(true);
+
+    try {
+      const response = await api.post('/chatbot/message', {
+        message: question,
+        sessionId: sessionId,
+        userId: 'guest',
+        metadata: { source: 'web_widget', url: window.location.href }
+      });
+
+      if (response.data.success) {
+        const result = response.data.data;
+        
+        if (result.sessionId && !sessionId) {
+          setSessionId(result.sessionId);
+        }
+
+        if (result.suggestedActions) {
+          setSuggestedActions(result.suggestedActions);
+        }
+
+        const botResponse = result.response || '';
+        const suggestedQuestions = generateSuggestedQuestions(question, botResponse, result.intent);
+
+        const botMessage = {
+          id: Date.now() + 1,
+          type: 'bot',
+          content: botResponse,
+          timestamp: new Date(),
+          sources: result.sources || [],
+          confidence: result.confidence || 'medium',
+          intent: result.intent || 'general',
+          suggestedQuestions: suggestedQuestions,
+        };
+
+        setMessages(prev => [...prev, botMessage]);
+        setLoading(false);
+        setTyping(false);
+        setIsTyping(false);
+        setTypingMessageIndex(null);
+        scrollToBottom();
+      } else {
+        throw new Error(response.data.message || 'Failed to get response');
+      }
+    } catch (error) {
+      console.error('Chatbot API error:', error);
+      const backendMessage = error.response?.data?.message;
+      const displayMessage = backendMessage && backendMessage.trim()
+        ? backendMessage
+        : 'I encountered an error processing your request. Please try again or contact support at support@apravas.com';
+      const errorMessage = {
+        id: Date.now() + 1,
+        type: 'bot',
+        content: displayMessage,
+        error: true,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      setLoading(false);
+      setTyping(false);
+      setIsTyping(false);
+    }
   };
 
   const handleClearChat = () => {
@@ -648,6 +822,7 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
             flex: 1,
             overflow: 'auto',
             p: 0,
+            pb: suggestedActions.length > 0 ? '120px' : '80px', // Add padding for suggested actions and input field
             background: 'linear-gradient(240deg, rgba(237, 246, 255, 1) 0%, rgba(252, 246, 255, 1) 20%, rgba(255, 255, 255, 1) 40%, rgba(255, 255, 255, 1) 60%, rgba(248, 242, 255, 1) 80%, rgba(237, 246, 255, 1) 100%)',
           }}
         >
@@ -846,6 +1021,62 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
                             fontWeight: 600,
                           }}
                         />
+                      </Box>
+                    )}
+                    {/* Suggested Questions - Show after bot responses */}
+                    {message.suggestedQuestions && message.suggestedQuestions.length > 0 && message.type === 'bot' && !message.isSystem && (
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="caption" sx={{ 
+                          display: 'block', 
+                          mb: 1, 
+                          color: 'rgba(123, 15, 255, 0.7)',
+                          fontWeight: 500,
+                          fontSize: '11px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}>
+                          Related Questions:
+                        </Typography>
+                        <Box sx={{ 
+                          display: 'flex', 
+                          flexDirection: 'column',
+                          gap: 1 
+                        }}>
+                          {message.suggestedQuestions.map((question, idx) => (
+                            <Chip
+                              key={idx}
+                              label={question}
+                              onClick={() => sendSuggestedQuestion(question)}
+                              sx={{
+                                justifyContent: 'flex-start',
+                                height: 'auto',
+                                py: 1,
+                                px: 1.5,
+                                bgcolor: 'rgba(123, 15, 255, 0.05)',
+                                border: '1px solid rgba(123, 15, 255, 0.2)',
+                                color: 'rgba(123, 15, 255, 1)',
+                                fontSize: '12px',
+                                fontWeight: 400,
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                                whiteSpace: 'normal',
+                                '&:hover': {
+                                  bgcolor: 'rgba(123, 15, 255, 0.1)',
+                                  borderColor: 'rgba(123, 15, 255, 0.4)',
+                                  transform: 'translateX(4px)',
+                                },
+                                transition: 'all 0.2s ease',
+                                '& .MuiChip-label': {
+                                  display: 'block',
+                                  whiteSpace: 'normal',
+                                  overflow: 'visible',
+                                  textOverflow: 'clip',
+                                  padding: '4px 8px',
+                                },
+                              }}
+                            />
+                          ))}
+                        </Box>
                       </Box>
                     )}
                     {/* Quick Option Buttons */}
@@ -1114,6 +1345,24 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
               gap: 1,
               overflowX: 'auto',
               flexWrap: 'wrap',
+              position: 'absolute',
+              bottom: '80px', // Position above the input field (input is ~65px tall + spacing)
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '70%',
+              maxWidth: '600px',
+              zIndex: 10,
+              boxShadow: '0 -2px 8px rgba(0,0,0,0.1)',
+              borderRadius: '12px 12px 0 0',
+              '@media (max-width: 575px)': {
+                position: 'relative',
+                bottom: 'auto',
+                left: 'auto',
+                transform: 'none',
+                width: '100%',
+                maxWidth: '100%',
+                borderRadius: 0,
+              },
               '&::-webkit-scrollbar': {
                 height: '4px',
               },
@@ -1161,16 +1410,19 @@ const IndiaIsraelRecruitmentChatbot = ({ open, onClose, initialQuestion = null }
             position: 'absolute',
             bottom: '5px',
             width: '70%',
+            maxWidth: '600px',
             left: '50%',
             transform: 'translateX(-50%)',
             boxShadow: 'rgba(100, 100, 111, 0.2) 0px 7px 29px 0px',
             borderRadius: '12px 12px 0 0',
+            zIndex: 11, // Ensure input is above suggested actions
             '@media (max-width: 575px)': {
               width: '100%',
               left: 0,
               transform: 'none',
               position: 'relative',
               bottom: 'auto',
+              maxWidth: '100%',
             },
           }}
         >
