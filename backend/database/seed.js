@@ -109,14 +109,16 @@ function seedLoginPageSettings() {
 function seedJobs() {
   const categories = [
     'Construction', 'Healthcare', 'Agriculture', 'Hospitality', 
-    'IT Support', 'Nursing', 'Plumber', 'Electrician', 'Carpenter', 'Welder'
+    'IT Support', 'Nursing', 'Driver', 'Security', 'Cleaning', 'Cooking/Chef',
+    'Plumber', 'Electrician', 'Carpenter', 'Welder'
   ];
 
   const cities = ['Tel Aviv', 'Jerusalem', 'Haifa', 'Netanya', 'Ashdod', 'Rishon LeZion', 'Beer Sheva'];
   const companies = [
     'Construction Group Ltd', 'BuildCorp Israel', 'Israel Construction Co',
     'Premium Builders', 'Southern Construction', 'Tech Solutions Israel',
-    'Healthcare Partners', 'AgriTech Israel', 'Hospitality Plus'
+    'Healthcare Partners', 'AgriTech Israel', 'Hospitality Plus',
+    'SecureGuard Services', 'CleanPro Solutions', 'Chef Express', 'DriveSafe Logistics'
   ];
 
   const salaryRanges = [
@@ -181,6 +183,10 @@ function seedJobs() {
         'Hospitality': ['Hotel Staff', 'Restaurant Worker', 'Housekeeping', 'Kitchen Assistant', 'Service Staff'],
         'IT Support': ['IT Support Technician', 'Help Desk Support', 'Technical Support', 'IT Assistant', 'System Support'],
         'Nursing': ['Registered Nurse', 'Nursing Assistant', 'Nurse Practitioner', 'Staff Nurse', 'Nursing Aide'],
+        'Driver': ['Delivery Driver', 'Truck Driver', 'Bus Driver', 'Taxi Driver', 'Commercial Driver', 'Heavy Vehicle Driver'],
+        'Security': ['Security Guard', 'Security Officer', 'Security Supervisor', 'Security Personnel', 'Security Staff'],
+        'Cleaning': ['Housekeeper', 'Janitor', 'Cleaning Staff', 'Maintenance Cleaner', 'Office Cleaner', 'Commercial Cleaner'],
+        'Cooking/Chef': ['Chef', 'Cook', 'Kitchen Staff', 'Line Cook', 'Sous Chef', 'Head Chef', 'Pastry Chef'],
         'Plumber': ['Plumber', 'Plumbing Technician', 'Pipe Fitter', 'Plumbing Supervisor', 'Maintenance Plumber'],
         'Electrician': ['Electrician', 'Electrical Technician', 'Electrical Supervisor', 'Maintenance Electrician', 'Wireman'],
         'Carpenter': ['Carpenter', 'Cabinet Maker', 'Furniture Maker', 'Carpentry Supervisor', 'Woodworker'],
@@ -299,6 +305,108 @@ function seedApplications() {
   console.log(`✅ Seeded ${applications.length} applications`);
 }
 
+// Seed jobs for specific categories only (without clearing existing data)
+function seedJobsForCategories(categoriesToSeed) {
+  const cities = ['Tel Aviv', 'Jerusalem', 'Haifa', 'Netanya', 'Ashdod', 'Rishon LeZion', 'Beer Sheva'];
+  const companies = [
+    'Construction Group Ltd', 'BuildCorp Israel', 'Israel Construction Co',
+    'Premium Builders', 'Southern Construction', 'Tech Solutions Israel',
+    'Healthcare Partners', 'AgriTech Israel', 'Hospitality Plus',
+    'SecureGuard Services', 'CleanPro Solutions', 'Chef Express', 'DriveSafe Logistics'
+  ];
+
+  const salaryRanges = [
+    { min: 70000, max: 100000 },
+    { min: 80000, max: 120000 },
+    { min: 100000, max: 150000 },
+    { min: 120000, max: 180000 }
+  ];
+
+  const experienceLevels = [
+    '0-2 years', '1-3 years', '2-5 years', '3-7 years', '5-10 years', '7+ years'
+  ];
+
+  const insertJob = db.prepare(`
+    INSERT INTO jobs (title, company, location, salary, experience, type, description, requirements, category, openings, status, postedBy)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const insertMany = db.transaction((jobs) => {
+    for (const job of jobs) {
+      insertJob.run(
+        job.title,
+        job.company,
+        job.location,
+        job.salary,
+        job.experience,
+        job.type,
+        job.description,
+        job.requirements,
+        job.category,
+        job.openings,
+        job.status,
+        job.postedBy
+      );
+    }
+  });
+
+  const jobs = [];
+
+  // Get employer user IDs
+  const employerIds = db.prepare('SELECT id FROM users WHERE role = ?').all('employer').map(u => u.id);
+  if (employerIds.length === 0) {
+    console.error('❌ No employer users found. Please seed users first.');
+    return;
+  }
+
+  const jobTitles = {
+    'Driver': ['Delivery Driver', 'Truck Driver', 'Bus Driver', 'Taxi Driver', 'Commercial Driver', 'Heavy Vehicle Driver'],
+    'Security': ['Security Guard', 'Security Officer', 'Security Supervisor', 'Security Personnel', 'Security Staff'],
+    'Cleaning': ['Housekeeper', 'Janitor', 'Cleaning Staff', 'Maintenance Cleaner', 'Office Cleaner', 'Commercial Cleaner'],
+    'Cooking/Chef': ['Chef', 'Cook', 'Kitchen Staff', 'Line Cook', 'Sous Chef', 'Head Chef', 'Pastry Chef'],
+  };
+
+  // Generate jobs for each specified category
+  categoriesToSeed.forEach((category) => {
+    for (let i = 0; i < 8; i++) {
+      const city = cities[Math.floor(Math.random() * cities.length)];
+      const company = companies[Math.floor(Math.random() * companies.length)];
+      const salaryRange = salaryRanges[Math.floor(Math.random() * salaryRanges.length)];
+      const experience = experienceLevels[Math.floor(Math.random() * experienceLevels.length)];
+      const openings = Math.floor(Math.random() * 15) + 3;
+      const postedBy = employerIds[Math.floor(Math.random() * employerIds.length)];
+
+      const titles = jobTitles[category] || [`${category} Worker`];
+      const title = titles[Math.floor(Math.random() * titles.length)];
+
+      const requirements = JSON.stringify([
+        'Minimum 2 years experience',
+        'Valid work permit',
+        'Physical fitness certificate',
+        'Relevant certifications'
+      ]);
+
+      jobs.push({
+        title: `${title} - ${city}`,
+        company,
+        location: `${city}, Israel`,
+        salary: `₹${salaryRange.min.toLocaleString()} - ₹${salaryRange.max.toLocaleString()}`,
+        experience,
+        type: 'Full-time',
+        description: `We are looking for experienced ${title.toLowerCase()} to join our team in ${city}. Must have relevant experience and certifications. Competitive salary and benefits package.`,
+        requirements,
+        category,
+        openings,
+        status: 'active',
+        postedBy
+      });
+    }
+  });
+
+  insertMany(jobs);
+  console.log(`✅ Seeded ${jobs.length} jobs for categories: ${categoriesToSeed.join(', ')}`);
+}
+
 // Main seed function
 function seed() {
   console.log('🌱 Starting database seeding...\n');
@@ -329,4 +437,4 @@ if (require.main === module) {
   seed();
 }
 
-module.exports = { seed, seedUsers, seedJobs, seedApplications, seedLoginPageSettings };
+module.exports = { seed, seedUsers, seedJobs, seedApplications, seedLoginPageSettings, seedJobsForCategories };

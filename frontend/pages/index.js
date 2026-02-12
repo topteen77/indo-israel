@@ -57,6 +57,9 @@ import {
   ArrowUpward,
   Close,
   Send,
+  LocalShipping,
+  Restaurant,
+  CleaningServices,
 } from '@mui/icons-material';
 import IndiaIsraelRecruitmentChatbot from '../components/Chatbot/IndiaIsraelRecruitmentChatbot';
 import Header from '../components/Layout/Header';
@@ -181,10 +184,10 @@ export default function Home() {
     { name: 'Hospitality', icon: BusinessCenter, openings: 634, color: '#9c27b0' },
     { name: 'IT Support', icon: Dashboard, openings: 523, color: '#0288d1' },
     { name: 'Nursing', icon: VerifiedUser, openings: 445, color: '#d32f2f' },
-    { name: 'Cooking/Chef', icon: BusinessCenter, openings: 389, color: '#f57c00' },
-    { name: 'Cleaning', icon: HomeIcon, openings: 312, color: '#5c6bc0' },
+    { name: 'Driver', icon: LocalShipping, openings: 234, color: '#00796b' },
     { name: 'Security', icon: Security, openings: 278, color: '#455a64' },
-    { name: 'Driver', icon: Flight, openings: 234, color: '#00796b' },
+    { name: 'Cleaning', icon: CleaningServices, openings: 312, color: '#5c6bc0' },
+    { name: 'Cooking/Chef', icon: Restaurant, openings: 389, color: '#f57c00' },
     { name: 'Electrician', icon: Work, openings: 198, color: '#f9a825' },
     { name: 'Plumber', icon: Work, openings: 156, color: '#00838f' },
   ];
