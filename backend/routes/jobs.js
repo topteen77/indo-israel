@@ -201,7 +201,7 @@ router.get('/search/:searchTerm', (req, res) => {
 router.get('/:id', (req, res) => {
   try {
     const { id } = req.params;
-    const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+    const job = db.prepare('SELECT * FROM jobs WHERE id = ? AND status = ?').get(id, 'active');
     
     if (!job) {
       return res.status(404).json({
