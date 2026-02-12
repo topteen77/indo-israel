@@ -91,14 +91,72 @@ router.get('/search/:searchTerm', (req, res) => {
   try {
     const { searchTerm } = req.params;
     const decodedSearchTerm = decodeURIComponent(searchTerm);
-    const searchPattern = `%${decodedSearchTerm}%`;
+    const searchLower = decodedSearchTerm.toLowerCase();
     
-    const jobs = db.prepare(`
-      SELECT * FROM jobs 
-      WHERE (title LIKE ? OR description LIKE ? OR company LIKE ? OR category LIKE ?)
-      AND status = 'active'
-      ORDER BY createdAt DESC
-    `).all(searchPattern, searchPattern, searchPattern, searchPattern);
+    let query = 'SELECT * FROM jobs WHERE status = ?';
+    const params = ['active'];
+    
+    // Map popular search terms to job attributes
+    if (searchLower.includes('fresher') || searchLower.includes('freshers') || searchLower === 'jobs for freshers') {
+      // Jobs for freshers: low experience (0-1 years, fresher, entry level)
+      query += ` AND (
+        experience LIKE ? OR 
+        experience LIKE ? OR 
+        experience LIKE ? OR
+        description LIKE ? OR
+        title LIKE ?
+      )`;
+      params.push('%0%', '%fresher%', '%entry%', '%fresher%', '%fresher%');
+    } else if (searchLower.includes('work from home') || searchLower.includes('work from home jobs') || searchLower.includes('remote')) {
+      // Work from home jobs: Remote type or location contains remote
+      query += ` AND (
+        type LIKE ? OR 
+        location LIKE ? OR 
+        description LIKE ? OR
+        title LIKE ?
+      )`;
+      params.push('%Remote%', '%Remote%', '%remote%', '%remote%');
+    } else if (searchLower.includes('part time') || searchLower === 'part time jobs') {
+      // Part time jobs: Part-time type
+      query += ` AND (
+        type LIKE ? OR 
+        description LIKE ? OR
+        title LIKE ?
+      )`;
+      params.push('%Part-time%', '%part time%', '%part-time%');
+    } else if (searchLower.includes('full time') || searchLower === 'full time jobs') {
+      // Full time jobs: Full-time type
+      query += ` AND (
+        type LIKE ? OR 
+        description LIKE ? OR
+        title LIKE ?
+      )`;
+      params.push('%Full-time%', '%full time%', '%full-time%');
+    } else if (searchLower.includes('women') || searchLower === 'jobs for women') {
+      // Jobs for women: search in description or title
+      query += ` AND (
+        description LIKE ? OR 
+        title LIKE ? OR
+        category LIKE ?
+      )`;
+      params.push('%women%', '%women%', '%women%');
+    } else {
+      // General search: search in title, description, company, category, type, experience
+      const searchPattern = `%${decodedSearchTerm}%`;
+      query += ` AND (
+        title LIKE ? OR 
+        description LIKE ? OR 
+        company LIKE ? OR 
+        category LIKE ? OR
+        type LIKE ? OR
+        experience LIKE ?
+      )`;
+      params.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+    }
+    
+    query += ' ORDER BY createdAt DESC';
+    
+    const jobs = db.prepare(query).all(...params);
     
     const jobsWithParsed = jobs.map(job => ({
       ...job,

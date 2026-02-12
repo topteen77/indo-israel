@@ -17,6 +17,7 @@ export default function JobsPage() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pageTitle, setPageTitle] = useState('All Jobs');
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (router.isReady) {
@@ -27,6 +28,7 @@ export default function JobsPage() {
   const loadJobs = async () => {
     try {
       setLoading(true);
+      setError(null);
       let response;
       
       if (category) {
@@ -42,9 +44,16 @@ export default function JobsPage() {
 
       if (response.data.success) {
         setJobs(response.data.data.jobs || []);
+      } else {
+        setError(response.data.message || 'Failed to load jobs');
       }
     } catch (error) {
       console.error('Error loading jobs:', error);
+      const errorMessage = error.response?.data?.message 
+        || error.message 
+        || 'Failed to connect to server. Please check if the backend is running.';
+      setError(errorMessage);
+      setJobs([]);
     } finally {
       setLoading(false);
     }
@@ -89,8 +98,26 @@ export default function JobsPage() {
             </Typography>
           </Box>
 
+          {/* Error Message */}
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>
+                Error loading jobs
+              </Typography>
+              <Typography variant="body2">{error}</Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={loadJobs}
+                sx={{ mt: 2 }}
+              >
+                Retry
+              </Button>
+            </Alert>
+          )}
+
           {/* Jobs List */}
-          {jobs.length > 0 ? (
+          {!error && jobs.length > 0 ? (
             <Grid container spacing={3}>
               {jobs.map((job) => (
                 <Grid item xs={12} key={job.id}>
@@ -204,11 +231,11 @@ export default function JobsPage() {
                 </Grid>
               ))}
             </Grid>
-          ) : (
+          ) : !error ? (
             <Alert severity="info">
               No jobs found. Please try a different search or category.
             </Alert>
-          )}
+          ) : null}
         </Container>
       </Box>
     </MainLayout>
