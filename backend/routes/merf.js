@@ -1,7 +1,43 @@
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
 const db = require('../database/db');
 const { checkCompliance, validateSalaryRange } = require('../services/complianceService');
+
+// Middleware: resolve user from JWT or fallback to demo token
+const getUserFromToken = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.replace('Bearer ', '') || req.query.token || req.query.role;
+
+  if (token && !token.includes('admin') && !token.includes('employer') && !token.includes('worker')) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      const user = db.prepare('SELECT id, email, role FROM users WHERE id = ?').get(decoded.id);
+      if (user) {
+        req.user = { id: user.id, role: user.role };
+        return next();
+      }
+    } catch (e) {
+      // Not a valid JWT, fall through to demo logic
+    }
+  }
+
+  if (token?.includes('admin')) {
+    const user = db.prepare("SELECT id, role FROM users WHERE role = 'admin' LIMIT 1").get();
+    req.user = user ? { id: user.id, role: 'admin' } : { id: 'admin-1', role: 'admin' };
+  } else if (token?.includes('employer')) {
+    const user = db.prepare("SELECT id, role FROM users WHERE role = 'employer' LIMIT 1").get();
+    req.user = user ? { id: user.id, role: 'employer' } : { id: 'employer-1', role: 'employer' };
+  } else if (token?.includes('worker')) {
+    const user = db.prepare("SELECT id, role FROM users WHERE role = 'worker' LIMIT 1").get();
+    req.user = user ? { id: user.id, role: 'worker' } : { id: 'worker-1', role: 'worker' };
+  } else {
+    // Default to first employer if no token
+    const user = db.prepare("SELECT id, role FROM users WHERE role = 'employer' LIMIT 1").get();
+    req.user = user ? { id: user.id, role: user.role } : { id: 'employer-1', role: 'employer' };
+  }
+  next();
+};
 
 // Helper function to parse MERF requisition from database row
 function parseRequisition(row) {
@@ -84,10 +120,18 @@ router.post('/compliance/check', (req, res) => {
  * POST /api/merf/requisitions
  * Create new MERF requisition
  */
-router.post('/requisitions', (req, res) => {
+router.post('/requisitions', getUserFromToken, (req, res) => {
   try {
     const requisitionData = req.body;
     const employerId = req.user?.id || requisitionData.employerId; // Get from auth or body
+
+    // Validate employerId is present
+    if (!employerId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Employer ID is required. Please ensure you are authenticated.',
+      });
+    }
 
     // Validate required fields
     if (!requisitionData.title || !requisitionData.jobCategory || !requisitionData.numberOfWorkers) {
