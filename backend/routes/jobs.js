@@ -2,10 +2,39 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database/db');
 
+// Get industries with job counts
+router.get('/industries', (req, res) => {
+  try {
+    const industries = db.prepare(`
+      SELECT 
+        COALESCE(industry, category, 'Other') as industry,
+        COUNT(*) as jobCount,
+        SUM(openings) as totalOpenings
+      FROM jobs 
+      WHERE status = 'active'
+      GROUP BY COALESCE(industry, category, 'Other')
+      ORDER BY jobCount DESC
+    `).all();
+    
+    res.json({
+      success: true,
+      data: {
+        industries: industries
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching industries:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch industries'
+    });
+  }
+});
+
 // Get all jobs with optional filters
 router.get('/all', (req, res) => {
   try {
-    const { category, search, status = 'active' } = req.query;
+    const { category, search, status = 'active', groupByIndustry } = req.query;
     
     let query = 'SELECT * FROM jobs WHERE 1=1';
     const params = [];
@@ -37,6 +66,27 @@ router.get('/all', (req, res) => {
       createdAt: job.createdAt,
       updatedAt: job.updatedAt
     }));
+    
+    // If groupByIndustry is requested, group jobs by industry
+    if (groupByIndustry === 'true') {
+      const groupedByIndustry = {};
+      jobsWithParsed.forEach(job => {
+        const industry = job.industry || job.category || 'Other';
+        if (!groupedByIndustry[industry]) {
+          groupedByIndustry[industry] = [];
+        }
+        groupedByIndustry[industry].push(job);
+      });
+      
+      return res.json({
+        success: true,
+        data: {
+          totalJobs: jobsWithParsed.length,
+          jobs: jobsWithParsed,
+          groupedByIndustry: groupedByIndustry
+        }
+      });
+    }
     
     res.json({
       success: true,
@@ -252,8 +302,8 @@ router.post('/create', (req, res) => {
     }
 
     const insertJob = db.prepare(`
-      INSERT INTO jobs (title, company, location, salary, experience, type, description, requirements, category, openings, status, postedBy)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO jobs (title, company, location, salary, experience, type, description, requirements, category, industry, openings, status, postedBy)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = insertJob.run(
@@ -266,6 +316,7 @@ router.post('/create', (req, res) => {
       description,
       JSON.stringify(Array.isArray(requirements) ? requirements : (requirements ? [requirements] : [])),
       category,
+      category, // Use category as industry if not provided
       openings || 1,
       'active',
       postedBy || null
@@ -310,16 +361,18 @@ router.put('/:id', (req, res) => {
           description = COALESCE(?, description),
           requirements = COALESCE(?, requirements),
           category = COALESCE(?, category),
+          industry = COALESCE(?, industry),
           openings = COALESCE(?, openings),
           status = COALESCE(?, status),
           updatedAt = CURRENT_TIMESTAMP
       WHERE id = ?
     `);
 
+    const { industry } = req.body;
     updateJob.run(
       title, company, location, salary, experience, type,
       description, requirements ? JSON.stringify(requirements) : null,
-      category, openings, status, id
+      category, industry, openings, status, id
     );
 
     const updatedJob = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);

@@ -97,14 +97,38 @@ function initializeDatabase() {
       description TEXT,
       requirements TEXT, -- JSON array stored as text
       category TEXT NOT NULL,
+      industry TEXT, -- Industry/Sector field
       openings INTEGER DEFAULT 1,
       status TEXT DEFAULT 'active' CHECK(status IN ('active', 'closed', 'draft')),
       postedBy INTEGER,
+      vacancyCode TEXT, -- Vacancy Code from Excel
+      postedDate TEXT, -- Posted Date from Excel
+      contractLength TEXT, -- Contract Length from Excel
+      qualification TEXT, -- Qualification from Excel
+      roleResponsibilities TEXT, -- Role & Responsibilities from Excel
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (postedBy) REFERENCES users(id)
     )
   `);
+  
+  // Add new columns if they don't exist (migration)
+  const newColumns = [
+    { name: 'industry', type: 'TEXT' },
+    { name: 'vacancyCode', type: 'TEXT' },
+    { name: 'postedDate', type: 'TEXT' },
+    { name: 'contractLength', type: 'TEXT' },
+    { name: 'qualification', type: 'TEXT' },
+    { name: 'roleResponsibilities', type: 'TEXT' },
+  ];
+  
+  newColumns.forEach(col => {
+    try {
+      db.exec(`ALTER TABLE jobs ADD COLUMN ${col.name} ${col.type}`);
+    } catch (e) {
+      if (!/duplicate column name/i.test(e.message)) throw e;
+    }
+  });
 
   // Applications table
   db.exec(`

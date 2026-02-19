@@ -7,7 +7,8 @@ import {
 } from '@mui/material';
 import {
   Work, LocationOn, AttachMoney, AccessTime, Business,
-  ArrowBack, Send, CheckCircle, People, Category
+  ArrowBack, Send, CheckCircle, People, Category,
+  Assignment, CalendarToday, Code, School, Description
 } from '@mui/icons-material';
 import MainLayout from '../../components/Layout/MainLayout';
 import api from '../../utils/api';
@@ -201,6 +202,66 @@ export default function JobDetailsPage() {
                       Job Details
                     </Typography>
                     <Grid container spacing={2}>
+                      {job.vacancyCode && (
+                        <Grid item xs={12} sm={6}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Code sx={{ color: 'primary.main' }} />
+                            <Box>
+                              <Typography variant="caption" color="text.secondary">
+                                Vacancy Code
+                              </Typography>
+                              <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                {job.vacancyCode}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </Grid>
+                      )}
+                      {job.postedDate && (
+                        <Grid item xs={12} sm={6}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <CalendarToday sx={{ color: 'info.main' }} />
+                            <Box>
+                              <Typography variant="caption" color="text.secondary">
+                                Posted Date
+                              </Typography>
+                              <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                {job.postedDate}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </Grid>
+                      )}
+                      {job.industry && (
+                        <Grid item xs={12} sm={6}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Category sx={{ color: 'secondary.main' }} />
+                            <Box>
+                              <Typography variant="caption" color="text.secondary">
+                                Industry
+                              </Typography>
+                              <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                {job.industry}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </Grid>
+                      )}
+                      {job.contractLength && (
+                        <Grid item xs={12} sm={6}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Assignment sx={{ color: 'warning.main' }} />
+                            <Box>
+                              <Typography variant="caption" color="text.secondary">
+                                Contract Length
+                              </Typography>
+                              <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                {job.contractLength}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </Grid>
+                      )}
                       {job.salary && (
                         <Grid item xs={12} sm={6}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -246,13 +307,45 @@ export default function JobDetailsPage() {
                     </Typography>
                   </Box>
 
+                  {/* Qualification */}
+                  {job.qualification && (
+                    <>
+                      <Divider sx={{ my: 3 }} />
+                      <Box>
+                        <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <School sx={{ color: 'primary.main' }} />
+                          Qualification
+                        </Typography>
+                        <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>
+                          {job.qualification}
+                        </Typography>
+                      </Box>
+                    </>
+                  )}
+
+                  {/* Role & Responsibilities */}
+                  {job.roleResponsibilities && (
+                    <>
+                      <Divider sx={{ my: 3 }} />
+                      <Box>
+                        <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Description sx={{ color: 'primary.main' }} />
+                          Role & Responsibilities
+                        </Typography>
+                        <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>
+                          {job.roleResponsibilities}
+                        </Typography>
+                      </Box>
+                    </>
+                  )}
+
                   {/* Requirements */}
                   {job.requirements && Array.isArray(job.requirements) && job.requirements.length > 0 && (
                     <>
                       <Divider sx={{ my: 3 }} />
                       <Box>
                         <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                          Requirements
+                          Additional Requirements
                         </Typography>
                         <List>
                           {job.requirements.map((requirement, index) => (
@@ -310,7 +403,27 @@ export default function JobDetailsPage() {
                     <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
                       Job Information
                     </Typography>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                      {job.vacancyCode && (
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Vacancy Code:
+                          </Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {job.vacancyCode}
+                          </Typography>
+                        </Box>
+                      )}
+                      {job.industry && (
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Industry:
+                          </Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {job.industry}
+                          </Typography>
+                        </Box>
+                      )}
                       <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Typography variant="body2" color="text.secondary">
                           Category:
@@ -327,6 +440,26 @@ export default function JobDetailsPage() {
                           {job.type || 'Full-time'}
                         </Typography>
                       </Box>
+                      {job.contractLength && (
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Contract Length:
+                          </Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {job.contractLength}
+                          </Typography>
+                        </Box>
+                      )}
+                      {job.postedDate && (
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Posted Date:
+                          </Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {job.postedDate}
+                          </Typography>
+                        </Box>
+                      )}
                       {job.openings && (
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Typography variant="body2" color="text.secondary">

@@ -85,6 +85,69 @@ export default function Home() {
     query: '',
   });
   const [enquirySnackbar, setEnquirySnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [jobCategories, setJobCategories] = useState([]);
+  const [loadingIndustries, setLoadingIndustries] = useState(true);
+
+  // Industry icon and color mapping
+  const industryConfig = {
+    'Civil Construction': { icon: Work, color: '#1976d2' },
+    'Construction': { icon: Work, color: '#1976d2' },
+    'Healthcare': { icon: People, color: '#2e7d32' },
+    'Agriculture': { icon: HomeIcon, color: '#ed6c02' },
+    'Hospitality': { icon: BusinessCenter, color: '#9c27b0' },
+    'IT Support': { icon: Dashboard, color: '#0288d1' },
+    'Nursing': { icon: VerifiedUser, color: '#d32f2f' },
+    'Transportation': { icon: LocalShipping, color: '#00796b' },
+    'Driver': { icon: LocalShipping, color: '#00796b' },
+    'Security': { icon: Security, color: '#455a64' },
+    'Cleaning': { icon: CleaningServices, color: '#5c6bc0' },
+    'Cooking/Chef': { icon: Restaurant, color: '#f57c00' },
+    'Electrician': { icon: Work, color: '#f9a825' },
+    'Plumber': { icon: Work, color: '#00838f' },
+    'Industrial': { icon: BusinessCenter, color: '#0288d1' },
+    'Manufacturing': { icon: Work, color: '#1976d2' },
+    'FMCG': { icon: BusinessCenter, color: '#9c27b0' },
+    'Marine': { icon: Work, color: '#0288d1' },
+    'Mining': { icon: Work, color: '#455a64' },
+    'Oil & Gas': { icon: Work, color: '#f57c00' },
+    'Textile': { icon: Work, color: '#9c27b0' },
+    'Others': { icon: Work, color: '#757575' },
+  };
+
+  // Fetch industries from API
+  useEffect(() => {
+    const fetchIndustries = async () => {
+      try {
+        setLoadingIndustries(true);
+        const response = await fetch(`${API_BASE_URL}/jobs/industries`);
+        const data = await response.json();
+        
+        if (data.success && data.data.industries) {
+          const industries = data.data.industries.map(industry => {
+            const config = industryConfig[industry.industry] || { icon: Work, color: '#757575' };
+            return {
+              name: industry.industry,
+              icon: config.icon,
+              openings: industry.totalOpenings || industry.jobCount,
+              color: config.color,
+            };
+          });
+          setJobCategories(industries);
+        }
+      } catch (error) {
+        console.error('Error fetching industries:', error);
+        // Fallback to default categories if API fails
+        setJobCategories([
+          { name: 'Construction', icon: Work, openings: 0, color: '#1976d2' },
+          { name: 'Healthcare', icon: People, openings: 0, color: '#2e7d32' },
+        ]);
+      } finally {
+        setLoadingIndustries(false);
+      }
+    };
+
+    fetchIndustries();
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -177,20 +240,6 @@ export default function Home() {
     { label: 'Full Time Jobs', count: '3,456+', trending: true },
   ];
 
-  const jobCategories = [
-    { name: 'Construction', icon: Work, openings: 1245, color: '#1976d2' },
-    { name: 'Healthcare', icon: People, openings: 892, color: '#2e7d32' },
-    { name: 'Agriculture', icon: HomeIcon, openings: 756, color: '#ed6c02' },
-    { name: 'Hospitality', icon: BusinessCenter, openings: 634, color: '#9c27b0' },
-    { name: 'IT Support', icon: Dashboard, openings: 523, color: '#0288d1' },
-    { name: 'Nursing', icon: VerifiedUser, openings: 445, color: '#d32f2f' },
-    { name: 'Driver', icon: LocalShipping, openings: 234, color: '#00796b' },
-    { name: 'Security', icon: Security, openings: 278, color: '#455a64' },
-    { name: 'Cleaning', icon: CleaningServices, openings: 312, color: '#5c6bc0' },
-    { name: 'Cooking/Chef', icon: Restaurant, openings: 389, color: '#f57c00' },
-    { name: 'Electrician', icon: Work, openings: 198, color: '#f9a825' },
-    { name: 'Plumber', icon: Work, openings: 156, color: '#00838f' },
-  ];
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff', position: 'relative' }}>
@@ -875,12 +924,17 @@ export default function Home() {
               Explore in-demand positions across industries
             </Typography>
           </Box>
+          {loadingIndustries ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
           <Grid container spacing={3}>
             {jobCategories.map((job, index) => (
               <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
                 <Grow in timeout={1000 + index * 100}>
                   <Card
-                    onClick={() => router.push(`/jobs?category=${encodeURIComponent(job.name)}`)}
+                    onClick={() => router.push(`/jobs?industry=${encodeURIComponent(job.name)}`)}
                     sx={{
                       p: 3,
                       cursor: 'pointer',
@@ -962,6 +1016,7 @@ export default function Home() {
               </Grid>
             ))}
           </Grid>
+          )}
         </Box>
 
         {/* AI Interview Assistant Section */}
