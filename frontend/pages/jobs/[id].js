@@ -8,7 +8,7 @@ import {
 import {
   Work, LocationOn, AttachMoney, AccessTime, Business,
   ArrowBack, Send, CheckCircle, People, Category,
-  Assignment, CalendarToday, Code, School, Description
+  Assignment, CalendarToday, School, Description
 } from '@mui/icons-material';
 import MainLayout from '../../components/Layout/MainLayout';
 import api from '../../utils/api';
@@ -202,21 +202,6 @@ export default function JobDetailsPage() {
                       Job Details
                     </Typography>
                     <Grid container spacing={2}>
-                      {job.vacancyCode && (
-                        <Grid item xs={12} sm={6}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Code sx={{ color: 'primary.main' }} />
-                            <Box>
-                              <Typography variant="caption" color="text.secondary">
-                                Vacancy Code
-                              </Typography>
-                              <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                                {job.vacancyCode}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        </Grid>
-                      )}
                       {job.postedDate && (
                         <Grid item xs={12} sm={6}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -404,16 +389,6 @@ export default function JobDetailsPage() {
                       Job Information
                     </Typography>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                      {job.vacancyCode && (
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography variant="body2" color="text.secondary">
-                            Vacancy Code:
-                          </Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {job.vacancyCode}
-                          </Typography>
-                        </Box>
-                      )}
                       {job.industry && (
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Typography variant="body2" color="text.secondary">

@@ -209,15 +209,6 @@ export default function JobsPage() {
                                       </Typography>
                                     </Box>
                                   </Box>
-                                  {job.vacancyCode && (
-                                    <Chip
-                                      label={`Code: ${job.vacancyCode}`}
-                                      size="small"
-                                      color="secondary"
-                                      variant="outlined"
-                                      sx={{ mb: 1 }}
-                                    />
-                                  )}
                                   <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
                                     <Chip
                                       icon={<AttachMoney />}

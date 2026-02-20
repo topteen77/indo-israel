@@ -11,6 +11,7 @@ const Footer = () => {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [mounted, setMounted] = useState(false);
+  const [industries, setIndustries] = useState([]);
 
   useEffect(() => {
     setMounted(true);
@@ -30,6 +31,19 @@ const Footer = () => {
     } catch (e) {
       setUser(null);
     }
+
+    // Fetch industries for job categories
+    api.get('/jobs/industries')
+      .then((res) => {
+        if (res.data?.success && res.data.data?.industries) {
+          const industryList = res.data.data.industries.map(ind => ind.industry);
+          setIndustries(industryList);
+        }
+      })
+      .catch(() => {
+        // Fallback to empty array if API fails
+        setIndustries([]);
+      });
   }, [router.pathname]);
 
   const linkSx = { color: 'rgba(255,255,255,0.7)', cursor: 'pointer', '&:hover': { color: 'white' } };
@@ -76,30 +90,45 @@ const Footer = () => {
               Job Categories
             </Typography>
             <Stack spacing={1}>
-              {[
-                'Construction',
-                'Healthcare',
-                'Agriculture',
-                'Hospitality',
-                'IT Support',
-                'Nursing',
-                'Cooking/Chef',
-                'Cleaning',
-                'Security',
-                'Driver',
-                'Electrician',
-                'Plumber',
-              ].map((category) => (
-                <Typography
-                  key={category}
-                  component="a"
-                  href={`/jobs?category=${encodeURIComponent(category)}`}
-                  variant="body2"
-                  sx={linkBlockSx}
-                >
-                  {category}
-                </Typography>
-              ))}
+              {industries.length > 0 ? (
+                industries.map((industry) => (
+                  <Typography
+                    key={industry}
+                    component="a"
+                    href={`/jobs?industry=${encodeURIComponent(industry)}`}
+                    variant="body2"
+                    sx={linkBlockSx}
+                  >
+                    {industry}
+                  </Typography>
+                ))
+              ) : (
+                // Fallback categories while loading or if API fails
+                [
+                  'Construction',
+                  'Healthcare',
+                  'Agriculture',
+                  'Hospitality',
+                  'IT Support',
+                  'Nursing',
+                  'Cooking/Chef',
+                  'Cleaning',
+                  'Security',
+                  'Driver',
+                  'Electrician',
+                  'Plumber',
+                ].map((category) => (
+                  <Typography
+                    key={category}
+                    component="a"
+                    href={`/jobs?industry=${encodeURIComponent(category)}`}
+                    variant="body2"
+                    sx={linkBlockSx}
+                  >
+                    {category}
+                  </Typography>
+                ))
+              )}
             </Stack>
           </Grid>
           <Grid item xs={12} sm={6} md={2}>
