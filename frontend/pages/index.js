@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import {
   Container,
@@ -28,6 +28,7 @@ import {
   Snackbar,
   Alert,
   CircularProgress,
+  Avatar,
 } from '@mui/material';
 import {
   Work,
@@ -60,6 +61,9 @@ import {
   LocalShipping,
   Restaurant,
   CleaningServices,
+  FormatQuote,
+  ChevronLeft,
+  ChevronRight,
 } from '@mui/icons-material';
 import IndiaIsraelRecruitmentChatbot from '../components/Chatbot/IndiaIsraelRecruitmentChatbot';
 import Header from '../components/Layout/Header';
@@ -87,6 +91,9 @@ export default function Home() {
   const [enquirySnackbar, setEnquirySnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [jobCategories, setJobCategories] = useState([]);
   const [loadingIndustries, setLoadingIndustries] = useState(true);
+  const testimonialsScrollRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
 
   // Industry icon and color mapping
   const industryConfig = {
@@ -160,6 +167,39 @@ export default function Home() {
       setUser(null);
     }
   }, []);
+
+  // Check scroll position for testimonials
+  const checkScrollPosition = () => {
+    if (testimonialsScrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = testimonialsScrollRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  };
+
+  useEffect(() => {
+    checkScrollPosition();
+    const scrollContainer = testimonialsScrollRef.current;
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', checkScrollPosition);
+      window.addEventListener('resize', checkScrollPosition);
+      return () => {
+        scrollContainer.removeEventListener('scroll', checkScrollPosition);
+        window.removeEventListener('resize', checkScrollPosition);
+      };
+    }
+  }, []);
+
+  const scrollTestimonials = (direction) => {
+    if (testimonialsScrollRef.current) {
+      const scrollAmount = testimonialsScrollRef.current.clientWidth * 0.8;
+      const newScrollLeft = testimonialsScrollRef.current.scrollLeft + (direction === 'left' ? -scrollAmount : scrollAmount);
+      testimonialsScrollRef.current.scrollTo({
+        left: newScrollLeft,
+        behavior: 'smooth',
+      });
+    }
+  };
 
   // Seed credentials matching backend DB (same as /login page)
   const seedCredentials = {
@@ -1174,6 +1214,307 @@ export default function Home() {
             </Stack>
           </Card>
         </Box> */}
+
+        {/* Testimonials Section */}
+        <Box sx={{ mt: 14, mb: 14 }}>
+          <Box
+            sx={{
+              overflow: 'hidden',
+              border: '2px solid rgba(123, 15, 245, 0.1)',
+              background: 'linear-gradient(135deg, rgba(54, 54, 55, 0.03) 0%, rgba(31, 31, 31, 0.03) 100%)',
+              position: 'relative',
+              borderRadius: '78px',
+              p: { xs: 3, md: 4 },
+            }}
+          >
+            {/* Header Section */}
+            <Box sx={{ textAlign: 'center', mb: 4, position: 'relative', zIndex: 1 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+                <Box
+                  sx={{
+                    width: { xs: 64, md: 80 },
+                    height: { xs: 64, md: 80 },
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, rgba(123, 15, 245, 0.08) 0%, rgba(157, 78, 221, 0.08) 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'scale(1.05)',
+                      background: 'linear-gradient(135deg, rgba(123, 15, 245, 0.12) 0%, rgba(157, 78, 221, 0.12) 100%)',
+                    },
+                  }}
+                >
+                  <FormatQuote 
+                    sx={{ 
+                      fontSize: { xs: 32, md: 40 }, 
+                      color: '#7B0FF5',
+                      opacity: 0.8,
+                    }} 
+                  />
+                </Box>
+              </Box>
+              <Typography
+                variant="h5"
+                sx={{
+                  color: '#666',
+                  fontWeight: 600,
+                  fontSize: { xs: '1.25rem', md: '1.5rem' },
+                  textAlign: 'center',
+                  lineHeight: 1.6,
+                  letterSpacing: '0.01em',
+                  mb: 1,
+                  maxWidth: { xs: '100%', md: '700px' },
+                  mx: 'auto',
+                  px: { xs: 2, md: 0 },
+                }}
+              >
+                Join the community of 5 crore satisfied job seekers...
+              </Typography>
+              <Box
+                sx={{
+                  width: 50,
+                  height: 3,
+                  background: 'linear-gradient(135deg, #7B0FF5 0%, #9D4EDD 100%)',
+                  borderRadius: 2,
+                  mx: 'auto',
+                  mt: 2,
+                  opacity: 0.6,
+                }}
+              />
+            </Box>
+
+            {/* Testimonial Cards - Full Width */}
+            <Box
+              sx={{
+                position: 'relative',
+              }}
+            >
+              {/* Left Arrow Button */}
+              <IconButton
+                onClick={() => scrollTestimonials('left')}
+                disabled={!canScrollLeft}
+                sx={{
+                  position: 'absolute',
+                  left: { xs: 8, md: 16 },
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  zIndex: 2,
+                  bgcolor: 'white',
+                  width: { xs: 36, md: 44 },
+                  height: { xs: 36, md: 44 },
+                  '&:hover': {
+                    bgcolor: '#f5f5f5',
+                  },
+                  '&:disabled': {
+                    bgcolor: '#f5f5f5',
+                    opacity: 0.5,
+                  },
+                  transition: 'all 0.3s ease',
+                }}
+              >
+                <ChevronLeft sx={{ fontSize: { xs: 24, md: 28 }, color: '#7B0FF5' }} />
+              </IconButton>
+
+              {/* Right Arrow Button */}
+              <IconButton
+                onClick={() => scrollTestimonials('right')}
+                disabled={!canScrollRight}
+                sx={{
+                  position: 'absolute',
+                  right: { xs: 8, md: 16 },
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  zIndex: 2,
+                  bgcolor: 'white',
+                  width: { xs: 36, md: 44 },
+                  height: { xs: 36, md: 44 },
+                  '&:hover': {
+                    bgcolor: '#f5f5f5',
+                  },
+                  '&:disabled': {
+                    bgcolor: '#f5f5f5',
+                    opacity: 0.5,
+                  },
+                  transition: 'all 0.3s ease',
+                }}
+              >
+                <ChevronRight sx={{ fontSize: { xs: 24, md: 28 }, color: '#7B0FF5' }} />
+              </IconButton>
+
+              <Box
+                ref={testimonialsScrollRef}
+                sx={{
+                  display: 'flex',
+                  gap: { xs: 2.5, md: 3 },
+                  overflowX: 'auto',
+                  overflowY: 'hidden',
+                  pb: 2,
+                  pt: 1,
+                  px: { xs: 5, md: 6 },
+                  scrollBehavior: 'smooth',
+                  scrollbarWidth: 'none', // Firefox
+                  msOverflowStyle: 'none', // IE and Edge
+                  '&::-webkit-scrollbar': {
+                    display: 'none', // Chrome, Safari, Opera
+                  },
+                }}
+              >
+                {[
+                  {
+                    name: 'Shiwangi Singla',
+                    placed: true,
+                    rating: 4.5,
+                    testimonial: 'Thanks Apravas for helping me find a job without much hassle. If you are a fresher or a skilled person with expert knowledge in a specific field, you can easily find a job through the Apravas app.',
+                    avatar: 'SS',
+                  },
+                  {
+                    name: 'Jenil Ghevariya',
+                    placed: true,
+                    rating: 4.5,
+                    testimonial: 'This app is very helpful if you are looking for a job and the team is also very supportive and friendly. They guided me through every stage. It is very easy to find a job on Apravas because there are a lot of job options here for everyone. I got a job interview call very quickly after applying.',
+                    avatar: 'JG',
+                  },
+                  {
+                    name: 'Kaynat Mansuri',
+                    placed: false,
+                    rating: 4.5,
+                    testimonial: 'It is definitely a great app with information on the job details. Would also recommend my friends to use this platform for job search.',
+                    avatar: 'KM',
+                  },
+                  {
+                    name: 'Rahul Sharma',
+                    placed: true,
+                    rating: 5,
+                    testimonial: 'Excellent platform! Found my dream job in Israel within weeks. The support team is amazing and helped me throughout the process.',
+                    avatar: 'RS',
+                  },
+                  {
+                    name: 'Priya Patel',
+                    placed: true,
+                    rating: 4.5,
+                    testimonial: 'Very user-friendly interface and great job opportunities. The verification process is smooth and transparent.',
+                    avatar: 'PP',
+                  },
+                ].map((testimonial, index) => (
+                  <Card
+                    key={index}
+                    sx={{
+                      minWidth: { xs: 320, md: 380 },
+                      maxWidth: { xs: 320, md: 380 },
+                      p: { xs: 2.5, md: 3.5 },
+                      borderRadius: { xs: 2.5, md: 3 },
+                      bgcolor: 'white',
+                      border: '1px solid rgba(0,0,0,0.06)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      '&:hover': {
+                        transform: 'translateY(-6px)',
+                        borderColor: 'rgba(123, 15, 245, 0.2)',
+                      },
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2.5 }}>
+                      <Avatar
+                        sx={{
+                          width: { xs: 52, md: 60 },
+                          height: { xs: 52, md: 60 },
+                          bgcolor: '#7B0FF5',
+                          color: 'white',
+                          fontWeight: 700,
+                          fontSize: { xs: '1.1rem', md: '1.3rem' },
+                          mr: 2,
+                        }}
+                      >
+                        {testimonial.avatar}
+                      </Avatar>
+                      <Box sx={{ flex: 1, pt: 0.5 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+                          <Typography 
+                            variant="h6" 
+                            sx={{ 
+                              fontWeight: 700, 
+                              fontSize: { xs: '0.95rem', md: '1.05rem' },
+                              color: '#1a1a1a',
+                              lineHeight: 1.2,
+                            }}
+                          >
+                            {testimonial.name}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              fontWeight: 700, 
+                              mr: 0.5,
+                              fontSize: '0.875rem',
+                              color: '#1a1a1a',
+                            }}
+                          >
+                            {testimonial.rating}
+                          </Typography>
+                          {[1, 2, 3, 4, 5].map((star) => {
+                            const isFullStar = star <= Math.floor(testimonial.rating);
+                            const isHalfStar = star === Math.ceil(testimonial.rating) && testimonial.rating % 1 !== 0;
+                            return (
+                              <Box 
+                                key={star} 
+                                sx={{ 
+                                  position: 'relative', 
+                                  display: 'inline-block',
+                                  width: 18,
+                                  height: 18,
+                                }}
+                              >
+                                <Star
+                                  sx={{
+                                    fontSize: 18,
+                                    color: '#E0E0E0',
+                                    position: 'absolute',
+                                  }}
+                                />
+                                {(isFullStar || isHalfStar) && (
+                                  <Star
+                                    sx={{
+                                      fontSize: 18,
+                                      color: '#FFD700',
+                                      position: 'absolute',
+                                      left: 0,
+                                      top: 0,
+                                      filter: 'drop-shadow(0 1px 2px rgba(255,215,0,0.3))',
+                                      ...(isHalfStar && {
+                                        clipPath: 'inset(0 50% 0 0)',
+                                      }),
+                                    }}
+                                  />
+                                )}
+                              </Box>
+                            );
+                          })}
+                        </Box>
+                      </Box>
+                    </Box>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: '#555',
+                        lineHeight: 1.7,
+                        fontSize: { xs: '0.8125rem', md: '0.875rem' },
+                        flex: 1,
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      &quot;{testimonial.testimonial}&quot;
+                    </Typography>
+                  </Card>
+                ))}
+              </Box>
+            </Box>
+          </Box>
+        </Box>
 
         {/* Contact Us Section - Enhanced */}
         <Box
