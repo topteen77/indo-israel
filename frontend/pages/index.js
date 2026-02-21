@@ -64,6 +64,10 @@ import {
   FormatQuote,
   ChevronLeft,
   ChevronRight,
+  SmartToy,
+  Psychology,
+  AutoAwesome,
+  RecordVoiceOver,
 } from '@mui/icons-material';
 import IndiaIsraelRecruitmentChatbot from '../components/Chatbot/IndiaIsraelRecruitmentChatbot';
 import Header from '../components/Layout/Header';
@@ -1062,42 +1066,170 @@ export default function Home() {
         {/* AI Interview Assistant Section */}
         <Box
           sx={{
-            bgcolor: '#f8f9fa',
-            borderRadius: 3,
-            p: 4,
+            background: 'linear-gradient(135deg, rgba(123, 15, 245, 0.05) 0%, rgba(157, 78, 221, 0.05) 100%)',
+            borderRadius: 4,
+            p: { xs: 4, md: 6 },
+            mt: 8,
             mb: 8,
-            textAlign: 'center',
+            position: 'relative',
+            overflow: 'hidden',
+            border: '2px solid rgba(123, 15, 245, 0.1)',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: -50,
+              right: -50,
+              width: 200,
+              height: 200,
+              background: 'radial-gradient(circle, rgba(123, 15, 245, 0.1) 0%, transparent 70%)',
+              borderRadius: '50%',
+            },
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              bottom: -30,
+              left: -30,
+              width: 150,
+              height: 150,
+              background: 'radial-gradient(circle, rgba(157, 78, 221, 0.1) 0%, transparent 70%)',
+              borderRadius: '50%',
+            },
           }}
         >
-          <Typography variant="h4" sx={{ fontWeight: 700, mb: 2, color: '#1a1a1a' }}>
-            AI Interview Assistant
-          </Typography>
-          <Typography variant="h6" sx={{ fontWeight: 500, mb: 3, color: '#666' }}>
-            Practice interviews with Free AI Interview Coach
-          </Typography>
-          <Button
-            variant="contained"
-            size="large"
-            endIcon={<PlayArrow />}
-            onClick={() => {
-              window.open('https://cas.adventus.io/', '_blank', 'noopener,noreferrer');
-            }}
-            sx={{
-              background: 'linear-gradient(135deg, #7B0FF5 0%, #9D4EDD 100%)',
-              borderRadius: '12px',
-              px: 4,
-              py: 1.5,
-              fontSize: '1.1rem',
-              fontWeight: 600,
-              boxShadow: '0 4px 16px rgba(123, 15, 245, 0.25)',
-              '&:hover': {
-                boxShadow: '0 6px 24px rgba(123, 15, 245, 0.35)',
-                transform: 'translateY(-2px)',
-              },
-            }}
-          >
-            Practice Now
-          </Button>
+          <Box sx={{ position: 'relative', zIndex: 1 }}>
+            <Grid container spacing={4} alignItems="center">
+              {/* Left Side - Icons and Graphics */}
+              <Grid item xs={12} md={4}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: 2,
+                    position: 'relative',
+                  }}
+                >
+                  {/* Main AI Icon */}
+                  <Box
+                    sx={{
+                      width: { xs: 100, md: 120 },
+                      height: { xs: 100, md: 120 },
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, rgba(123, 15, 245, 0.15) 0%, rgba(157, 78, 221, 0.15) 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative',
+                      animation: 'pulse 2s ease-in-out infinite',
+                      '@keyframes pulse': {
+                        '0%, 100%': { transform: 'scale(1)' },
+                        '50%': { transform: 'scale(1.05)' },
+                      },
+                    }}
+                  >
+                    <SmartToy sx={{ fontSize: { xs: 50, md: 60 }, color: '#7B0FF5' }} />
+                  </Box>
+                  
+                  {/* Decorative Icons */}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: -10,
+                      right: { xs: 20, md: 40 },
+                      width: 40,
+                      height: 40,
+                      borderRadius: '50%',
+                      background: 'rgba(123, 15, 245, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Psychology sx={{ fontSize: 24, color: '#7B0FF5', opacity: 0.7 }} />
+                  </Box>
+                  
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      bottom: -10,
+                      left: { xs: 20, md: 40 },
+                      width: 40,
+                      height: 40,
+                      borderRadius: '50%',
+                      background: 'rgba(157, 78, 221, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <AutoAwesome sx={{ fontSize: 24, color: '#9D4EDD', opacity: 0.7 }} />
+                  </Box>
+                </Box>
+              </Grid>
+
+              {/* Right Side - Content */}
+              <Grid item xs={12} md={8}>
+                <Box sx={{ textAlign: { xs: 'center', md: 'left' } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, justifyContent: { xs: 'center', md: 'flex-start' } }}>
+                    <RecordVoiceOver sx={{ fontSize: 28, color: '#7B0FF5' }} />
+                    <Typography 
+                      variant="h4" 
+                      sx={{ 
+                        fontWeight: 800, 
+                        mb: 0, 
+                        color: '#1a1a1a',
+                        fontSize: { xs: '1.75rem', md: '2.25rem' },
+                        background: 'linear-gradient(135deg, #7B0FF5 0%, #9D4EDD 100%)',
+                        backgroundClip: 'text',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                      }}
+                    >
+                      AI Interview Assistant
+                    </Typography>
+                  </Box>
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      fontWeight: 500, 
+                      mb: 3, 
+                      color: '#666',
+                      fontSize: { xs: '1rem', md: '1.25rem' },
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    Practice interviews with Free AI Interview Coach
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    size="large"
+                    endIcon={<PlayArrow />}
+                    onClick={() => {
+                      window.open('https://cas.adventus.io/', '_blank', 'noopener,noreferrer');
+                    }}
+                    sx={{
+                      background: 'linear-gradient(135deg, #7B0FF5 0%, #9D4EDD 100%)',
+                      borderRadius: '30px',
+                      px: 5,
+                      py: 1.8,
+                      fontSize: '1.1rem',
+                      fontWeight: 700,
+                      textTransform: 'none',
+                      boxShadow: '0 4px 20px rgba(123, 15, 245, 0.3)',
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        boxShadow: '0 8px 30px rgba(123, 15, 245, 0.4)',
+                        transform: 'translateY(-3px) scale(1.02)',
+                        background: 'linear-gradient(135deg, #9D4EDD 0%, #7B0FF5 100%)',
+                      },
+                    }}
+                  >
+                    Practice Now
+                  </Button>
+                </Box>
+              </Grid>
+            </Grid>
+          </Box>
         </Box>
 
         {/* Login Section for Dashboard Access - Hidden for now */}
