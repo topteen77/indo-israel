@@ -59,16 +59,8 @@ router.get('/all', (req, res) => {
     
     const jobs = db.prepare(query).all(...params);
     
-    // Filter out old jobs (only return jobs with ID >= 619 from new Excel import)
-    // This ensures old jobs from previous database are not returned
-    const validJobs = jobs.filter(job => job.id >= 619);
-    
-    if (jobs.length > validJobs.length) {
-      console.warn(`[Jobs API] Filtered out ${jobs.length - validJobs.length} old jobs (ID < 619)`);
-    }
-    
     // Parse JSON fields
-    const jobsWithParsed = validJobs.map(job => ({
+    const jobsWithParsed = jobs.map(job => ({
       ...job,
       requirements: job.requirements ? JSON.parse(job.requirements) : [],
       createdAt: job.createdAt,

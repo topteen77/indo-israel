@@ -133,30 +133,15 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
       if (response.data.success) {
         let jobsList = response.data.data.jobs || [];
         
-        // Filter out old jobs (only show jobs with ID >= 619, which are from the new Excel import)
-        // This ensures we only show jobs from the current database
-        const validJobs = jobsList.filter(job => job.id >= 619);
-        const invalidJobs = jobsList.filter(job => job.id < 619);
-        
         // Debug logging to help identify issues
         console.log('[WorkerDashboard] Fetched jobs from API:', {
           totalJobs: jobsList.length,
-          validJobs: validJobs.length,
-          invalidJobs: invalidJobs.length,
           apiUrl: api.defaults.baseURL,
           jobIds: jobsList.map(j => j.id).sort((a, b) => a - b).slice(0, 10)
         });
         
-        if (invalidJobs.length > 0) {
-          console.warn('[WorkerDashboard] WARNING: Filtered out old jobs that should not be displayed:', {
-            count: invalidJobs.length,
-            oldJobIds: invalidJobs.map(j => j.id),
-            oldJobTitles: invalidJobs.map(j => j.title).slice(0, 5)
-          });
-        }
-        
-        // Only set valid jobs (from new database)
-        setJobs(validJobs);
+        // Set all jobs returned from API
+        setJobs(jobsList);
         
         // Fetch user's applications to check which jobs are applied and their statuses
         try {
