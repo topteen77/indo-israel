@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../database/db');
 
 // Get industries with job counts
+// IMPORTANT: Only counts jobs from Book1.xlsx (jobs with vacancyCode or postedDate)
 router.get('/industries', (req, res) => {
   try {
     const industries = db.prepare(`
@@ -12,6 +13,7 @@ router.get('/industries', (req, res) => {
         SUM(openings) as totalOpenings
       FROM jobs 
       WHERE status = 'active'
+      AND ((vacancyCode IS NOT NULL AND vacancyCode != '') OR (postedDate IS NOT NULL AND postedDate != ''))
       GROUP BY COALESCE(industry, category, 'Other')
       ORDER BY jobCount DESC
     `).all();
@@ -32,11 +34,13 @@ router.get('/industries', (req, res) => {
 });
 
 // Get all jobs with optional filters
+// IMPORTANT: Only returns jobs from Book1.xlsx (jobs with vacancyCode or postedDate)
 router.get('/all', (req, res) => {
   try {
     const { category, search, status = 'active', groupByIndustry } = req.query;
     
-    let query = 'SELECT * FROM jobs WHERE 1=1';
+    // Only show jobs from Excel (Book1.xlsx) - identified by having vacancyCode or postedDate
+    let query = "SELECT * FROM jobs WHERE (vacancyCode IS NOT NULL AND vacancyCode != '') OR (postedDate IS NOT NULL AND postedDate != '')";
     const params = [];
     
     if (status) {
@@ -68,14 +72,18 @@ router.get('/all', (req, res) => {
     }));
     
     // If groupByIndustry is requested, group jobs by industry
+    // IMPORTANT: Use same COALESCE logic as industries endpoint for consistency
     if (groupByIndustry === 'true') {
       const groupedByIndustry = {};
       jobsWithParsed.forEach(job => {
+        // Use same COALESCE logic as industries endpoint: COALESCE(industry, category, 'Other')
         const industry = job.industry || job.category || 'Other';
-        if (!groupedByIndustry[industry]) {
-          groupedByIndustry[industry] = [];
+        // Normalize industry name to match exactly with industries endpoint
+        const normalizedIndustry = industry.trim();
+        if (!groupedByIndustry[normalizedIndustry]) {
+          groupedByIndustry[normalizedIndustry] = [];
         }
-        groupedByIndustry[industry].push(job);
+        groupedByIndustry[normalizedIndustry].push(job);
       });
       
       return res.json({
@@ -104,13 +112,53 @@ router.get('/all', (req, res) => {
   }
 });
 
+// Get jobs by industry
+// IMPORTANT: Only returns jobs from Book1.xlsx (jobs with vacancyCode or postedDate)
+router.get('/industry/:industry', (req, res) => {
+  try {
+    const { industry } = req.params;
+    const decodedIndustry = decodeURIComponent(industry);
+    
+    // Use COALESCE to match industry or category, same as industries endpoint
+    const jobs = db.prepare(`
+      SELECT * FROM jobs 
+      WHERE status = 'active'
+      AND ((vacancyCode IS NOT NULL AND vacancyCode != '') OR (postedDate IS NOT NULL AND postedDate != ''))
+      AND (COALESCE(industry, category, 'Other') = ?)
+      ORDER BY createdAt DESC
+    `).all(decodedIndustry);
+    
+    const jobsWithParsed = jobs.map(job => ({
+      ...job,
+      requirements: job.requirements ? JSON.parse(job.requirements) : []
+    }));
+    
+    res.json({
+      success: true,
+      data: {
+        industry: decodedIndustry,
+        totalJobs: jobsWithParsed.length,
+        jobs: jobsWithParsed
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching jobs by industry:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch jobs'
+    });
+  }
+});
+
 // Get jobs by category
+// IMPORTANT: Only returns jobs from Book1.xlsx (jobs with vacancyCode or postedDate)
 router.get('/category/:category', (req, res) => {
   try {
     const { category } = req.params;
     const jobs = db.prepare(`
       SELECT * FROM jobs 
       WHERE category = ? AND status = 'active'
+      AND ((vacancyCode IS NOT NULL AND vacancyCode != '') OR (postedDate IS NOT NULL AND postedDate != ''))
       ORDER BY createdAt DESC
     `).all(category);
     
@@ -216,13 +264,14 @@ router.get('/search/:searchTerm', (req, res) => {
       params.push(searchPattern.toLowerCase(), searchPattern.toLowerCase(), searchPattern.toLowerCase(), searchPattern.toLowerCase(), searchPattern.toLowerCase(), searchPattern.toLowerCase());
     }
     
+    query += " AND ((vacancyCode IS NOT NULL AND vacancyCode != '') OR (postedDate IS NOT NULL AND postedDate != ''))";
     query += ' ORDER BY createdAt DESC';
     
     let jobs = db.prepare(query).all(...params);
     
-    // Fallback: if no jobs found and fallback is enabled, show all active jobs
+    // Fallback: if no jobs found and fallback is enabled, show all Excel jobs (from Book1.xlsx)
     if (jobs.length === 0 && useFallback) {
-      jobs = db.prepare('SELECT * FROM jobs WHERE status = ? ORDER BY createdAt DESC').all('active');
+      jobs = db.prepare("SELECT * FROM jobs WHERE status = ? AND ((vacancyCode IS NOT NULL AND vacancyCode != '') OR (postedDate IS NOT NULL AND postedDate != '')) ORDER BY createdAt DESC").all('active');
     }
     
     const jobsWithParsed = jobs.map(job => ({
@@ -248,10 +297,11 @@ router.get('/search/:searchTerm', (req, res) => {
 });
 
 // Get single job by ID
+// IMPORTANT: Only returns jobs from Book1.xlsx (jobs with vacancyCode or postedDate)
 router.get('/:id', (req, res) => {
   try {
     const { id } = req.params;
-    const job = db.prepare('SELECT * FROM jobs WHERE id = ? AND status = ?').get(id, 'active');
+    const job = db.prepare("SELECT * FROM jobs WHERE id = ? AND status = ? AND ((vacancyCode IS NOT NULL AND vacancyCode != '') OR (postedDate IS NOT NULL AND postedDate != ''))").get(id, 'active');
     
     if (!job) {
       return res.status(404).json({
@@ -277,6 +327,8 @@ router.get('/:id', (req, res) => {
 });
 
 // Create new job
+// IMPORTANT: Job creation is restricted - only Excel jobs (from Book1.xlsx) are allowed in the system
+// This endpoint is kept for backward compatibility but new jobs should be added via Excel import
 router.post('/create', (req, res) => {
   try {
     const {
@@ -300,6 +352,9 @@ router.post('/create', (req, res) => {
         message: 'Missing required fields'
       });
     }
+    
+    // Warn that only Excel jobs should be added
+    console.warn('[Jobs API] Job creation via API - Note: Only jobs from Book1.xlsx are displayed. Use Excel import for new jobs.');
 
     const insertJob = db.prepare(`
       INSERT INTO jobs (title, company, location, salary, experience, type, description, requirements, category, industry, openings, status, postedBy)

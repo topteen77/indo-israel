@@ -33,9 +33,10 @@ export default function JobsPage() {
       let response;
       
       if (industry) {
-        // Filter by industry - get all jobs and filter client-side
-        response = await api.get('/jobs/all?groupByIndustry=true');
-        setPageTitle(`${industry} Jobs`);
+        // Filter by industry - use dedicated industry endpoint for better performance
+        const decodedIndustry = decodeURIComponent(industry);
+        response = await api.get(`/jobs/industry/${encodeURIComponent(decodedIndustry)}`);
+        setPageTitle(`${decodedIndustry} Jobs`);
       } else if (category) {
         response = await api.get(`/jobs/category/${encodeURIComponent(category)}`);
         setPageTitle(`${category} Jobs`);
@@ -50,22 +51,17 @@ export default function JobsPage() {
 
       if (response.data.success) {
         if (response.data.data.groupedByIndustry) {
-          // Jobs grouped by industry
-          if (industry) {
-            // Filter to show only the selected industry
-            const filtered = {};
-            if (response.data.data.groupedByIndustry[industry]) {
-              filtered[industry] = response.data.data.groupedByIndustry[industry];
-            }
-            setJobsByIndustry(filtered);
-          } else {
-            setJobsByIndustry(response.data.data.groupedByIndustry);
-          }
+          // Jobs grouped by industry (when no specific industry filter)
+          setJobsByIndustry(response.data.data.groupedByIndustry);
           setJobs([]); // Clear flat list
-        } else {
-          // Regular flat list
+        } else if (response.data.data.jobs) {
+          // Regular flat list (from industry endpoint or other endpoints)
           setJobs(response.data.data.jobs || []);
           setJobsByIndustry({}); // Clear grouped list
+        } else {
+          // No jobs found
+          setJobs([]);
+          setJobsByIndustry({});
         }
       } else {
         setError(response.data.message || 'Failed to load jobs');
