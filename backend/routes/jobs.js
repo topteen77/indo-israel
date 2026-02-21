@@ -40,13 +40,9 @@ router.get('/all', (req, res) => {
     const { category, search, status = 'active', groupByIndustry } = req.query;
     
     // Only show jobs from Excel (Book1.xlsx) - identified by having vacancyCode or postedDate
-    let query = "SELECT * FROM jobs WHERE (vacancyCode IS NOT NULL AND vacancyCode != '') OR (postedDate IS NOT NULL AND postedDate != '')";
-    const params = [];
-    
-    if (status) {
-      query += ' AND status = ?';
-      params.push(status);
-    }
+    // IMPORTANT: Put status filter first, then Excel filter in parentheses
+    let query = "SELECT * FROM jobs WHERE status = ? AND ((vacancyCode IS NOT NULL AND vacancyCode != '') OR (postedDate IS NOT NULL AND postedDate != ''))";
+    const params = [status];
     
     if (category) {
       query += ' AND category = ?';
@@ -61,15 +57,38 @@ router.get('/all', (req, res) => {
     
     query += ' ORDER BY createdAt DESC';
     
+    // Log query for debugging (only in development)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[Jobs API] Query:', query);
+      console.log('[Jobs API] Params:', params);
+    }
+    
     const jobs = db.prepare(query).all(...params);
     
+    // Log results for debugging
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[Jobs API] Found ${jobs.length} jobs`);
+    }
+    
     // Parse JSON fields
-    const jobsWithParsed = jobs.map(job => ({
-      ...job,
-      requirements: job.requirements ? JSON.parse(job.requirements) : [],
-      createdAt: job.createdAt,
-      updatedAt: job.updatedAt
-    }));
+    const jobsWithParsed = jobs.map(job => {
+      try {
+        return {
+          ...job,
+          requirements: job.requirements ? JSON.parse(job.requirements) : [],
+          createdAt: job.createdAt,
+          updatedAt: job.updatedAt
+        };
+      } catch (parseError) {
+        console.error(`[Jobs API] Error parsing job ${job.id}:`, parseError);
+        return {
+          ...job,
+          requirements: [],
+          createdAt: job.createdAt,
+          updatedAt: job.updatedAt
+        };
+      }
+    });
     
     // If groupByIndustry is requested, group jobs by industry
     // IMPORTANT: Use same COALESCE logic as industries endpoint for consistency

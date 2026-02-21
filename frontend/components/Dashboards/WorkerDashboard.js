@@ -130,14 +130,31 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
     try {
       setJobsLoading(true);
       const response = await api.get('/jobs/all');
-      if (response.data.success) {
-        let jobsList = response.data.data.jobs || [];
+      
+      // Debug logging to help identify issues
+      console.log('[WorkerDashboard] API Response:', {
+        success: response.data?.success,
+        hasData: !!response.data?.data,
+        hasJobs: !!response.data?.data?.jobs,
+        apiUrl: api.defaults.baseURL,
+        responseKeys: Object.keys(response.data || {}),
+        dataKeys: Object.keys(response.data?.data || {})
+      });
+      
+      if (response.data && response.data.success) {
+        let jobsList = response.data.data?.jobs || [];
         
         // Debug logging to help identify issues
         console.log('[WorkerDashboard] Fetched jobs from API:', {
           totalJobs: jobsList.length,
           apiUrl: api.defaults.baseURL,
-          jobIds: jobsList.map(j => j.id).sort((a, b) => a - b).slice(0, 10)
+          jobIds: jobsList.map(j => j.id).sort((a, b) => a - b).slice(0, 10),
+          firstJob: jobsList[0] ? {
+            id: jobsList[0].id,
+            title: jobsList[0].title,
+            vacancyCode: jobsList[0].vacancyCode,
+            postedDate: jobsList[0].postedDate
+          } : null
         });
         
         // Set all jobs returned from API
@@ -175,9 +192,14 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
       console.error('[WorkerDashboard] Failed to fetch jobs:', {
         error: error.message,
         response: error.response?.data,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
         apiUrl: api.defaults.baseURL,
         fullError: error
       });
+      
+      // Set empty array on error so UI shows "No jobs available" instead of infinite loading
+      setJobs([]);
     } finally {
       setJobsLoading(false);
     }
