@@ -13,7 +13,7 @@ import {
   Speed, CheckCircle, Schedule, Assessment,
   Visibility, VisibilityOff, Download, FilterList, Refresh, SafetyCheck, Chat,
   PersonAdd, Edit as EditIcon, Settings as SettingsIcon, Email as EmailIcon,
-  Warning,
+  Warning, BusinessCenter, Search,
 } from '@mui/icons-material';
 import AdminSafetyDashboard from '../Safety/AdminSafetyDashboard';
 import { Tab, Tabs } from '@mui/material';
@@ -74,6 +74,18 @@ const ApravasAdminDashboard = ({ initialTab }) => {
   const liveChatPollRef = useRef(null);
   const [websiteErrorsLoading, setWebsiteErrorsLoading] = useState(false);
   const [websiteErrorsData, setWebsiteErrorsData] = useState({ entries: [], period: 'today' });
+  // Jobs Management tab
+  const [jobsList, setJobsList] = useState([]);
+  const [jobsLoading, setJobsLoading] = useState(false);
+  const [jobsFilter, setJobsFilter] = useState({ status: 'all', category: '', search: '' });
+  const [editJobDialogOpen, setEditJobDialogOpen] = useState(false);
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [jobForm, setJobForm] = useState({
+    title: '', company: '', location: '', salary: '', experience: '', type: '',
+    description: '', requirements: '', category: '', industry: '', openings: '', status: 'active'
+  });
+  const [jobFormErrors, setJobFormErrors] = useState({});
+  const [savingJob, setSavingJob] = useState(false);
 
   useEffect(() => {
     fetchAnalytics();
@@ -143,7 +155,7 @@ const ApravasAdminDashboard = ({ initialTab }) => {
   };
 
   useEffect(() => {
-    if (activeTab === 4) fetchEmailLog();
+    if (activeTab === 5) fetchEmailLog();
   }, [activeTab, emailLogFilter]);
 
   const fetchUsers = async () => {
@@ -181,10 +193,10 @@ const ApravasAdminDashboard = ({ initialTab }) => {
   };
 
   useEffect(() => {
-    if (activeTab === 7) fetchThirdPartySettings();
+    if (activeTab === 8) fetchThirdPartySettings();
   }, [activeTab]);
   useEffect(() => {
-    if (activeTab === 5) fetchWebsiteErrors();
+    if (activeTab === 6) fetchWebsiteErrors();
   }, [activeTab]);
 
   const fetchWebsiteErrors = async () => {
@@ -214,8 +226,70 @@ const ApravasAdminDashboard = ({ initialTab }) => {
   };
 
   useEffect(() => {
-    if (activeTab === 6) fetchWaitingSessions();
+    if (activeTab === 7) fetchWaitingSessions();
   }, [activeTab]);
+
+  const fetchJobs = async () => {
+    setJobsLoading(true);
+    try {
+      // For admin, fetch all jobs regardless of Excel filter - we need to get all jobs
+      // First try to get all jobs without status filter if status is 'all'
+      let jobs = [];
+      
+      if (jobsFilter.status === 'all') {
+        // Fetch jobs with different statuses and combine
+        const [activeRes, inactiveRes, closedRes] = await Promise.all([
+          api.get('/jobs/all?status=active'),
+          api.get('/jobs/all?status=inactive').catch(() => ({ data: { data: { jobs: [] } } })),
+          api.get('/jobs/all?status=closed').catch(() => ({ data: { data: { jobs: [] } } }))
+        ]);
+        jobs = [
+          ...(activeRes.data?.data?.jobs || []),
+          ...(inactiveRes.data?.data?.jobs || []),
+          ...(closedRes.data?.data?.jobs || [])
+        ];
+      } else {
+        const params = new URLSearchParams();
+        params.set('status', jobsFilter.status || 'active');
+        if (jobsFilter.category) {
+          params.set('category', jobsFilter.category);
+        }
+        if (jobsFilter.search) {
+          params.set('search', jobsFilter.search);
+        }
+        const res = await api.get(`/jobs/all?${params.toString()}`);
+        jobs = res.data?.data?.jobs || [];
+      }
+      
+      // Apply client-side filters for search and category if status is 'all'
+      if (jobsFilter.status === 'all') {
+        if (jobsFilter.search) {
+          const searchLower = jobsFilter.search.toLowerCase();
+          jobs = jobs.filter(job => 
+            job.title?.toLowerCase().includes(searchLower) ||
+            job.company?.toLowerCase().includes(searchLower) ||
+            job.description?.toLowerCase().includes(searchLower)
+          );
+        }
+        if (jobsFilter.category) {
+          jobs = jobs.filter(job => 
+            job.category === jobsFilter.category || job.industry === jobsFilter.category
+          );
+        }
+      }
+      
+      setJobsList(jobs);
+    } catch (err) {
+      console.error('Failed to fetch jobs:', err);
+      setJobsList([]);
+    } finally {
+      setJobsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 4) fetchJobs();
+  }, [activeTab, jobsFilter]);
 
   const fetchSessionMessages = async (sid) => {
     if (!sid) return;
@@ -501,6 +575,7 @@ const ApravasAdminDashboard = ({ initialTab }) => {
         <Tab label="Safety & Welfare" icon={<SafetyCheck />} />
         <Tab label="WhatsApp Log" icon={<Chat />} />
         <Tab label="Users" icon={<People />} />
+        <Tab label="Jobs" icon={<BusinessCenter />} />
         <Tab label="Email Log" icon={<EmailIcon />} />
         <Tab label="Website errors" icon={<Warning />} />
         <Tab label="Live chat" icon={<Chat />} />
@@ -924,6 +999,135 @@ const ApravasAdminDashboard = ({ initialTab }) => {
             {emailLog.total > 0 && (
               <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
                 Showing {emailLog.items.length} of {emailLog.total}
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Jobs Tab */}
+      {activeTab === 4 && (
+        <Card>
+          <CardContent>
+            <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2} mb={2}>
+              <Typography variant="h6">Jobs Management</Typography>
+              <Box display="flex" gap={1} alignItems="center" flexWrap="wrap">
+                <TextField
+                  size="small"
+                  placeholder="Search jobs..."
+                  value={jobsFilter.search}
+                  onChange={(e) => setJobsFilter({ ...jobsFilter, search: e.target.value })}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Search fontSize="small" />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{ minWidth: 200 }}
+                />
+                <FormControl size="small" sx={{ minWidth: 120 }}>
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={jobsFilter.status}
+                    label="Status"
+                    onChange={(e) => setJobsFilter({ ...jobsFilter, status: e.target.value })}
+                  >
+                    <MenuItem value="all">All</MenuItem>
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="inactive">Inactive</MenuItem>
+                    <MenuItem value="closed">Closed</MenuItem>
+                  </Select>
+                </FormControl>
+                <Button
+                  size="small"
+                  startIcon={jobsLoading ? <CircularProgress size={16} /> : <Refresh />}
+                  onClick={fetchJobs}
+                  disabled={jobsLoading}
+                >
+                  Refresh
+                </Button>
+              </Box>
+            </Box>
+            {jobsLoading && jobsList.length === 0 ? (
+              <Box display="flex" justifyContent="center" p={4}>
+                <CircularProgress />
+              </Box>
+            ) : jobsList.length === 0 ? (
+              <Alert severity="info">No jobs found.</Alert>
+            ) : (
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell><strong>ID</strong></TableCell>
+                    <TableCell><strong>Title</strong></TableCell>
+                    <TableCell><strong>Company</strong></TableCell>
+                    <TableCell><strong>Location</strong></TableCell>
+                    <TableCell><strong>Category</strong></TableCell>
+                    <TableCell><strong>Salary</strong></TableCell>
+                    <TableCell><strong>Openings</strong></TableCell>
+                    <TableCell><strong>Status</strong></TableCell>
+                    <TableCell align="right"><strong>Actions</strong></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {jobsList.map((job) => (
+                    <TableRow key={job.id} hover>
+                      <TableCell>{job.id}</TableCell>
+                      <TableCell sx={{ maxWidth: 200 }}>
+                        <Typography variant="body2" noWrap title={job.title}>
+                          {job.title}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>{job.company}</TableCell>
+                      <TableCell>{job.location}</TableCell>
+                      <TableCell>
+                        <Chip label={job.category || job.industry || 'N/A'} size="small" />
+                      </TableCell>
+                      <TableCell>{job.salary}</TableCell>
+                      <TableCell>{job.openings || 1}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={job.status || 'active'}
+                          size="small"
+                          color={job.status === 'active' ? 'success' : job.status === 'closed' ? 'error' : 'default'}
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setSelectedJob(job);
+                            setJobForm({
+                              title: job.title || '',
+                              company: job.company || '',
+                              location: job.location || '',
+                              salary: job.salary || '',
+                              experience: job.experience || '',
+                              type: job.type || 'Full-time',
+                              description: job.description || '',
+                              requirements: Array.isArray(job.requirements) ? job.requirements.join(', ') : (job.requirements || ''),
+                              category: job.category || '',
+                              industry: job.industry || job.category || '',
+                              openings: job.openings?.toString() || '1',
+                              status: job.status || 'active'
+                            });
+                            setJobFormErrors({});
+                            setEditJobDialogOpen(true);
+                          }}
+                          color="primary"
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+            {jobsList.length > 0 && (
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
+                Showing {jobsList.length} job{jobsList.length !== 1 ? 's' : ''}
               </Typography>
             )}
           </CardContent>
@@ -1508,6 +1712,222 @@ const ApravasAdminDashboard = ({ initialTab }) => {
           )}
         </Box>
       )}
+
+      {/* Edit Job Dialog */}
+      <Dialog open={editJobDialogOpen} onClose={() => { setEditJobDialogOpen(false); setSelectedJob(null); setJobFormErrors({}); }} maxWidth="md" fullWidth>
+        <DialogTitle>Edit Job</DialogTitle>
+        <DialogContent>
+          <Box display="flex" flexDirection="column" gap={2} pt={1}>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  label="Job Title *"
+                  value={jobForm.title}
+                  onChange={(e) => setJobForm({ ...jobForm, title: e.target.value })}
+                  fullWidth
+                  required
+                  error={!!jobFormErrors.title}
+                  helperText={jobFormErrors.title}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Company *"
+                  value={jobForm.company}
+                  onChange={(e) => setJobForm({ ...jobForm, company: e.target.value })}
+                  fullWidth
+                  required
+                  error={!!jobFormErrors.company}
+                  helperText={jobFormErrors.company}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Location *"
+                  value={jobForm.location}
+                  onChange={(e) => setJobForm({ ...jobForm, location: e.target.value })}
+                  fullWidth
+                  required
+                  error={!!jobFormErrors.location}
+                  helperText={jobFormErrors.location}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Salary *"
+                  value={jobForm.salary}
+                  onChange={(e) => setJobForm({ ...jobForm, salary: e.target.value })}
+                  fullWidth
+                  required
+                  error={!!jobFormErrors.salary}
+                  helperText={jobFormErrors.salary}
+                  placeholder="e.g., ₹70,000 - ₹100,000"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Experience"
+                  value={jobForm.experience}
+                  onChange={(e) => setJobForm({ ...jobForm, experience: e.target.value })}
+                  fullWidth
+                  placeholder="e.g., 2-5 years"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Job Type</InputLabel>
+                  <Select
+                    value={jobForm.type}
+                    label="Job Type"
+                    onChange={(e) => setJobForm({ ...jobForm, type: e.target.value })}
+                  >
+                    <MenuItem value="Full-time">Full-time</MenuItem>
+                    <MenuItem value="Part-time">Part-time</MenuItem>
+                    <MenuItem value="Contract">Contract</MenuItem>
+                    <MenuItem value="Temporary">Temporary</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth required error={!!jobFormErrors.category}>
+                  <InputLabel>Category *</InputLabel>
+                  <Select
+                    value={jobForm.category}
+                    label="Category *"
+                    onChange={(e) => setJobForm({ ...jobForm, category: e.target.value, industry: e.target.value })}
+                  >
+                    <MenuItem value="Construction">Construction</MenuItem>
+                    <MenuItem value="Healthcare">Healthcare</MenuItem>
+                    <MenuItem value="Agriculture">Agriculture</MenuItem>
+                    <MenuItem value="Hospitality">Hospitality</MenuItem>
+                    <MenuItem value="IT Support">IT Support</MenuItem>
+                    <MenuItem value="Nursing">Nursing</MenuItem>
+                    <MenuItem value="Driver">Driver</MenuItem>
+                    <MenuItem value="Security">Security</MenuItem>
+                    <MenuItem value="Cleaning">Cleaning</MenuItem>
+                    <MenuItem value="Cooking/Chef">Cooking/Chef</MenuItem>
+                    <MenuItem value="Plumber">Plumber</MenuItem>
+                    <MenuItem value="Electrician">Electrician</MenuItem>
+                    <MenuItem value="Carpenter">Carpenter</MenuItem>
+                    <MenuItem value="Welder">Welder</MenuItem>
+                  </Select>
+                  {jobFormErrors.category && <Typography variant="caption" color="error">{jobFormErrors.category}</Typography>}
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Number of Openings"
+                  type="number"
+                  value={jobForm.openings}
+                  onChange={(e) => setJobForm({ ...jobForm, openings: e.target.value })}
+                  fullWidth
+                  inputProps={{ min: 1 }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={jobForm.status}
+                    label="Status"
+                    onChange={(e) => setJobForm({ ...jobForm, status: e.target.value })}
+                  >
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="inactive">Inactive</MenuItem>
+                    <MenuItem value="closed">Closed</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Job Description *"
+                  value={jobForm.description}
+                  onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })}
+                  fullWidth
+                  multiline
+                  rows={4}
+                  required
+                  error={!!jobFormErrors.description}
+                  helperText={jobFormErrors.description}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Requirements (comma-separated)"
+                  value={jobForm.requirements}
+                  onChange={(e) => setJobForm({ ...jobForm, requirements: e.target.value })}
+                  fullWidth
+                  multiline
+                  rows={2}
+                  placeholder="e.g., Minimum 2 years experience, Valid work permit, Physical fitness certificate"
+                  helperText="Separate multiple requirements with commas"
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setEditJobDialogOpen(false); setSelectedJob(null); setJobFormErrors({}); }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={async () => {
+              // Validate form
+              const errors = {};
+              if (!jobForm.title?.trim()) errors.title = 'Title is required';
+              if (!jobForm.company?.trim()) errors.company = 'Company is required';
+              if (!jobForm.location?.trim()) errors.location = 'Location is required';
+              if (!jobForm.salary?.trim()) errors.salary = 'Salary is required';
+              if (!jobForm.description?.trim()) errors.description = 'Description is required';
+              if (!jobForm.category?.trim()) errors.category = 'Category is required';
+              
+              if (Object.keys(errors).length > 0) {
+                setJobFormErrors(errors);
+                return;
+              }
+
+              setSavingJob(true);
+              try {
+                const requirementsArray = jobForm.requirements
+                  ? jobForm.requirements.split(',').map(r => r.trim()).filter(r => r)
+                  : [];
+
+                const response = await api.put(`/jobs/${selectedJob.id}`, {
+                  title: jobForm.title,
+                  company: jobForm.company,
+                  location: jobForm.location,
+                  salary: jobForm.salary,
+                  experience: jobForm.experience,
+                  type: jobForm.type,
+                  description: jobForm.description,
+                  requirements: requirementsArray,
+                  category: jobForm.category,
+                  industry: jobForm.industry || jobForm.category,
+                  openings: parseInt(jobForm.openings) || 1,
+                  status: jobForm.status,
+                });
+
+                if (response.data.success) {
+                  setEditJobDialogOpen(false);
+                  setSelectedJob(null);
+                  setJobFormErrors({});
+                  fetchJobs(); // Refresh jobs list
+                }
+              } catch (error) {
+                console.error('Error updating job:', error);
+                setJobFormErrors({ submit: error.response?.data?.message || 'Failed to update job' });
+              } finally {
+                setSavingJob(false);
+              }
+            }}
+            disabled={savingJob}
+            startIcon={savingJob ? <CircularProgress size={20} /> : <EditIcon />}
+          >
+            {savingJob ? 'Saving...' : 'Update Job'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Add/Edit User Dialog */}
       <Dialog open={userDialogMode !== null} onClose={closeUserDialog} maxWidth="sm" fullWidth>
