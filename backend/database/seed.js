@@ -31,7 +31,9 @@ function seedUsers() {
       role: 'employer',
       companyName: 'Tech Solutions Israel',
       phone: '+972-50-1234567',
-      address: 'Tel Aviv, Israel'
+      address: 'Tel Aviv, Israel',
+      is_demo_account: 1,
+      demo_password: null
     },
     {
       email: 'worker@india.com',
@@ -40,7 +42,9 @@ function seedUsers() {
       fullName: 'Rajesh Kumar',
       role: 'worker',
       phone: '+91-9876543211',
-      address: 'Delhi, India'
+      address: 'Delhi, India',
+      is_demo_account: 1,
+      demo_password: null
     },
     // Additional dummy users
     {
@@ -51,7 +55,9 @@ function seedUsers() {
       role: 'employer',
       companyName: 'Construction Group Ltd',
       phone: '+972-50-2345678',
-      address: 'Jerusalem, Israel'
+      address: 'Jerusalem, Israel',
+      is_demo_account: 1,
+      demo_password: null
     },
     {
       email: 'worker2@india.com',
@@ -60,7 +66,9 @@ function seedUsers() {
       fullName: 'Amit Sharma',
       role: 'worker',
       phone: '+91-9876543212',
-      address: 'Pune, India'
+      address: 'Pune, India',
+      is_demo_account: 1,
+      demo_password: null
     },
     {
       email: 'worker3@india.com',
@@ -69,13 +77,15 @@ function seedUsers() {
       fullName: 'Priya Patel',
       role: 'worker',
       phone: '+91-9876543213',
-      address: 'Ahmedabad, India'
+      address: 'Ahmedabad, India',
+      is_demo_account: 1,
+      demo_password: null
     }
   ];
 
   const insertUser = db.prepare(`
-    INSERT INTO users (email, password, name, fullName, role, companyName, phone, address)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO users (email, password, name, fullName, role, companyName, phone, address, is_demo_account, demo_password)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const insertMany = db.transaction((users) => {
@@ -88,7 +98,9 @@ function seedUsers() {
         user.role,
         user.companyName || null,
         user.phone,
-        user.address
+        user.address,
+        user.is_demo_account || 0,
+        user.demo_password || null
       );
     }
   });
