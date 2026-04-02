@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/router';
 import {
   Grid, Card, CardContent, Typography, Box, Button,
   Table, TableBody, TableCell, TableHead, TableRow,
-  Chip, Avatar, LinearProgress, IconButton, Tab, Tabs,
+  Chip, Avatar, LinearProgress, IconButton,
   Badge, Tooltip, Alert, CircularProgress,
   Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, MenuItem, Select, FormControl, InputLabel,
@@ -20,6 +21,7 @@ import {
 } from 'recharts';
 import api from '../../utils/api';
 import dynamic from 'next/dynamic';
+import DashboardShell from '../Layout/DashboardShell';
 
 const AIJobGenerator = dynamic(
   () => import('../AI/AIJobGenerator'),
@@ -27,6 +29,46 @@ const AIJobGenerator = dynamic(
 );
 
 const IsraeliEmployerDashboard = () => {
+  const router = useRouter();
+  const [shellUser, setShellUser] = useState({ display: '', role: 'employer' });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      setShellUser({
+        display: u.fullName || u.name || u.email || u.companyName || 'Employer',
+        role: u.role || 'employer',
+      });
+    } catch (_) {
+      setShellUser({ display: 'Employer', role: 'employer' });
+    }
+  }, []);
+
+  const employerNavGroups = useMemo(
+    () => [
+      {
+        section: 'Employer',
+        items: [
+          { id: 0, label: 'Active Jobs', icon: <Work /> },
+          { id: 1, label: 'Candidate Pipeline', icon: <People /> },
+          { id: 2, label: 'Performance', icon: <Assessment /> },
+          { id: 3, label: 'Compliance', icon: <CheckCircle /> },
+        ],
+      },
+    ],
+    []
+  );
+
+  const employerTabTitle = (tab) =>
+    (
+      {
+        0: 'Active Jobs',
+        1: 'Candidate Pipeline',
+        2: 'Performance',
+        3: 'Compliance',
+      }[tab] ?? 'Dashboard'
+    );
+
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
@@ -306,25 +348,46 @@ const IsraeliEmployerDashboard = () => {
     }
   };
 
+  const shellProps = {
+    navGroups: employerNavGroups,
+    activeId: activeTab,
+    onNavSelect: setActiveTab,
+    topbarTitle: employerTabTitle(activeTab),
+    roleLabel: shellUser.role,
+    userDisplayName: shellUser.display,
+    onHome: () => router.push('/'),
+    onLogout: () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      router.push('/');
+    },
+  };
+
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
-        <CircularProgress size={60} />
-      </Box>
+      <DashboardShell {...shellProps}>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+          <CircularProgress size={60} />
+        </Box>
+      </DashboardShell>
     );
   }
 
   if (!dashboardData) {
-    return <Alert severity="error">Failed to load dashboard data.</Alert>;
+    return (
+      <DashboardShell {...shellProps}>
+        <Alert severity="error">Failed to load dashboard data.</Alert>
+      </DashboardShell>
+    );
   }
 
   return (
-    <Box p={3}>
+    <DashboardShell {...shellProps}>
       {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} flexWrap="wrap" gap={2}>
         <Box>
-          <Typography variant="h4" component="h1">
-            Israeli Employer Dashboard
+          <Typography variant="h5" component="h1" fontWeight={700}>
+            Employer workspace
           </Typography>
           <Typography variant="subtitle1" color="textSecondary">
             {dashboardData?.profile?.companyName ?? 'Company'}
@@ -476,20 +539,8 @@ const IsraeliEmployerDashboard = () => {
         </Grid>
       </Grid>
 
-      {/* Main Content Tabs */}
-      <Card>
-        <Tabs
-          value={activeTab}
-          onChange={(e, newValue) => setActiveTab(newValue)}
-          indicatorColor="primary"
-          textColor="primary"
-        >
-          <Tab label="Active Jobs" icon={<Work />} />
-          <Tab label="Candidate Pipeline" icon={<People />} />
-          <Tab label="Performance" icon={<Assessment />} />
-          <Tab label="Compliance" icon={<CheckCircle />} />
-        </Tabs>
-
+      {/* Main content (section from sidebar) */}
+      <Card elevation={2}>
         <CardContent>
           {/* Active Jobs Tab */}
           {activeTab === 0 && (
@@ -1376,7 +1427,7 @@ const IsraeliEmployerDashboard = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </DashboardShell>
   );
 };
 

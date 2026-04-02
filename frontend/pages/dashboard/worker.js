@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { CircularProgress } from '@mui/material';
 import WorkerDashboard from '../../components/Dashboards/WorkerDashboard';
-import MainLayout from '../../components/Layout/MainLayout';
+import DashboardPageFrame from '../../components/Layout/DashboardPageFrame';
 
 export default function WorkerDashboardPage() {
   const router = useRouter();
@@ -28,11 +28,11 @@ export default function WorkerDashboardPage() {
 
   if (loading || !router.isReady) {
     return (
-      <MainLayout>
+      <DashboardPageFrame>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
           <CircularProgress />
         </div>
-      </MainLayout>
+      </DashboardPageFrame>
     );
   }
 
@@ -40,8 +40,8 @@ export default function WorkerDashboardPage() {
   const initialTab = tab === 'find-jobs' ? 2 : 0; // Tab 2 is "Find Jobs"
 
   return (
-    <MainLayout>
+    <DashboardPageFrame>
       <WorkerDashboard initialTab={initialTab} />
-    </MainLayout>
+    </DashboardPageFrame>
   );
 }

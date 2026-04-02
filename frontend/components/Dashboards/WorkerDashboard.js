@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/router';
 import {
   Grid, Card, CardContent, Typography, Box, Button,
   LinearProgress, Chip, Avatar, Stepper, Step, StepLabel,
   Table, TableBody, TableCell, TableHead, TableRow,
-  Badge, Alert, Tab, Tabs, CircularProgress,
+  Badge, Alert, CircularProgress,
   List, ListItem, ListItemIcon, ListItemText, Divider,
   TextField, Dialog, DialogTitle, DialogContent, DialogActions,
   IconButton, Menu, MenuItem, Switch, FormControlLabel,
@@ -12,9 +13,10 @@ import {
   Work, School, Schedule, CheckCircle, Warning,
   TrendingUp, AttachMoney, Timeline, Assessment, GetApp,
   CloudUpload, Notifications, Settings, VerifiedUser,
-  LocationOn, Close, Download, FileDownload, TableChart,
+  LocationOn, Close, Download, FileDownload, TableChart, Person,
 } from '@mui/icons-material';
 import WorkerSafetyDashboard from '../Safety/WorkerSafetyDashboard';
+import DashboardShell from '../Layout/DashboardShell';
 import {
   PieChart, Pie, Cell, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
@@ -25,6 +27,45 @@ import { useTranslation } from 'react-i18next';
 
 const WorkerDashboard = ({ initialTab = 0 }) => {
   const { t } = useTranslation();
+  const router = useRouter();
+  const [shellUser, setShellUser] = useState({ display: '', role: 'worker' });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      setShellUser({
+        display: u.fullName || u.name || u.email || 'Worker',
+        role: u.role || 'worker',
+      });
+    } catch (_) {
+      setShellUser({ display: 'Worker', role: 'worker' });
+    }
+  }, []);
+
+  const workerNavGroups = useMemo(
+    () => [
+      {
+        section: t('common.workspace', 'Workspace'),
+        items: [
+          { id: 0, label: t('common.overview', 'Overview'), icon: <Assessment /> },
+          { id: 1, label: t('common.myApplications', 'My Applications'), icon: <Work /> },
+          { id: 2, label: t('common.findJobs', 'Find Jobs'), icon: <Work /> },
+          { id: 3, label: t('common.documents', 'Documents'), icon: <GetApp /> },
+          { id: 4, label: t('common.skillsLearning', 'Skills & Learning'), icon: <School /> },
+          { id: 5, label: t('common.safetyWelfare', 'Safety & Welfare'), icon: <VerifiedUser /> },
+          { id: 6, label: t('common.myProfile', 'My Profile'), icon: <Person /> },
+          { id: 7, label: t('common.timeline', 'Timeline'), icon: <Timeline /> },
+        ],
+      },
+    ],
+    [t]
+  );
+
+  const workerTabTitle = (tab) => {
+    const item = workerNavGroups[0]?.items?.find((i) => i.id === tab);
+    return item?.label ?? t('common.dashboard', 'My Dashboard');
+  };
+
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -328,22 +369,43 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
     setReportMenuAnchor(null);
   };
 
+  const shellProps = {
+    navGroups: workerNavGroups,
+    activeId: activeTab,
+    onNavSelect: setActiveTab,
+    topbarTitle: workerTabTitle(activeTab),
+    roleLabel: shellUser.role,
+    userDisplayName: shellUser.display,
+    onHome: () => router.push('/'),
+    onLogout: () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      router.push('/');
+    },
+  };
+
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
-        <CircularProgress size={60} />
-      </Box>
+      <DashboardShell {...shellProps}>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+          <CircularProgress size={60} />
+        </Box>
+      </DashboardShell>
     );
   }
 
   if (!dashboardData) {
-    return <Alert severity="error">Failed to load dashboard data.</Alert>;
+    return (
+      <DashboardShell {...shellProps}>
+        <Alert severity="error">Failed to load dashboard data.</Alert>
+      </DashboardShell>
+    );
   }
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
   return (
-    <Box p={3}>
+    <DashboardShell {...shellProps}>
       {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">{t('common.dashboard', 'My Dashboard')}</Typography>
@@ -475,26 +537,6 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
           </Card>
         </Grid>
       </Grid>
-
-      {/* Main Tabs */}
-      <Tabs
-        value={activeTab}
-        onChange={(e, newValue) => setActiveTab(newValue)}
-        indicatorColor="primary"
-        textColor="primary"
-        sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}
-        variant="scrollable"
-        scrollButtons="auto"
-      >
-        <Tab label={t('common.overview', 'Overview')} icon={<Assessment />} />
-        <Tab label={t('common.myApplications', 'My Applications')} icon={<Work />} />
-        <Tab label={t('common.findJobs', 'Find Jobs')} icon={<Work />} />
-        <Tab label={t('common.documents', 'Documents')} icon={<GetApp />} />
-        <Tab label={t('common.skillsLearning', 'Skills & Learning')} icon={<School />} />
-        <Tab label={t('common.safetyWelfare', 'Safety & Welfare')} icon={<VerifiedUser />} />
-        <Tab label={t('common.myProfile', 'My Profile')} icon={<Avatar />} />
-        <Tab label={t('common.timeline', 'Timeline')} icon={<Timeline />} />
-      </Tabs>
 
       {/* Overview Tab */}
       {activeTab === 0 && (
@@ -1382,7 +1424,7 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </DashboardShell>
   );
 };
 

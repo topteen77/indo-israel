@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useRouter } from 'next/router';
 import {
   Grid, Card, CardContent, Typography, Box, Chip,
   LinearProgress, CircularProgress, Button, Avatar,
@@ -16,15 +17,70 @@ import {
   Warning, BusinessCenter, Search,
 } from '@mui/icons-material';
 import AdminSafetyDashboard from '../Safety/AdminSafetyDashboard';
-import { Tab, Tabs } from '@mui/material';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
   PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import api from '../../utils/api';
+import DashboardShell from '../Layout/DashboardShell';
 
 const ApravasAdminDashboard = ({ initialTab }) => {
+  const router = useRouter();
+  const [shellUser, setShellUser] = useState({ display: '', role: 'admin' });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      setShellUser({
+        display: u.fullName || u.name || u.email || 'User',
+        role: u.role || 'admin',
+      });
+    } catch (_) {
+      setShellUser({ display: 'User', role: 'admin' });
+    }
+  }, []);
+
+  const adminNavGroups = useMemo(
+    () => [
+      { section: 'Overview', items: [{ id: 0, label: 'Analytics', icon: <Assessment /> }] },
+      {
+        section: 'Operations',
+        items: [
+          { id: 1, label: 'Safety & Welfare', icon: <SafetyCheck /> },
+          { id: 2, label: 'WhatsApp Log', icon: <Chat /> },
+          { id: 5, label: 'Email Log', icon: <EmailIcon /> },
+          { id: 6, label: 'Website errors', icon: <Warning /> },
+          { id: 7, label: 'Live chat', icon: <Chat /> },
+        ],
+      },
+      {
+        section: 'Management',
+        items: [
+          { id: 3, label: 'Users', icon: <People /> },
+          { id: 4, label: 'Jobs', icon: <BusinessCenter /> },
+        ],
+      },
+      { section: 'System', items: [{ id: 8, label: 'Settings', icon: <SettingsIcon /> }] },
+    ],
+    []
+  );
+
+  const adminTabTitle = (tab) => {
+    const m = {
+      0: 'Analytics',
+      1: 'Safety & Welfare',
+      2: 'WhatsApp Log',
+      3: 'Users',
+      4: 'Jobs',
+      5: 'Email Log',
+      6: 'Website errors',
+      7: 'Live chat',
+      8: 'Settings',
+    };
+    return m[tab] ?? 'Dashboard';
+  };
+
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState('30d');
@@ -538,50 +594,43 @@ const ApravasAdminDashboard = ({ initialTab }) => {
     </Card>
   );
 
+  const shellProps = {
+    navGroups: adminNavGroups,
+    activeId: activeTab,
+    onNavSelect: setActiveTab,
+    topbarTitle: adminTabTitle(activeTab),
+    roleLabel: shellUser.role,
+    userDisplayName: shellUser.display,
+    onHome: () => router.push('/'),
+    onLogout: () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      router.push('/');
+    },
+  };
+
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
-        <CircularProgress size={60} />
-      </Box>
+      <DashboardShell {...shellProps}>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+          <CircularProgress size={60} />
+        </Box>
+      </DashboardShell>
     );
   }
 
   if (!analytics) {
     return (
-      <Alert severity="error">Failed to load dashboard data. Please refresh.</Alert>
+      <DashboardShell {...shellProps}>
+        <Alert severity="error">Failed to load dashboard data. Please refresh.</Alert>
+      </DashboardShell>
     );
   }
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
   return (
-    <Box p={3}>
-      {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1">
-          Apravas Admin Dashboard
-        </Typography>
-      </Box>
-
-      {/* Tabs */}
-      <Tabs
-        value={activeTab}
-        onChange={(e, newValue) => setActiveTab(newValue)}
-        indicatorColor="primary"
-        textColor="primary"
-        sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}
-      >
-        <Tab label="Analytics" icon={<Assessment />} />
-        <Tab label="Safety & Welfare" icon={<SafetyCheck />} />
-        <Tab label="WhatsApp Log" icon={<Chat />} />
-        <Tab label="Users" icon={<People />} />
-        <Tab label="Jobs" icon={<BusinessCenter />} />
-        <Tab label="Email Log" icon={<EmailIcon />} />
-        <Tab label="Website errors" icon={<Warning />} />
-        <Tab label="Live chat" icon={<Chat />} />
-        <Tab label="Settings" icon={<SettingsIcon />} />
-      </Tabs>
-
+    <DashboardShell {...shellProps}>
       {/* Analytics Tab */}
       {activeTab === 0 && (
         <>
@@ -2025,7 +2074,7 @@ const ApravasAdminDashboard = ({ initialTab }) => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </DashboardShell>
   );
 };
 

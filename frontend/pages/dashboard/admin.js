@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import ApravasAdminDashboard from '../../components/Dashboards/ApravasAdminDashboard';
-import MainLayout from '../../components/Layout/MainLayout';
+import DashboardPageFrame from '../../components/Layout/DashboardPageFrame';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -28,8 +28,8 @@ export default function AdminDashboard() {
   const tabIndex = Number.isFinite(initialTab) && initialTab >= 0 ? initialTab : undefined;
 
   return (
-    <MainLayout>
+    <DashboardPageFrame>
       <ApravasAdminDashboard initialTab={tabIndex} />
-    </MainLayout>
+    </DashboardPageFrame>
   );
 }

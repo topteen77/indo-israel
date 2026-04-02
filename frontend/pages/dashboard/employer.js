@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import IsraeliEmployerDashboard from '../../components/Dashboards/IsraeliEmployerDashboard';
-import MainLayout from '../../components/Layout/MainLayout';
+import DashboardPageFrame from '../../components/Layout/DashboardPageFrame';
 
 export default function EmployerDashboard() {
   const router = useRouter();
@@ -24,8 +24,8 @@ export default function EmployerDashboard() {
   }
 
   return (
-    <MainLayout>
+    <DashboardPageFrame>
       <IsraeliEmployerDashboard />
-    </MainLayout>
+    </DashboardPageFrame>
   );
 }
