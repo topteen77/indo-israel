@@ -358,7 +358,7 @@ export default function Home() {
                   letterSpacing: '-0.01em',
                 }}
               >
-                Your job search ends here
+                Your job search ends here.
               </Typography>
               <Typography
                 variant="h6"
