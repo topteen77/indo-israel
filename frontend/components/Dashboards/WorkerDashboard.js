@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import {
   Work, School, Schedule, CheckCircle, Warning,
-  TrendingUp, AttachMoney, Timeline, Assessment, GetApp,
+  TrendingUp, AttachMoney, Assessment, GetApp,
   CloudUpload, Notifications, Settings, VerifiedUser,
   LocationOn, Close, Download, FileDownload, TableChart, Person,
 } from '@mui/icons-material';
@@ -24,6 +24,7 @@ import {
 } from 'recharts';
 import api from '../../utils/api';
 import { useTranslation } from 'react-i18next';
+import { buildWorkerDashboardNavGroups } from '../../config/workerDashboardNav';
 
 const WorkerDashboard = ({ initialTab = 0 }) => {
   const { t } = useTranslation();
@@ -42,24 +43,7 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
     }
   }, []);
 
-  const workerNavGroups = useMemo(
-    () => [
-      {
-        section: t('common.workspace', 'Workspace'),
-        items: [
-          { id: 0, label: t('common.overview', 'Overview'), icon: <Assessment /> },
-          { id: 1, label: t('common.myApplications', 'My Applications'), icon: <Work /> },
-          { id: 2, label: t('common.findJobs', 'Find Jobs'), icon: <Work /> },
-          { id: 3, label: t('common.documents', 'Documents'), icon: <GetApp /> },
-          { id: 4, label: t('common.skillsLearning', 'Skills & Learning'), icon: <School /> },
-          { id: 5, label: t('common.safetyWelfare', 'Safety & Welfare'), icon: <VerifiedUser /> },
-          { id: 6, label: t('common.myProfile', 'My Profile'), icon: <Person /> },
-          { id: 7, label: t('common.timeline', 'Timeline'), icon: <Timeline /> },
-        ],
-      },
-    ],
-    [t]
-  );
+  const workerNavGroups = useMemo(() => buildWorkerDashboardNavGroups(t), [t]);
 
   const workerTabTitle = (tab) => {
     const item = workerNavGroups[0]?.items?.find((i) => i.id === tab);
@@ -369,10 +353,18 @@ const WorkerDashboard = ({ initialTab = 0 }) => {
     setReportMenuAnchor(null);
   };
 
+  const handleNavSelect = (id) => {
+    if (id === 8) {
+      router.push('/dashboard/worker/aparavas-agent');
+      return;
+    }
+    setActiveTab(id);
+  };
+
   const shellProps = {
     navGroups: workerNavGroups,
     activeId: activeTab,
-    onNavSelect: setActiveTab,
+    onNavSelect: handleNavSelect,
     topbarTitle: workerTabTitle(activeTab),
     roleLabel: shellUser.role,
     userDisplayName: shellUser.display,

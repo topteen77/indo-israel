@@ -36,8 +36,14 @@ export default function WorkerDashboardPage() {
     );
   }
 
-  // Determine initial tab from query parameter
-  const initialTab = tab === 'find-jobs' ? 2 : 0; // Tab 2 is "Find Jobs"
+  // Tab from query: ?tab=find-jobs (legacy) or ?tab=0 … ?tab=7
+  const initialTab = (() => {
+    if (tab === 'find-jobs') return 2;
+    if (tab === undefined || tab === '') return 0;
+    const n = parseInt(String(tab), 10);
+    if (Number.isNaN(n) || n < 0 || n > 7) return 0;
+    return n;
+  })();
 
   return (
     <DashboardPageFrame>

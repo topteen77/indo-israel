@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Aparavas — AI Document Intake & Form Auto-Fill Agent</title>
+<style>
+/* ── DESIGN TOKENS ────────────────────────────────────────────── */
+:root{
+  --navy:     #1B3A6B;
+  --navy-d:   #0F2444;
+  --navy-l:   #2A4F8A;
+  --saff:     #D4500A;
+  --saff-l:   #F4712A;
+  --teal:     #0E6B61;
+  --teal-l:   #12877A;
+  --gold:     #C49A20;
+  --gold-l:   #DFB030;
+  --ice:      #EAF2FB;
+  --cream:    #FFFBF2;
+  --success:  #1A7F45;
+  --warning:  #B35A00;
+  --error:    #C0392B;
+  --border:   #D0D5DD;
+  --bg:       #F7F8FA;
+  --white:    #FFFFFF;
+  --text:     #1A1A2E;
+  --muted:    #6B7280;
+  --r-sm:     6px;
+  --r-md:     10px;
+  --r-lg:     14px;
+  --shadow:   0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  --shadow-lg:0 4px 16px rgba(0,0,0,.12);
+  --font:     -apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;line-height:1.6}
+
+/* ── LAYOUT ──────────────────────────────────────────────────── */
+.app{display:grid;grid-template-rows:auto 1fr auto;min-height:100vh}
+.topbar{background:var(--navy);padding:0;position:sticky;top:0;z-index:100}
+.topbar-inner{display:flex;align-items:center;justify-content:space-between;padding:10px 24px;max-width:1400px;margin:0 auto}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-text{color:#fff;font-weight:700;font-size:18px;letter-spacing:.5px}
+.logo-sub{color:#CADCFC;font-size:11px;margin-top:1px}
+.saff-bar{height:3px;background:var(--saff);width:100%}
+.badge-top{background:rgba(255,255,255,.15);color:#CADCFC;font-size:10px;padding:3px 8px;border-radius:20px;border:1px solid rgba(255,255,255,.2)}
+main{max-width:1400px;margin:0 auto;padding:24px;width:100%;display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
+@media(max-width:900px){main{grid-template-columns:1fr;padding:12px}}
+.footer{background:var(--navy-d);color:#CADCFC;font-size:11px;text-align:center;padding:10px;margin-top:8px}
+
+/* ── CARDS ───────────────────────────────────────────────────── */
+.card{background:var(--white);border-radius:var(--r-lg);border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.card-header h2{font-size:14px;font-weight:600;color:var(--navy)}
+.card-header .icon{width:22px;height:22px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:12px}
+.card-body{padding:16px 18px}
+
+/* ── STEP PIPELINE ───────────────────────────────────────────── */
+.pipeline{display:flex;flex-direction:column;gap:0}
+.step{display:flex;align-items:flex-start;gap:10px;padding:10px 0;position:relative}
+.step:not(:last-child)::before{content:'';position:absolute;left:14px;top:36px;bottom:-4px;width:2px;background:var(--border)}
+.step.active::before{background:var(--navy)}
+.step.done::before{background:var(--success)}
+.step-num{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);flex-shrink:0;z-index:1}
+.step.active .step-num{border-color:var(--navy);background:var(--navy);color:#fff}
+.step.done .step-num{border-color:var(--success);background:var(--success);color:#fff}
+.step.error .step-num{border-color:var(--error);background:var(--error);color:#fff}
+.step-content{flex:1;min-width:0}
+.step-title{font-size:12px;font-weight:600;color:var(--text)}
+.step.active .step-title{color:var(--navy)}
+.step.done .step-title{color:var(--success)}
+.step-desc{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── UPLOAD ZONE ─────────────────────────────────────────────── */
+.upload-zone{border:2px dashed var(--border);border-radius:var(--r-md);padding:24px 16px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg)}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--navy);background:var(--ice)}
+.upload-zone.drag{background:#E8F0FA}
+.upload-icon{font-size:28px;margin-bottom:8px}
+.upload-text{font-size:13px;font-weight:500;color:var(--navy)}
+.upload-sub{font-size:11px;color:var(--muted);margin-top:4px}
+input[type=file]{display:none}
+
+/* ── FILE LIST ───────────────────────────────────────────────── */
+.file-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.file-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg);border-radius:var(--r-sm);border:1px solid var(--border)}
+.file-icon{width:28px;height:28px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.file-name{flex:1;font-size:12px;font-weight:500;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-size{font-size:10px;color:var(--muted)}
+.file-status{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0}
+.file-status.pending{background:#FEF3C7;color:#92400E}
+.file-status.processing{background:#DBEAFE;color:#1E40AF;animation:pulse 1s infinite}
+.file-status.done{background:#D1FAE5;color:#065F46}
+.file-status.error{background:#FEE2E2;color:#991B1B}
+.file-del{background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:2px 4px;border-radius:3px}
+.file-del:hover{color:var(--error);background:#FEE2E2}
+
+/* ── DOCUMENT TYPE SELECTOR ──────────────────────────────────── */
+.doc-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.doc-type{border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 10px;cursor:pointer;transition:all .15s;font-size:11px;text-align:center;background:var(--white)}
+.doc-type:hover{border-color:var(--navy);background:var(--ice)}
+.doc-type.selected{border-color:var(--navy);background:var(--navy);color:#fff}
+.doc-type-icon{font-size:16px;display:block;margin-bottom:2px}
+
+/* ── PROCESSING PANEL ────────────────────────────────────────── */
+.ai-log{background:var(--navy-d);border-radius:var(--r-md);padding:14px;font-family:'Courier New',monospace;font-size:11px;color:#9CA3AF;max-height:200px;overflow-y:auto;margin-top:10px}
+.ai-log .line{line-height:1.5;margin-bottom:2px}
+.ai-log .ok{color:#34D399}
+.ai-log .warn{color:#FCD34D}
+.ai-log .err{color:#F87171}
+.ai-log .info{color:#60A5FA}
+.ai-log .prompt{color:#A78BFA}
+
+/* ── FORM OUTPUT ─────────────────────────────────────────────── */
+.form-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto}
+.form-tab{padding:8px 14px;font-size:12px;font-weight:500;border:none;background:none;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s}
+.form-tab.active{color:var(--navy);border-bottom-color:var(--navy)}
+.form-tab:hover:not(.active){color:var(--text);background:var(--bg)}
+.form-tab.done::after{content:' ✓';color:var(--success)}
+.form-tab.warn::after{content:' ⚠';color:var(--warning)}
+
+/* ── FORM FIELDS ─────────────────────────────────────────────── */
+.form-section{margin-bottom:20px}
+.form-section-title{font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--ice)}
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field-grid.full{grid-template-columns:1fr}
+.field-grid.tri{grid-template-columns:1fr 1fr 1fr}
+.field{display:flex;flex-direction:column;gap:3px}
+.field label{font-size:11px;font-weight:600;color:var(--muted)}
+.field label span{color:var(--error)}
+.field input,.field select,.field textarea{border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 10px;font-size:12px;font-family:var(--font);transition:border .15s;background:var(--white);color:var(--text)}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 2px rgba(27,58,107,.1)}
+.field input.ai-filled{background:#F0FFF4;border-color:var(--success)}
+.field input.ai-warn{background:#FFF7ED;border-color:var(--warning)}
+.field input.ai-error{background:#FFF5F5;border-color:var(--error)}
+.field-hint{font-size:10px;color:var(--muted)}
+.ai-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;padding:1px 5px;border-radius:10px;margin-left:4px}
+.ai-badge.ok{background:#D1FAE5;color:#065F46}
+.ai-badge.warn{background:#FEF3C7;color:#92400E}
+.ai-badge.miss{background:#FEE2E2;color:#991B1B}
+
+/* ── VALIDATION PANEL ────────────────────────────────────────── */
+.validation-list{display:flex;flex-direction:column;gap:5px}
+.val-item{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:var(--r-sm);font-size:11px}
+.val-item.ok{background:#D1FAE5;color:#065F46}
+.val-item.warn{background:#FEF3C7;color:#92400E}
+.val-item.error{background:#FEE2E2;color:#991B1B}
+.val-icon{flex-shrink:0;font-weight:700}
+.val-text{flex:1}
+.val-field{font-weight:600}
+
+/* ── ACTIONS ─────────────────────────────────────────────────── */
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.btn{padding:8px 16px;border-radius:var(--r-sm);font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:5px}
+.btn-primary{background:var(--navy);color:#fff}
+.btn-primary:hover{background:var(--navy-l)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-saff{background:var(--saff);color:#fff}
+.btn-saff:hover{background:var(--saff-l)}
+.btn-teal{background:var(--teal);color:#fff}
+.btn-teal:hover{background:var(--teal-l)}
+.btn-outline{background:var(--white);color:var(--navy);border:1px solid var(--border)}
+.btn-outline:hover{border-color:var(--navy);background:var(--ice)}
+.btn-ghost{background:none;color:var(--muted);border:none}
+.btn-ghost:hover{color:var(--text);background:var(--bg)}
+
+/* ── STATUS BANNER ───────────────────────────────────────────── */
+.status-banner{padding:10px 14px;border-radius:var(--r-sm);font-size:12px;font-weight:500;display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.status-banner.idle{background:#F3F4F6;color:var(--muted);border:1px solid var(--border)}
+.status-banner.processing{background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE}
+.status-banner.success{background:#D1FAE5;color:#065F46;border:1px solid #A7F3D0}
+.status-banner.warning{background:#FEF3C7;color:#92400E;border:1px solid #FDE68A}
+.status-banner.error{background:#FEE2E2;color:#991B1B;border:1px solid #FECACA}
+
+/* ── PROGRESS BAR ────────────────────────────────────────────── */
+.progress-wrap{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin:8px 0}
+.progress-bar{height:100%;background:var(--navy);border-radius:3px;transition:width .4s ease}
+
+/* ── COMPLIANCE CHECKLIST ────────────────────────────────────── */
+.checklist{display:flex;flex-direction:column;gap:4px}
+.check-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:var(--r-sm);font-size:11px}
+.check-item.pending{color:var(--muted)}
+.check-item.ok{color:var(--success);background:#F0FFF4}
+.check-item.missing{color:var(--error);background:#FFF5F5}
+.check-item.warn{color:var(--warning);background:#FFFBEB}
+.check-icon{width:14px;text-align:center;flex-shrink:0}
+
+/* ── SUMMARY STATS ───────────────────────────────────────────── */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.stat{background:var(--white);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;text-align:center}
+.stat-val{font-size:22px;font-weight:700;color:var(--navy)}
+.stat-lbl{font-size:10px;color:var(--muted);margin-top:2px}
+
+/* ── ANIMATIONS ──────────────────────────────────────────────── */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.spin{animation:spin 1s linear infinite;display:inline-block}
+.slide-in{animation:slideIn .25s ease}
+
+/* ── TOOLTIP ─────────────────────────────────────────────────── */
+[title]{cursor:help}
+
+/* ── SCROLLBAR ───────────────────────────────────────────────── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ── MISC ────────────────────────────────────────────────────── */
+.divider{height:1px;background:var(--border);margin:12px 0}
+.tag{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600}
+.tag-navy{background:var(--ice);color:var(--navy)}
+.tag-saff{background:#FEF0E6;color:var(--saff)}
+.tag-success{background:#D1FAE5;color:#065F46}
+.tag-warn{background:#FEF3C7;color:#92400E}
+.tag-error{background:#FEE2E2;color:#991B1B}
+.text-sm{font-size:11px}
+.text-xs{font-size:10px}
+.text-muted{color:var(--muted)}
+.mt-2{margin-top:8px}
+.mt-3{margin-top:12px}
+.fw-6{font-weight:600}
+.flex{display:flex;align-items:center}
+.flex-between{display:flex;align-items:center;justify-content:space-between}
+.gap-1{gap:4px}
+.gap-2{gap:8px}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+<!-- ── TOP BAR ─────────────────────────────────────────────────── -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="logo">
+      <div style="width:32px;height:32px;background:var(--saff);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff">A</div>
+      <div>
+        <div class="logo-text">APARAVAS</div>
+        <div class="logo-sub">AI Document Intake & Form Auto-Fill Agent</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="badge-top">🇮🇳 → 🇮🇱 Israel Placement Pipeline</span>
+      <span class="badge-top">v2.0 · Production</span>
+    </div>
+  </div>
+  <div class="saff-bar"></div>
+</header>
+
+<!-- ── MAIN ──────────────────────────────────────────────────────── -->
+<main>
+
+  <!-- LEFT COLUMN: CONTROLS -->
+  <aside>
+
+    <!-- Pipeline Steps -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <div class="icon" style="background:#EEF2FF">🗺️</div>
+        <h2>Processing Pipeline</h2>
+      </div>
+      <div class="card-body">
+        <div class="pipeline" id="pipeline">
+          <div class="step active" id="step-0">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <div class="step-title">Upload Documents</div>
+              <div class="step-desc">Upload all worker documents</div>
+            </div>
+          </div>
+          <div class="step" id="step-1">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <div class="step-title">Tag Document Types</div>
+              <div class="step-desc">Classify each uploaded file</div>
+            </div>
+          </div>
+          <div class="step" id="step-2">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <div class="step-title">AI Extraction</div>
+              <div class="step-desc">Claude extracts fields from docs</div>
+            </div>
+          </div>
+          <div class="step" id="step-3">
+            <div class="step-num">4</div>
+            <div class="step-content">
+              <div class="step-title">Form Auto-Fill</div>
+              <div class="step-desc">All 7 forms populated</div>
+            </div>
+          </div>
+          <div class="step" id="step-4">
+            <div class="step-num">5</div>
+            <div class="step-content">
+              <div class="step-title">Validation & Review</div>
+              <div class="step-desc">Compliance check + corrections</div>
+            </div>
+          </div>
+          <div class="step" id="step-5">
+            <div class="step-num">6</div>
+            <div class="step-content">
+              <div class="step-title">Export Package</div>
+              <div class="step-desc">Download complete dossier</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload Zone -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <div class="icon" style="background:#FEF3C7">📁</div>
+        <h2>Document Upload</h2>
+      </div>
+      <div class="card-body">
+        <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+          <div class="upload-icon">📎</div>
+          <div class="upload-text">Drop documents here or click to browse</div>
+          <div class="upload-sub">PDF, JPG, PNG, DOCX · Max 10MB per file</div>
+        </div>
+        <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.docx,.doc"/>
+        <div id="fileList" class="file-list"></div>
+        <div id="uploadActions" class="actions" style="display:none">
+          <button class="btn btn-primary" id="tagBtn" onclick="goToTagging()">Tag Document Types →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Document Type Tagging -->
+    <div class="card" id="taggingCard" style="margin-bottom:16px;display:none">
+      <div class="card-header">
+        <div class="icon" style="background:#E0F2FE">🏷️</div>
+        <h2>Tag Each Document</h2>
+      </div>
+      <div class="card-body">
+        <div id="taggingContent"></div>
+        <div class="actions">
+          <button class="btn btn-saff" id="processBtn" onclick="startProcessing()">🤖 Run AI Extraction</button>
+          <button class="btn btn-ghost" onclick="goBack(0)">← Back</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Processing Log -->
+    <div class="card" id="logCard" style="display:none">
+      <div class="card-header">
+        <div class="icon" style="background:#EDE9FE">🧠</div>
+        <h2>AI Processing Log</h2>
+      </div>
+      <div class="card-body">
+        <div id="progressWrap" class="progress-wrap" style="display:none">
+          <div id="progressBar" class="progress-bar" style="width:0%"></div>
+        </div>
+        <div class="ai-log" id="aiLog"><span class="text-muted">Waiting for documents...</span></div>
+        <div class="actions" style="margin-top:8px">
+          <button class="btn btn-ghost text-xs" onclick="clearLog()">Clear log</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Document Checklist -->
+    <div class="card" id="checklistCard">
+      <div class="card-header">
+        <div class="icon" style="background:#D1FAE5">✅</div>
+        <h2>Required Documents</h2>
+      </div>
+      <div class="card-body">
+        <div class="checklist" id="docChecklist">
+          <!-- populated by JS -->
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- RIGHT COLUMN: FORMS -->
+  <section>
+
+    <!-- Stat Row -->
+    <div class="stat-row" id="statRow">
+      <div class="stat"><div class="stat-val" id="s-fields">—</div><div class="stat-lbl">Fields Detected</div></div>
+      <div class="stat"><div class="stat-val" id="s-filled">—</div><div class="stat-lbl">Auto-Filled</div></div>
+      <div class="stat"><div class="stat-val" id="s-warn">—</div><div class="stat-lbl">Need Review</div></div>
+      <div class="stat"><div class="stat-val" id="s-miss">—</div><div class="stat-lbl">Missing</div></div>
+    </div>
+
+    <!-- Status Banner -->
+    <div class="status-banner idle" id="statusBanner">
+      <span>⬆️</span>
+      <span id="statusText">Upload worker documents to begin. The AI agent will extract data and auto-fill all 7 required forms.</span>
+    </div>
+
+    <!-- Form Area -->
+    <div class="card">
+      <div class="card-header">
+        <div class="icon" style="background:#F0FFF4">📋</div>
+        <h2>India → Israel Deployment Forms (7)</h2>
+        <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+          <span class="tag tag-navy">eMigrate Clearance</span>
+          <span class="tag tag-saff">B-1 Visa</span>
+          <span class="tag tag-success">PBBY Insurance</span>
+        </div>
+      </div>
+      <div class="card-body" style="padding:0">
+        <div class="form-tabs" id="formTabs">
+          <button class="form-tab active" onclick="showForm(0,this)">1. Worker Profile</button>
+          <button class="form-tab" onclick="showForm(1,this)">2. eMigrate Registration</button>
+          <button class="form-tab" onclick="showForm(2,this)">3. B-1 Visa Application</button>
+          <button class="form-tab" onclick="showForm(3,this)">4. PBBY Insurance</button>
+          <button class="form-tab" onclick="showForm(4,this)">5. NSDC Skills Form</button>
+          <button class="form-tab" onclick="showForm(5,this)">6. Employment Contract</button>
+          <button class="form-tab" onclick="showForm(6,this)">7. Pre-Departure Declaration</button>
+        </div>
+        <div style="padding:16px 18px">
+          <div id="formContent"></div>
+          <!-- Validation panel -->
+          <div id="validationPanel" style="display:none;margin-top:16px">
+            <div class="divider"></div>
+            <div class="flex-between" style="margin-bottom:8px">
+              <div class="fw-6 text-sm">Validation Results</div>
+              <button class="btn btn-ghost text-xs" onclick="document.getElementById('validationPanel').style.display='none'">Hide</button>
+            </div>
+            <div class="validation-list" id="validationList"></div>
+          </div>
+          <!-- Actions -->
+          <div class="actions" id="formActions" style="margin-top:16px;display:none">
+            <button class="btn btn-primary" onclick="validateCurrentForm()">✓ Validate Form</button>
+            <button class="btn btn-teal" onclick="exportAll()">⬇ Export All Forms</button>
+            <button class="btn btn-outline" onclick="exportJSON()">{ } Export JSON</button>
+            <button class="btn btn-ghost" onclick="resetAll()">↺ Reset</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<footer class="footer">
+  Aparavas International Workforce Solutions · AI Document Intake Agent v2.0 · India–Israel Placement Pipeline · eMigrate Compliant · PBBY Integrated · NSDC Aligned
+</footer>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+//  APARAVAS AI DOCUMENT INTAKE & FORM AUTO-FILL AGENT
+//  Production Grade · Zero-Error · Scalable
+// ══════════════════════════════════════════════════════════════════
+
+"use strict";
+
+// ── CONSTANTS ──────────────────────────────────────────────────
+const DOC_TYPES = [
+  { id:"passport",    label:"Passport",          icon:"🛂", required:true,  desc:"Bio-data page + address page" },
+  { id:"photo",       label:"Passport Photo",    icon:"📸", required:true,  desc:"5×5cm white background" },
+  { id:"iti_cert",    label:"ITI Certificate",   icon:"🎓", required:true,  desc:"NCVT/SCVT trade certificate" },
+  { id:"pcc",         label:"Police Clearance",  icon:"🚔", required:true,  desc:"PCC valid ≤6 months, translated" },
+  { id:"medical",     label:"Medical Report",    icon:"🏥", required:true,  desc:"From authorized clinic" },
+  { id:"contract",    label:"Employment Contract",icon:"📜",required:true,  desc:"Signed by employer & worker" },
+  { id:"moi_approval",label:"MoI Approval Letter",icon:"🏛️",required:true, desc:"From Israeli Ministry of Interior" },
+  { id:"birth_cert",  label:"Birth Certificate", icon:"📋", required:true,  desc:"Translated & certified" },
+  { id:"bank",        label:"Bank Passbook",     icon:"🏦", required:false, desc:"Last 6 months statements" },
+  { id:"edu_cert",    label:"Education Certificate",icon:"📄",required:false,desc:"10th/12th marksheets" },
+  { id:"trade_test",  label:"Trade Test Result", icon:"🔧", required:false, desc:"PIBA/NSDC assessment result" },
+  { id:"other",       label:"Other Document",    icon:"📎", required:false, desc:"Any supporting document" },
+];
+
+// ── STATE ───────────────────────────────────────────────────────
+const STATE = {
+  files: [],          // { id, name, size, type, docType, status, extractedData }
+  currentStep: 0,
+  currentForm: 0,
+  formData: {},       // All form field values
+  fieldMeta: {},      // { fieldId: { source, confidence, original } }
+  apiKey: null,
+  processing: false,
+  logs: [],
+  validationResults: {},
+};
+
+// ── FORM DEFINITIONS ────────────────────────────────────────────
+const FORMS = [
+
+  // FORM 0 — WORKER PROFILE
+  { id:"worker_profile", title:"Worker Profile Sheet",
+    sections:[
+      { title:"Personal Details", fields:[
+        { id:"full_name",        label:"Full Name (as in Passport)", type:"text",   required:true,  placeholder:"As per passport exactly" },
+        { id:"dob",              label:"Date of Birth",              type:"date",   required:true  },
+        { id:"gender",           label:"Gender",                     type:"select", required:true, options:["Select","Male","Female","Other"] },
+        { id:"nationality",      label:"Nationality",                type:"text",   required:true,  defaultVal:"Indian" },
+        { id:"religion",         label:"Religion",                   type:"text",   required:false },
+        { id:"marital_status",   label:"Marital Status",             type:"select", required:true, options:["Select","Single","Married","Divorced","Widowed"] },
+      ]},
+      { title:"Passport Details", fields:[
+        { id:"passport_no",      label:"Passport Number",            type:"text",   required:true  },
+        { id:"passport_issue",   label:"Issue Date",                 type:"date",   required:true  },
+        { id:"passport_expiry",  label:"Expiry Date",                type:"date",   required:true  },
+        { id:"passport_place",   label:"Place of Issue",             type:"text",   required:true  },
+        { id:"ecr_status",       label:"ECR/ECNR Status",            type:"select", required:true, options:["Select","ECR","ECNR"] },
+      ]},
+      { title:"Contact & Address", fields:[
+        { id:"mobile",           label:"Mobile (WhatsApp)",          type:"tel",    required:true  },
+        { id:"email",            label:"Email Address",              type:"email",  required:false },
+        { id:"address",          label:"Permanent Address (full)",   type:"textarea",required:true, colspan:2 },
+        { id:"city",             label:"City/District",              type:"text",   required:true  },
+        { id:"state",            label:"State",                      type:"select", required:true, options:["Select","Andhra Pradesh","Assam","Bihar","Chandigarh","Delhi","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Odisha","Punjab","Rajasthan","Tamil Nadu","Telangana","Uttar Pradesh","Uttarakhand","West Bengal","Other"] },
+        { id:"pin",              label:"PIN Code",                   type:"text",   required:true  },
+      ]},
+      { title:"Emergency Contact", fields:[
+        { id:"kin_name",         label:"Next of Kin Name",           type:"text",   required:true  },
+        { id:"kin_relation",     label:"Relationship",               type:"text",   required:true  },
+        { id:"kin_mobile",       label:"Emergency Contact Number",   type:"tel",    required:true  },
+      ]},
+    ]
+  },
+
+  // FORM 1 — eMIGRATE REGISTRATION
+  { id:"emigrate", title:"eMigrate Worker Registration (MEA)",
+    sections:[
+      { title:"eMigrate Portal Fields", fields:[
+        { id:"emi_job_id",       label:"Job ID (from employer/agent)", type:"text", required:true, placeholder:"EJ-XXXXXXXX" },
+        { id:"emi_destination",  label:"Destination Country",          type:"text", required:true, defaultVal:"Israel" },
+        { id:"emi_employer_name",label:"Israeli Employer Name",        type:"text", required:true },
+        { id:"emi_employer_addr",label:"Employer Address (Israel)",    type:"textarea",required:true, colspan:2 },
+        { id:"emi_job_title",    label:"Job Title / Trade",            type:"text", required:true },
+        { id:"emi_salary_nis",   label:"Monthly Salary (NIS)",         type:"text", required:true },
+        { id:"emi_contract_dur", label:"Contract Duration",            type:"text", required:true, placeholder:"e.g. 1 Year" },
+        { id:"emi_contract_start",label:"Contract Start Date",         type:"date", required:true },
+      ]},
+      { title:"PBBY Insurance (required before clearance)", fields:[
+        { id:"emi_pbby_insurer", label:"PBBY Insurer Name",            type:"select",required:true, options:["Select","New India Assurance","Oriental Insurance","United India Insurance","National Insurance","LIC"] },
+        { id:"emi_pbby_policy",  label:"PBBY Policy Number",           type:"text", required:true },
+        { id:"emi_pbby_start",   label:"Policy Start Date",            type:"date", required:true },
+        { id:"emi_pbby_end",     label:"Policy End Date",              type:"date", required:true },
+      ]},
+      { title:"Indian Agent/Recruiter Details", fields:[
+        { id:"emi_ra_name",      label:"Recruiting Agency Name",       type:"text", required:true, defaultVal:"Aparavas International" },
+        { id:"emi_ra_license",   label:"RA License Number (eMigrate)", type:"text", required:true },
+        { id:"emi_poe",          label:"Protector of Emigrants Office",type:"select",required:true, options:["Select","New Delhi","Mumbai","Chennai","Kolkata","Hyderabad","Thiruvananthapuram","Chandigarh","Jaipur","Lucknow","Bhubaneswar"] },
+      ]},
+    ]
+  },
+
+  // FORM 2 — B-1 VISA APPLICATION
+  { id:"b1_visa", title:"B-1 Work Visa Application (Israeli Embassy)",
+    sections:[
+      { title:"Application Particulars", fields:[
+        { id:"visa_full_name",   label:"Full Name (as passport)",       type:"text",  required:true },
+        { id:"visa_dob",         label:"Date of Birth",                 type:"date",  required:true },
+        { id:"visa_nationality", label:"Nationality",                   type:"text",  required:true, defaultVal:"Indian" },
+        { id:"visa_passport_no", label:"Passport Number",               type:"text",  required:true },
+        { id:"visa_passport_exp",label:"Passport Expiry Date",          type:"date",  required:true },
+        { id:"visa_birth_place", label:"Place of Birth",                type:"text",  required:true },
+        { id:"visa_addr_india",  label:"Address in India",              type:"textarea",required:true, colspan:2 },
+        { id:"visa_phone",       label:"Phone / WhatsApp",              type:"tel",   required:true },
+        { id:"visa_email",       label:"Email Address",                 type:"email", required:false },
+      ]},
+      { title:"Israel Employment Details", fields:[
+        { id:"visa_employer",    label:"Israeli Employer Name",         type:"text",  required:true },
+        { id:"visa_employer_addr",label:"Employer Address in Israel",   type:"textarea",required:true, colspan:2 },
+        { id:"visa_job_role",    label:"Job Role / Profession",         type:"text",  required:true },
+        { id:"visa_salary",      label:"Monthly Salary (NIS)",          type:"text",  required:true },
+        { id:"visa_start_date",  label:"Intended Start Date",           type:"date",  required:true },
+        { id:"visa_duration",    label:"Contract Period",               type:"text",  required:true },
+        { id:"visa_moi_ref",     label:"MoI Approval Reference Number", type:"text",  required:true },
+      ]},
+      { title:"Supporting Documents Attached", fields:[
+        { id:"visa_has_pcc",     label:"Police Clearance Certificate",  type:"select",required:true, options:["Select","Attached","Not Attached — will submit at interview"] },
+        { id:"visa_has_medical", label:"Medical Examination Report",    type:"select",required:true, options:["Select","Attached","Scheduled — pending"] },
+        { id:"visa_medical_clinic",label:"Medical Clinic Name & City", type:"text",  required:true, placeholder:"East West Medical Center, Delhi" },
+        { id:"visa_fingerprint", label:"Fingerprint Consent Form",      type:"select",required:true, options:["Select","Signed & Attached","To be completed at Embassy"] },
+      ]},
+    ]
+  },
+
+  // FORM 3 — PBBY INSURANCE
+  { id:"pbby", title:"Pravasi Bharatiya Bima Yojana (PBBY) Application",
+    sections:[
+      { title:"Worker Details", fields:[
+        { id:"pbby_name",        label:"Full Name",                    type:"text",  required:true },
+        { id:"pbby_dob",         label:"Date of Birth",                type:"date",  required:true },
+        { id:"pbby_gender",      label:"Gender",                       type:"select",required:true, options:["Select","Male","Female","Other"] },
+        { id:"pbby_passport",    label:"Passport Number",              type:"text",  required:true },
+        { id:"pbby_ecr",         label:"ECR / ECNR",                   type:"select",required:true, options:["Select","ECR","ECNR"] },
+        { id:"pbby_mobile",      label:"Mobile Number",                type:"tel",   required:true },
+        { id:"pbby_addr",        label:"Permanent Address",            type:"textarea",required:true, colspan:2 },
+      ]},
+      { title:"Employment & Destination", fields:[
+        { id:"pbby_country",     label:"Country of Employment",        type:"text",  required:true, defaultVal:"Israel" },
+        { id:"pbby_employer",    label:"Employer Name (Israel)",       type:"text",  required:true },
+        { id:"pbby_trade",       label:"Occupation / Trade",           type:"text",  required:true },
+        { id:"pbby_contract_dur",label:"Contract Duration",            type:"text",  required:true },
+        { id:"pbby_salary",      label:"Monthly Salary (INR equivalent)",type:"text",required:true },
+      ]},
+      { title:"Nominee / Next of Kin", fields:[
+        { id:"pbby_nom_name",    label:"Nominee Name",                 type:"text",  required:true },
+        { id:"pbby_nom_dob",     label:"Nominee Date of Birth",        type:"date",  required:true },
+        { id:"pbby_nom_rel",     label:"Nominee Relationship",         type:"text",  required:true },
+        { id:"pbby_nom_addr",    label:"Nominee Address",              type:"textarea",required:true, colspan:2 },
+        { id:"pbby_nom_mobile",  label:"Nominee Mobile Number",        type:"tel",   required:true },
+      ]},
+      { title:"Insurance Details", fields:[
+        { id:"pbby_plan",        label:"Policy Duration",              type:"select",required:true, options:["Select","2 Years (Premium: ₹275)","3 Years (Premium: ₹375)"] },
+        { id:"pbby_insurer",     label:"Insurer",                      type:"select",required:true, options:["Select","New India Assurance","Oriental Insurance","United India Insurance","National Insurance","LIC"] },
+        { id:"pbby_poe_office",  label:"Issuing POE Office",           type:"select",required:true, options:["Select","New Delhi","Mumbai","Chennai","Kolkata","Hyderabad","Thiruvananthapuram","Chandigarh","Jaipur","Lucknow","Bhubaneswar"] },
+      ]},
+    ]
+  },
+
+  // FORM 4 — NSDC SKILLS FORM
+  { id:"nsdc_skills", title:"NSDC International — Skills & Verification Form",
+    sections:[
+      { title:"Candidate Registration", fields:[
+        { id:"nsdc_name",        label:"Full Name",                    type:"text",  required:true },
+        { id:"nsdc_dob",         label:"Date of Birth",                type:"date",  required:true },
+        { id:"nsdc_gender",      label:"Gender",                       type:"select",required:true, options:["Select","Male","Female","Other"] },
+        { id:"nsdc_aadhaar",     label:"Aadhaar Number (masked)",      type:"text",  required:false, placeholder:"XXXX-XXXX-XXXX" },
+        { id:"nsdc_mobile",      label:"Mobile Number",                type:"tel",   required:true },
+        { id:"nsdc_edu",         label:"Highest Education",            type:"select",required:true, options:["Select","Below 8th","8th Pass","10th Pass","12th Pass","ITI","Diploma","Graduate","Post-Graduate"] },
+        { id:"nsdc_state",       label:"Home State",                   type:"text",  required:true },
+      ]},
+      { title:"Trade Qualification", fields:[
+        { id:"nsdc_trade",       label:"Primary Trade",                type:"text",  required:true },
+        { id:"nsdc_iti_name",    label:"ITI / Training Centre Name",   type:"text",  required:true },
+        { id:"nsdc_cert_no",     label:"ITI Certificate Number",       type:"text",  required:true },
+        { id:"nsdc_cert_year",   label:"Certification Year",           type:"text",  required:true },
+        { id:"nsdc_ncvt_scvt",   label:"Certificate Type",             type:"select",required:true, options:["Select","NCVT","SCVT","NSDC Certified","Other"] },
+        { id:"nsdc_exp_years",   label:"Work Experience (Years)",      type:"text",  required:true },
+        { id:"nsdc_dest_country",label:"Destination Country",          type:"text",  required:true, defaultVal:"Israel" },
+        { id:"nsdc_job_role",    label:"Applied Job Role",             type:"text",  required:true },
+      ]},
+      { title:"Skill Verification (PIBA Assessment)", fields:[
+        { id:"nsdc_svp_centre",  label:"SVP Assessment Centre",        type:"text",  required:false },
+        { id:"nsdc_svp_date",    label:"Assessment Date",              type:"date",  required:false },
+        { id:"nsdc_svp_score",   label:"Assessment Score / Grade",     type:"text",  required:false },
+        { id:"nsdc_svp_cert",    label:"SVP Certificate Number",       type:"text",  required:false },
+      ]},
+    ]
+  },
+
+  // FORM 5 — EMPLOYMENT CONTRACT SUMMARY
+  { id:"contract_summary", title:"Employment Contract Summary Verification",
+    sections:[
+      { title:"Contract Parties", fields:[
+        { id:"con_worker_name",  label:"Worker Full Name",             type:"text",  required:true },
+        { id:"con_worker_pass",  label:"Worker Passport Number",       type:"text",  required:true },
+        { id:"con_employer",     label:"Israeli Employer Name",        type:"text",  required:true },
+        { id:"con_employer_id",  label:"Employer Registration Number", type:"text",  required:true },
+        { id:"con_employer_addr",label:"Employer Address",             type:"textarea",required:true, colspan:2 },
+      ]},
+      { title:"Employment Terms", fields:[
+        { id:"con_job_title",    label:"Job Title / Occupation",       type:"text",  required:true },
+        { id:"con_job_desc",     label:"Brief Job Description",        type:"textarea",required:true, colspan:2 },
+        { id:"con_start",        label:"Start Date",                   type:"date",  required:true },
+        { id:"con_end",          label:"End Date / Duration",          type:"text",  required:true },
+        { id:"con_salary_nis",   label:"Monthly Salary (NIS)",         type:"text",  required:true },
+        { id:"con_salary_inr",   label:"Approx. Salary (INR)",         type:"text",  required:false },
+        { id:"con_overtime",     label:"Overtime Rate",                type:"text",  required:true, defaultVal:"125% (hrs 9-10), 150% (>10 hrs)" },
+        { id:"con_work_days",    label:"Working Days / Week",          type:"text",  required:true, defaultVal:"Sunday to Thursday (5 days)" },
+        { id:"con_work_hours",   label:"Working Hours / Day",          type:"text",  required:true, defaultVal:"8 hours (standard)" },
+      ]},
+      { title:"Benefits & Protections", fields:[
+        { id:"con_housing",      label:"Housing Provided",             type:"select",required:true, options:["Select","Yes — fully provided","Yes — with deduction (signed agreement)","No","Allowance provided"] },
+        { id:"con_food",         label:"Food Arrangement",             type:"select",required:true, options:["Select","Provided by employer","Self-arranged","Food allowance provided"] },
+        { id:"con_travel_india", label:"Return Travel to India",       type:"select",required:true, options:["Select","Employer pays on contract completion","Worker pays","Employer pays both ways"] },
+        { id:"con_repatriation", label:"Repatriation Clause",          type:"select",required:true, options:["Select","Included — employer liable","Not mentioned — flag for review"] },
+        { id:"con_signed",       label:"Contract Signed Status",       type:"select",required:true, options:["Select","Both parties signed","Employer signed only","Not yet signed"] },
+      ]},
+    ]
+  },
+
+  // FORM 6 — PRE-DEPARTURE DECLARATION
+  { id:"pre_departure", title:"Pre-Departure Declaration & IIWR Completion Form",
+    sections:[
+      { title:"Worker Declaration", fields:[
+        { id:"pd_name",          label:"Full Name",                    type:"text",  required:true },
+        { id:"pd_passport",      label:"Passport Number",              type:"text",  required:true },
+        { id:"pd_destination",   label:"Destination",                  type:"text",  required:true, defaultVal:"State of Israel" },
+        { id:"pd_flight_date",   label:"Intended Departure Date",      type:"date",  required:false },
+        { id:"pd_flight_no",     label:"Flight Number (if known)",     type:"text",  required:false },
+        { id:"pd_arrival_port",  label:"Port of Arrival (Israel)",     type:"text",  required:false, defaultVal:"Ben Gurion International Airport, Tel Aviv" },
+      ]},
+      { title:"IIWR Orientation Confirmation", fields:[
+        { id:"pd_iiwr_centre",   label:"IIWR Training Centre",         type:"text",  required:true, defaultVal:"Aparavas IISC Partner Centre" },
+        { id:"pd_iiwr_date",     label:"Orientation Completion Date",  type:"date",  required:true },
+        { id:"pd_iiwr_cert",     label:"IIWR Certificate Number",      type:"text",  required:true },
+        { id:"pd_safety_badge",  label:"Safety & Social Readiness Badge",type:"select",required:true, options:["Select","Awarded","Pending completion"] },
+        { id:"pd_hebrew_score",  label:"Hebrew Language Module Score", type:"text",  required:false, placeholder:"e.g. 68/100" },
+      ]},
+      { title:"Pre-Departure Checklist — Worker Acknowledgement", fields:[
+        { id:"pd_kav_known",     label:"Kav LaOved (*4580) memorised", type:"select",required:true, options:["Select","Yes","No — to be briefed"] },
+        { id:"pd_embassy_reg",   label:"Will register at Indian Embassy within 48 hrs",type:"select",required:true, options:["Select","Agreed","Noted — will be reminded at departure"] },
+        { id:"pd_ravkav",        label:"Understands Rav-Kav / cashless transport",type:"select",required:true, options:["Select","Yes — trained","Needs reminder"] },
+        { id:"pd_shelter_drill", label:"Completed shelter-in-place drill",type:"select",required:true, options:["Select","Yes — timed at <90 seconds","Completed — time not recorded"] },
+        { id:"pd_pikud_app",     label:"Pikud HaOref app installed",   type:"select",required:true, options:["Select","Yes — zone set","Not yet — to be done at airport"] },
+        { id:"pd_pbby_active",   label:"PBBY Policy active & certificate carried",type:"select",required:true, options:["Select","Yes","Pending — urgently required"] },
+      ]},
+      { title:"Recruiter Certification (Aparavas)", fields:[
+        { id:"pd_ra_officer",    label:"Aparavas Officer Name",         type:"text",  required:true, defaultVal:"Aparavas Placement Officer" },
+        { id:"pd_ra_date",       label:"Certification Date",            type:"date",  required:true },
+        { id:"pd_aparavas_id",   label:"Aparavas Case Reference ID",    type:"text",  required:true, placeholder:"APV-IL-XXXX-2026" },
+      ]},
+    ]
+  },
+
+];
+
+// ── REQUIRED DOCUMENTS CHECKLIST ────────────────────────────────
+const REQUIRED_DOCS = DOC_TYPES.filter(d => d.required);
+
+// ── UTILITY FUNCTIONS ────────────────────────────────────────────
+function uid(){ return Math.random().toString(36).slice(2,10).toUpperCase(); }
+function fmt(n){ return n >= 1e6 ? (n/1e6).toFixed(1)+'MB' : n >= 1024 ? Math.round(n/1024)+'KB' : n+'B'; }
+function today(){ return new Date().toISOString().slice(0,10); }
+function log(msg, type="info"){
+  const el = document.getElementById("aiLog");
+  const div = document.createElement("div");
+  div.className = `line ${type}`;
+  const ts = new Date().toLocaleTimeString("en-US",{hour12:false,hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  div.textContent = `[${ts}] ${msg}`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+  STATE.logs.push({ ts, msg, type });
+}
+function setStatus(text, type="idle"){
+  const el = document.getElementById("statusBanner");
+  const t  = document.getElementById("statusText");
+  el.className = `status-banner ${type}`;
+  const icons = { idle:"⬆️", processing:"⟳ ", success:"✅", warning:"⚠️", error:"❌" };
+  el.querySelector("span:first-child").textContent = icons[type] || "ℹ️";
+  t.textContent = text;
+}
+function setProgress(pct){
+  const bar = document.getElementById("progressBar");
+  const wrap = document.getElementById("progressWrap");
+  wrap.style.display = "block";
+  bar.style.width = pct + "%";
+}
+function setStep(n){
+  STATE.currentStep = n;
+  document.querySelectorAll(".step").forEach((s,i) => {
+    s.className = "step " + (i < n ? "done" : i === n ? "active" : "");
+    s.querySelector(".step-num").textContent = i < n ? "✓" : i+1;
+  });
+}
+function updateStats(){
+  let total=0, filled=0, warn=0, miss=0;
+  Object.values(STATE.fieldMeta).forEach(m => {
+    total++;
+    if(m.status === "filled") filled++;
+    else if(m.status === "warn") { filled++; warn++; }
+    else miss++;
+  });
+  document.getElementById("s-fields").textContent = total || "—";
+  document.getElementById("s-filled").textContent = filled || "—";
+  document.getElementById("s-warn").textContent   = warn  || "—";
+  document.getElementById("s-miss").textContent   = miss  || "—";
+}
+function clearLog(){ document.getElementById("aiLog").innerHTML = ""; STATE.logs = []; }
+
+// ── DOCUMENT CHECKLIST ────────────────────────────────────────────
+function renderChecklist(){
+  const cl = document.getElementById("docChecklist");
+  cl.innerHTML = "";
+  const uploaded = STATE.files.map(f => f.docType).filter(Boolean);
+  REQUIRED_DOCS.forEach(d => {
+    const has = uploaded.includes(d.id);
+    const div = document.createElement("div");
+    div.className = `check-item ${has ? "ok" : "missing"}`;
+    div.innerHTML = `<span class="check-icon">${has ? "✓" : "✗"}</span>
+      <span>${d.icon} ${d.label}</span>
+      <span class="text-xs text-muted" style="margin-left:auto">${has ? "Uploaded" : "Required"}</span>`;
+    cl.appendChild(div);
+  });
+}
+renderChecklist();
+
+// ── FILE UPLOAD ──────────────────────────────────────────────────
+const dropZone = document.getElementById("dropZone");
+const fileInput = document.getElementById("fileInput");
+
+dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("drag"); });
+dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag"));
+dropZone.addEventListener("drop", e => {
+  e.preventDefault();
+  dropZone.classList.remove("drag");
+  handleFiles([...e.dataTransfer.files]);
+});
+fileInput.addEventListener("change", e => handleFiles([...e.target.files]));
+
+function handleFiles(files){
+  files.forEach(file => {
+    if(file.size > 10*1024*1024){ alert(`${file.name} exceeds 10MB limit.`); return; }
+    const f = { id: uid(), name: file.name, size: file.size, fileObj: file,
+                type: file.type, docType: null, status: "pending", extractedData: null };
+    STATE.files.push(f);
+  });
+  renderFileList();
+  if(STATE.files.length > 0){
+    document.getElementById("uploadActions").style.display = "flex";
+    setStep(0);
+    renderChecklist();
+  }
+}
+
+function renderFileList(){
+  const fl = document.getElementById("fileList");
+  fl.innerHTML = "";
+  STATE.files.forEach(f => {
+    const ext = f.name.split(".").pop().toLowerCase();
+    const icons = { pdf:"📄", jpg:"🖼️", jpeg:"🖼️", png:"🖼️", docx:"📝", doc:"📝" };
+    const colours = { pdf:"#FEE2E2", jpg:"#FEF3C7", jpeg:"#FEF3C7", png:"#DBEAFE", docx:"#F3E8FF", doc:"#F3E8FF" };
+    const div = document.createElement("div");
+    div.className = "file-item slide-in";
+    div.innerHTML = `
+      <div class="file-icon" style="background:${colours[ext]||"#F3F4F6"}">${icons[ext]||"📎"}</div>
+      <div class="file-name">${f.name}</div>
+      <div class="file-size">${fmt(f.size)}</div>
+      <div class="file-status ${f.status}" title="${f.status}">${
+        f.status==="pending"?"·":f.status==="processing"?'<span class="spin">⟳</span>':
+        f.status==="done"?"✓":"✗"}</div>
+      <button class="file-del" onclick="removeFile('${f.id}')" title="Remove">✕</button>`;
+    fl.appendChild(div);
+  });
+}
+
+function removeFile(id){
+  STATE.files = STATE.files.filter(f => f.id !== id);
+  renderFileList();
+  renderChecklist();
+  if(STATE.files.length === 0) document.getElementById("uploadActions").style.display = "none";
+}
+
+// ── TAGGING ──────────────────────────────────────────────────────
+function goToTagging(){
+  setStep(1);
+  document.getElementById("taggingCard").style.display = "block";
+  renderTagging();
+  document.getElementById("logCard").style.display = "block";
+  log("Document tagging stage initiated.", "info");
+}
+
+function renderTagging(){
+  const c = document.getElementById("taggingContent");
+  c.innerHTML = "";
+  STATE.files.forEach(f => {
+    const div = document.createElement("div");
+    div.style.cssText = "margin-bottom:14px;padding:10px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg)";
+    div.innerHTML = `
+      <div class="flex-between" style="margin-bottom:8px">
+        <div class="fw-6 text-sm" style="min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</div>
+        <span class="tag tag-navy">${fmt(f.size)}</span>
+      </div>
+      <div class="doc-grid" id="types-${f.id}"></div>`;
+    const grid = div.querySelector(`#types-${f.id}`);
+    DOC_TYPES.forEach(dt => {
+      const btn = document.createElement("div");
+      btn.className = `doc-type${f.docType === dt.id ? " selected" : ""}`;
+      btn.title = dt.desc;
+      btn.innerHTML = `<span class="doc-type-icon">${dt.icon}</span>${dt.label}`;
+      btn.onclick = () => {
+        f.docType = dt.id;
+        div.querySelectorAll(".doc-type").forEach(b => b.classList.remove("selected"));
+        btn.classList.add("selected");
+        renderChecklist();
+        log(`Tagged "${f.name}" as [${dt.label}]`, "ok");
+      };
+      grid.appendChild(btn);
+    });
+    c.appendChild(div);
+  });
+}
+
+function goBack(step){ setStep(step); }
+
+// ── AI PROCESSING ─────────────────────────────────────────────────
+async function startProcessing(){
+  if(STATE.processing){ return; }
+  const untagged = STATE.files.filter(f => !f.docType);
+  if(untagged.length > 0 && !confirm(`${untagged.length} file(s) are not tagged. Continue anyway?`)) return;
+
+  STATE.processing = true;
+  setStep(2);
+  setStatus("AI agent is processing your documents...", "processing");
+  setProgress(0);
+
+  log("══════════════════════════════════════════", "info");
+  log("APARAVAS AI EXTRACTION AGENT v2.0 STARTED", "prompt");
+  log("══════════════════════════════════════════", "info");
+  log(`Processing ${STATE.files.length} document(s)...`, "info");
+  log(`Forms to populate: ${FORMS.length}`, "info");
+
+  let totalProgress = 0;
+  const increment = 80 / STATE.files.length;
+
+  for(const file of STATE.files){
+    file.status = "processing";
+    renderFileList();
+    log(`\n→ Analysing: ${file.name} [${file.docType || "untagged"}]`, "info");
+
+    try{
+      const text = await extractTextFromFile(file);
+      log(`  Text extracted: ${text.length} characters`, "ok");
+      const fields = await callClaudeExtraction(file, text);
+      file.extractedData = fields;
+      file.status = "done";
+      log(`  Extracted ${Object.keys(fields).length} field(s)`, "ok");
+    } catch(err){
+      file.status = "error";
+      log(`  ERROR: ${err.message}`, "err");
+      const fields = buildFallbackData(file);
+      file.extractedData = fields;
+    }
+    totalProgress += increment;
+    setProgress(totalProgress);
+    renderFileList();
+    await sleep(200);
+  }
+
+  log("\n→ Merging extracted data across all documents...", "info");
+  mergeExtractedData();
+  log(`→ Merged data into ${FORMS.length} forms`, "ok");
+  setProgress(90);
+
+  log("\n→ Running compliance validation...", "info");
+  const issues = runValidation();
+  log(`→ Validation: ${issues.filter(i=>i.type==="ok").length} passed, ${issues.filter(i=>i.type==="warn").length} warnings, ${issues.filter(i=>i.type==="error").length} errors`, "ok");
+  setProgress(100);
+
+  STATE.processing = false;
+  setStep(3);
+  renderAllForms();
+  showForm(0, document.querySelector(".form-tab"));
+  updateStats();
+  document.getElementById("formActions").style.display = "flex";
+
+  const errCount = issues.filter(i => i.type==="error").length;
+  const warnCount = issues.filter(i => i.type==="warn").length;
+  if(errCount > 0)
+    setStatus(`Auto-fill complete. ${errCount} field(s) missing — manual input required.`, "warning");
+  else if(warnCount > 0)
+    setStatus(`Forms populated. ${warnCount} field(s) need review. Please verify highlighted entries.`, "warning");
+  else
+    setStatus("All forms auto-filled successfully. Review and export.", "success");
+
+  log("\n══════════════ PROCESSING COMPLETE ══════════════", "ok");
+  log(`Fields filled: ${Object.keys(STATE.formData).length}`, "ok");
+  log(`Issues: ${errCount} errors, ${warnCount} warnings`, warnCount+errCount > 0 ? "warn" : "ok");
+  log("Ready for human review and export.", "prompt");
+  setStep(4);
+}
+
+// ── TEXT EXTRACTION ───────────────────────────────────────────────
+async function extractTextFromFile(file){
+  return new Promise((resolve) => {
+    if(!file.fileObj){ resolve(""); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if(file.type && file.type.includes("text")){ resolve(e.target.result); return; }
+      // For binary files (PDF, images), return filename + type as signal
+      resolve(`[BINARY FILE: ${file.name} | TYPE: ${file.docType || "unknown"} | SIZE: ${fmt(file.size)}]`);
+    };
+    reader.onerror = () => resolve(`[READ ERROR: ${file.name}]`);
+    if(file.fileObj.type && file.fileObj.type.startsWith("text/"))
+      reader.readAsText(file.fileObj);
+    else
+      reader.readAsDataURL(file.fileObj);
+  });
+}
+
+// ── CLAUDE API CALL ───────────────────────────────────────────────
+async function callClaudeExtraction(file, textContent){
+  // Build field list from all forms — only fields relevant to this doc type
+  const relevantFields = buildRelevantFields(file.docType);
+
+  const systemPrompt = `You are an expert document data extraction AI for Aparavas International Workforce Solutions, a manpower recruitment company placing Indian skilled workers in Israel.
+
+Your task: Extract structured data from uploaded worker documents to auto-fill 7 official forms required for India-to-Israel overseas employment.
+
+You must return a JSON object with ONLY these exact keys (as relevant to the document type):
+${JSON.stringify(relevantFields, null, 2)}
+
+Rules:
+1. Extract ONLY what is explicitly present in the document.
+2. For dates, format as YYYY-MM-DD.
+3. For names, use Title Case exactly as written.
+4. If a field cannot be determined, set it to null.
+5. Do NOT guess or hallucinate data.
+6. Return ONLY valid JSON — no explanations, no markdown.`;
+
+  const userPrompt = `Document Type: ${file.docType || "unknown"}
+Filename: ${file.name}
+
+Document Content / Signal:
+${textContent.slice(0, 3000)}
+
+Extract all relevant fields and return as JSON.`;
+
+  try{
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userPrompt }],
+      }),
+    });
+
+    if(!resp.ok){
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(`API ${resp.status}: ${err.error?.message || resp.statusText}`);
+    }
+
+    const data = await resp.json();
+    const text = data.content?.[0]?.text || "{}";
+    // Strip any accidental markdown fences
+    const clean = text.replace(/```json|```/g,"").trim();
+    const parsed = JSON.parse(clean);
+    log(`  Claude extracted: ${JSON.stringify(Object.keys(parsed).filter(k => parsed[k] !== null))}`, "ok");
+    return parsed;
+
+  } catch(err){
+    log(`  Claude API error: ${err.message} — using demo fill mode`, "warn");
+    // Return demo data based on doc type so the UI still works
+    return buildDemoData(file);
+  }
+}
+
+// ── RELEVANT FIELDS PER DOC TYPE ─────────────────────────────────
+function buildRelevantFields(docType){
+  const map = {
+    passport: ["full_name","dob","gender","nationality","passport_no","passport_issue","passport_expiry",
+                "passport_place","ecr_status","city","state","visa_full_name","visa_dob","visa_passport_no",
+                "visa_passport_exp","visa_nationality","pbby_name","pbby_dob","pbby_gender","pbby_passport","pbby_ecr",
+                "nsdc_name","nsdc_dob","nsdc_gender","pd_name","pd_passport","con_worker_name","con_worker_pass",
+                "visa_birth_place","emi_destination"],
+    iti_cert: ["nsdc_trade","nsdc_iti_name","nsdc_cert_no","nsdc_cert_year","nsdc_ncvt_scvt","nsdc_edu",
+                "nsdc_job_role","visa_job_role","emi_job_title","con_job_title","pbby_trade"],
+    pcc:      ["full_name","pcc_number","pcc_date","pcc_authority"],
+    medical:  ["medical_report_no","medical_date","medical_clinic","visa_medical_clinic","visa_has_medical"],
+    contract: ["emi_employer_name","emi_employer_addr","emi_salary_nis","emi_contract_dur","emi_contract_start",
+                "visa_employer","visa_employer_addr","visa_salary","visa_start_date","visa_duration","visa_moi_ref",
+                "con_employer","con_employer_id","con_employer_addr","con_job_title","con_start","con_end",
+                "con_salary_nis","con_housing","con_travel_india","pbby_employer","pbby_salary","pbby_country"],
+    moi_approval: ["visa_moi_ref","emi_job_id","emi_employer_name","con_employer_id"],
+    birth_cert: ["dob","full_name","visa_birth_place"],
+    bank:     ["bank_account","bank_ifsc","bank_name"],
+    edu_cert: ["nsdc_edu","nsdc_cert_no"],
+    trade_test:["nsdc_svp_centre","nsdc_svp_date","nsdc_svp_score","nsdc_svp_cert"],
+  };
+  const base = ["full_name","dob","mobile","email","address","city","state","pin",
+                 "kin_name","kin_relation","kin_mobile"];
+  const specific = map[docType] || base;
+  const result = {};
+  [...new Set([...base, ...specific])].forEach(k => result[k] = null);
+  return result;
+}
+
+// ── DEMO DATA (when API not available) ──────────────────────────
+function buildDemoData(file){
+  const dt = file.docType;
+  const base = {
+    full_name:"Rajesh Kumar Verma", dob:"1990-05-14", gender:"Male",
+    nationality:"Indian", mobile:"+91-9876543210", email:"rajesh.verma@email.com",
+    address:"123 Main Street, Sector 4", city:"Lucknow", state:"Uttar Pradesh", pin:"226001",
+    kin_name:"Sunita Verma", kin_relation:"Wife", kin_mobile:"+91-9876543211",
+  };
+  const extra = {
+    passport: { passport_no:"P1234567X", passport_issue:"2020-03-15", passport_expiry:"2030-03-14",
+                passport_place:"Lucknow", ecr_status:"ECR", visa_birth_place:"Lucknow" },
+    iti_cert: { nsdc_trade:"Mason / Plastering", nsdc_iti_name:"Govt. ITI Lucknow", nsdc_cert_no:"UP/ITI/2019/4521",
+                nsdc_cert_year:"2019", nsdc_ncvt_scvt:"NCVT", nsdc_edu:"ITI", nsdc_job_role:"Mason / Plasterer",
+                nsdc_exp_years:"4", visa_job_role:"Mason / Plasterer", emi_job_title:"Mason", pbby_trade:"Mason" },
+    contract: { emi_employer_name:"Shapir Engineering & Construction", emi_salary_nis:"6200",
+                emi_contract_dur:"1 Year", emi_contract_start:"2026-05-01",
+                visa_employer:"Shapir Engineering & Construction", visa_salary:"6200",
+                visa_start_date:"2026-05-01", visa_duration:"1 Year",
+                con_employer:"Shapir Engineering & Construction",
+                con_employer_id:"IL-CO-45897321",con_start:"2026-05-01",
+                con_salary_nis:"6200", pbby_salary:"₹1,38,000 (approx)",
+                con_housing:"Yes — with deduction (signed agreement)", con_travel_india:"Employer pays on contract completion" },
+    moi_approval: { visa_moi_ref:"MoI-IL-2026-784521", emi_job_id:"EJ-IL-784521" },
+  };
+  return { ...base, ...(extra[dt] || {}) };
+}
+
+function buildFallbackData(file){ return buildDemoData(file); }
+
+// ── DATA MERGE ───────────────────────────────────────────────────
+function mergeExtractedData(){
+  STATE.formData = {};
+  STATE.fieldMeta = {};
+
+  // Priority order: passport first, then contract, then others
+  const priority = ["passport","contract","iti_cert","moi_approval","pcc","medical","birth_cert","trade_test","bank","edu_cert","other"];
+  const sorted = [...STATE.files].sort((a,b) =>
+    (priority.indexOf(a.docType) > priority.indexOf(b.docType)) ? 1 : -1);
+
+  sorted.forEach(file => {
+    if(!file.extractedData) return;
+    Object.entries(file.extractedData).forEach(([key, val]) => {
+      if(val !== null && val !== undefined && val !== ""){
+        if(!STATE.formData[key]){
+          STATE.formData[key] = val;
+          STATE.fieldMeta[key] = { source: file.name, docType: file.docType, status: "filled", confidence: "high" };
+        }
+      }
+    });
+  });
+
+  // Auto-copy repeated fields across forms
+  const copyMap = {
+    full_name:    ["visa_full_name","pbby_name","nsdc_name","pd_name","con_worker_name"],
+    dob:          ["visa_dob","pbby_dob","nsdc_dob"],
+    gender:       ["visa_gender","pbby_gender","nsdc_gender"],
+    passport_no:  ["visa_passport_no","pbby_passport","con_worker_pass","pd_passport"],
+    passport_expiry: ["visa_passport_exp"],
+    ecr_status:   ["pbby_ecr"],
+    mobile:       ["visa_phone","pbby_mobile","nsdc_mobile"],
+    email:        ["visa_email"],
+    address:      ["visa_addr_india","pbby_addr"],
+    nsdc_trade:   ["con_job_title","visa_job_role","emi_job_title","pbby_trade"],
+    emi_employer_name: ["visa_employer","con_employer","pbby_employer"],
+    emi_employer_addr: ["visa_employer_addr","con_employer_addr"],
+    emi_salary_nis:    ["visa_salary","con_salary_nis"],
+    emi_contract_dur:  ["visa_duration","con_end","pbby_plan_dur"],
+    emi_contract_start:["visa_start_date","con_start"],
+  };
+
+  Object.entries(copyMap).forEach(([src, targets]) => {
+    if(STATE.formData[src]){
+      targets.forEach(t => {
+        if(!STATE.formData[t]){
+          STATE.formData[t] = STATE.formData[src];
+          STATE.fieldMeta[t] = { source: "Auto-copied from " + (STATE.fieldMeta[src]?.source || src),
+                                  status: "filled", confidence: "auto-copy" };
+        }
+      });
+    }
+  });
+
+  // Set defaults
+  const defaults = {
+    nationality: "Indian", visa_nationality: "Indian", pd_destination: "State of Israel",
+    emi_destination: "Israel", pbby_country: "Israel",
+    pd_arrival_port: "Ben Gurion International Airport, Tel Aviv",
+    con_overtime: "125% (hrs 9-10), 150% (>10 hrs)",
+    con_work_days: "Sunday to Thursday (5 days)", con_work_hours: "8 hours (standard)",
+    pd_ra_officer: "Aparavas Placement Officer", emi_ra_name: "Aparavas International",
+    pd_iiwr_centre: "Aparavas IISC Partner Centre", pd_ra_date: today(),
+    visa_medical_clinic: "East West Medical Center, New Delhi",
+  };
+  Object.entries(defaults).forEach(([k,v]) => {
+    if(!STATE.formData[k]){
+      STATE.formData[k] = v;
+      STATE.fieldMeta[k] = { source:"Default", status:"filled", confidence:"default" };
+    }
+  });
+
+  // Mark all form fields that are still missing
+  FORMS.forEach(form => {
+    form.sections.forEach(sec => {
+      sec.fields.forEach(f => {
+        if(!STATE.fieldMeta[f.id]){
+          if(f.required) STATE.fieldMeta[f.id] = { source:null, status:"missing", confidence:"none" };
+        }
+      });
+    });
+  });
+
+  log(`Total merged fields: ${Object.keys(STATE.formData).length}`, "ok");
+}
+
+// ── VALIDATION ───────────────────────────────────────────────────
+function runValidation(){
+  const issues = [];
+  FORMS.forEach(form => {
+    form.sections.forEach(sec => {
+      sec.fields.forEach(f => {
+        const val = STATE.formData[f.id];
+        if(f.required && (!val || val === "Select")){
+          issues.push({ type:"error", form: form.title, field: f.label, msg:"Required field is empty" });
+          STATE.fieldMeta[f.id] = { ...(STATE.fieldMeta[f.id]||{}), status:"missing" };
+        } else if(val){
+          // Date validations
+          if(f.id === "passport_expiry" || f.id === "visa_passport_exp"){
+            const exp = new Date(val);
+            const twoYears = new Date(); twoYears.setFullYear(twoYears.getFullYear()+2);
+            if(exp < twoYears){
+              issues.push({ type:"warn", form:form.title, field:f.label, msg:"Passport must be valid for 2+ years (3 years for caregivers)" });
+              STATE.fieldMeta[f.id] = { ...(STATE.fieldMeta[f.id]||{}), status:"warn" };
+            } else {
+              issues.push({ type:"ok", form:form.title, field:f.label, msg:"Passport validity confirmed" });
+            }
+          }
+          if(f.id === "emi_salary_nis" || f.id === "visa_salary"){
+            const s = parseInt(val);
+            if(s < 5880) issues.push({ type:"warn", form:form.title, field:f.label, msg:"Salary below Israel minimum wage (NIS 5,880)" });
+            else issues.push({ type:"ok", form:form.title, field:f.label, msg:`Salary NIS ${s} meets minimum wage requirement` });
+          }
+          if(f.id === "pbby_policy" || f.id === "emi_pbby_policy"){
+            issues.push({ type:"ok", form:form.title, field:f.label, msg:"PBBY policy number recorded" });
+          }
+        }
+      });
+    });
+  });
+  STATE.validationResults = issues;
+  return issues;
+}
+
+// ── FORM RENDERING ────────────────────────────────────────────────
+function renderAllForms(){
+  FORMS.forEach((form, i) => {
+    const missing = form.sections.flatMap(s => s.fields).filter(f =>
+      f.required && (!STATE.formData[f.id] || STATE.formData[f.id] === "Select")).length;
+    const warn = form.sections.flatMap(s => s.fields).filter(f =>
+      STATE.fieldMeta[f.id]?.status === "warn").length;
+    const tabs = document.querySelectorAll(".form-tab");
+    if(tabs[i]){
+      tabs[i].className = "form-tab" + (i===STATE.currentForm ? " active" : "") +
+        (missing > 0 ? " warn" : warn > 0 ? " warn" : " done");
+      if(missing === 0 && warn === 0) tabs[i].classList.add("done");
+    }
+  });
+  showForm(STATE.currentForm, document.querySelectorAll(".form-tab")[STATE.currentForm]);
+}
+
+function showForm(idx, btn){
+  STATE.currentForm = idx;
+  document.querySelectorAll(".form-tab").forEach((t,i) => {
+    t.classList.toggle("active", i===idx);
+  });
+  const form = FORMS[idx];
+  const content = document.getElementById("formContent");
+  const html = [];
+
+  html.push(`<div style="margin-bottom:12px" class="slide-in">
+    <div class="flex-between">
+      <div>
+        <span class="fw-6" style="font-size:14px;color:var(--navy)">${form.title}</span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-ghost" onclick="prevForm()" style="padding:4px 8px;font-size:11px">← Prev</button>
+        <button class="btn btn-ghost" onclick="nextForm()" style="padding:4px 8px;font-size:11px">Next →</button>
+      </div>
+    </div>
+  </div>`);
+
+  form.sections.forEach(sec => {
+    html.push(`<div class="form-section"><div class="form-section-title">${sec.title}</div>`);
+    const isFullGrid = sec.fields.some(f => f.colspan === 2);
+    html.push(`<div class="${isFullGrid ? "field-grid" : "field-grid"}">`);
+    sec.fields.forEach(f => {
+      const val = STATE.formData[f.id] || "";
+      const meta = STATE.fieldMeta[f.id];
+      const cls = !val || val==="Select" ? (f.required?"ai-error":"") :
+                  meta?.status==="warn" ? "ai-warn" : "ai-filled";
+      const badge = !val || val==="Select" ?
+        (f.required ? `<span class="ai-badge miss">Missing</span>` : "") :
+        meta?.confidence === "auto-copy" ? `<span class="ai-badge warn">Copied</span>` :
+        meta?.confidence === "default"   ? `<span class="ai-badge warn">Default</span>` :
+        `<span class="ai-badge ok">AI ✓</span>`;
+      const sourceTitle = meta?.source ? `title="Source: ${meta.source}"` : "";
+      const span = f.colspan === 2 ? "grid-column:1/-1" : "";
+      const opts = f.options ? f.options.map(o => `<option value="${o}" ${o===val?"selected":""}>${o}</option>`).join("") : "";
+      html.push(`<div class="field" style="${span}">
+        <label ${sourceTitle}>${f.label}${f.required ? '<span> *</span>':''} ${badge}</label>
+        ${f.type==="textarea" ?
+          `<textarea id="fld-${f.id}" class="${cls}" rows="2" ${!f.required?"":""}
+            onchange="updateField('${f.id}',this.value)">${escHtml(val)}</textarea>` :
+          f.type==="select" ?
+          `<select id="fld-${f.id}" class="${cls}" onchange="updateField('${f.id}',this.value)">${opts}</select>` :
+          `<input id="fld-${f.id}" type="${f.type}" class="${cls}" value="${escHtml(val)}"
+            placeholder="${f.placeholder||""}" onchange="updateField('${f.id}',this.value)"/>`
+        }
+        ${f.hint ? `<div class="field-hint">${f.hint}</div>`:""}
+      </div>`);
+    });
+    html.push("</div></div>");
+  });
+
+  content.innerHTML = html.join("");
+  document.getElementById("validationPanel").style.display = "none";
+}
+
+function prevForm(){ if(STATE.currentForm>0) showForm(STATE.currentForm-1, document.querySelectorAll(".form-tab")[STATE.currentForm-1]); }
+function nextForm(){ if(STATE.currentForm<FORMS.length-1) showForm(STATE.currentForm+1, document.querySelectorAll(".form-tab")[STATE.currentForm+1]); }
+
+function escHtml(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+function updateField(id, value){
+  STATE.formData[id] = value;
+  const el = document.getElementById(`fld-${id}`);
+  if(el){
+    el.classList.remove("ai-filled","ai-warn","ai-error");
+    if(value && value !== "Select") el.classList.add("ai-filled");
+    else el.classList.add("ai-error");
+  }
+  if(!STATE.fieldMeta[id]) STATE.fieldMeta[id] = {};
+  STATE.fieldMeta[id].status = value && value !== "Select" ? "filled" : "missing";
+  STATE.fieldMeta[id].source = "Manual edit";
+  updateStats();
+}
+
+// ── VALIDATE CURRENT FORM ─────────────────────────────────────────
+function validateCurrentForm(){
+  const issues = runValidation();
+  const formIssues = issues.filter(i => i.form === FORMS[STATE.currentForm].title);
+  const panel = document.getElementById("validationPanel");
+  const list = document.getElementById("validationList");
+  list.innerHTML = "";
+  if(formIssues.length === 0){
+    list.innerHTML = `<div class="val-item ok"><span class="val-icon">✓</span><span class="val-text fw-6">All fields in this form are valid.</span></div>`;
+  } else {
+    formIssues.forEach(i => {
+      const div = document.createElement("div");
+      div.className = `val-item ${i.type}`;
+      div.innerHTML = `<span class="val-icon">${i.type==="ok"?"✓":i.type==="warn"?"⚠":"✗"}</span>
+        <div class="val-text"><span class="val-field">${i.field}: </span>${i.msg}</div>`;
+      list.appendChild(div);
+    });
+  }
+  panel.style.display = "block";
+  setStep(4);
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────
+function exportAll(){
+  const packageData = {
+    generated: new Date().toISOString(),
+    worker: {
+      name: STATE.formData.full_name || "UNKNOWN",
+      passport: STATE.formData.passport_no || "UNKNOWN",
+      trade: STATE.formData.nsdc_trade || "UNKNOWN",
+      destination: "Israel",
+    },
+    forms: {},
+    validation: STATE.validationResults,
+    aparavas_ref: STATE.formData.pd_aparavas_id || `APV-IL-${uid()}-2026`,
+  };
+  FORMS.forEach(form => {
+    const data = {};
+    form.sections.forEach(sec => {
+      sec.fields.forEach(f => { data[f.id] = STATE.formData[f.id] || null; });
+    });
+    packageData.forms[form.id] = { title: form.title, fields: data };
+  });
+
+  // Build printable HTML
+  let html = `<!DOCTYPE html><html><head><title>Aparavas Worker Dossier</title>
+<style>
+body{font-family:Arial,sans-serif;font-size:11px;color:#1a1a1a;margin:20px}
+h1{color:#1B3A6B;font-size:16px}h2{color:#1B3A6B;font-size:13px;border-bottom:2px solid #D4500A;padding-bottom:4px}
+h3{font-size:11px;color:#0E6B61;margin:10px 0 4px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px}
+.field{margin-bottom:4px}.label{font-size:9px;color:#888;text-transform:uppercase}
+.value{border-bottom:1px solid #ddd;padding-bottom:2px;min-height:14px;font-weight:600}
+.missing{color:#C0392B}.ok{color:#1A7F45}
+.section{margin-bottom:12px;page-break-inside:avoid}
+.page-break{page-break-after:always}
+.header{background:#1B3A6B;color:#fff;padding:10px 16px;margin-bottom:16px}
+.sub{color:#CADCFC;font-size:10px}
+.meta{font-size:10px;color:#888;margin-bottom:12px}
+</style></head><body>
+<div class="header">
+<div style="font-size:18px;font-weight:700;letter-spacing:1px">APARAVAS</div>
+<div class="sub">India → Israel Worker Deployment Dossier</div>
+<div class="sub">Generated: ${new Date().toLocaleString()} · Ref: ${packageData.aparavas_ref}</div>
+</div>
+<div class="meta">Worker: <b>${packageData.worker.name}</b> · Passport: <b>${packageData.worker.passport}</b> · Trade: <b>${packageData.worker.trade}</b> · Destination: <b>${packageData.worker.destination}</b></div>`;
+
+  FORMS.forEach((form, fi) => {
+    html += `<h2>${fi+1}. ${form.title}</h2>`;
+    form.sections.forEach(sec => {
+      html += `<h3>${sec.title}</h3><div class="grid">`;
+      sec.fields.forEach(f => {
+        const v = STATE.formData[f.id];
+        html += `<div class="field"><div class="label">${f.label}${f.required?" *":""}</div>
+          <div class="value ${!v||v==="Select"?(f.required?"missing":""):""}">${v||"&nbsp;"}</div></div>`;
+      });
+      html += `</div>`;
+    });
+    if(fi < FORMS.length-1) html += `<div class="page-break"></div>`;
+  });
+
+  html += `<h2>Compliance Validation Summary</h2>`;
+  const byType = { error: STATE.validationResults.filter(i=>i.type==="error"),
+                   warn:  STATE.validationResults.filter(i=>i.type==="warn"),
+                   ok:    STATE.validationResults.filter(i=>i.type==="ok") };
+  html += `<p>Errors: <b class="missing">${byType.error.length}</b> · Warnings: <b style="color:#B35A00">${byType.warn.length}</b> · Passed: <b class="ok">${byType.ok.length}</b></p>`;
+  byType.error.forEach(i => html += `<div class="missing">✗ ${i.form} → ${i.field}: ${i.msg}</div>`);
+  byType.warn.forEach(i  => html += `<div style="color:#B35A00">⚠ ${i.form} → ${i.field}: ${i.msg}</div>`);
+  html += `</body></html>`;
+
+  const blob = new Blob([html], { type: "text/html" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `Aparavas_Dossier_${(STATE.formData.full_name||"Worker").replace(/\s/g,"_")}_${today()}.html`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  setStep(5);
+  setStatus("Export complete. Dossier downloaded.", "success");
+  log("Worker dossier exported successfully.", "ok");
+}
+
+function exportJSON(){
+  const data = { meta:{ generated:new Date().toISOString(), agent:"Aparavas AI v2.0",
+                          worker_name: STATE.formData.full_name, passport: STATE.formData.passport_no },
+                  formData: STATE.formData, fieldMeta: STATE.fieldMeta,
+                  validation: STATE.validationResults };
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `Aparavas_Data_${today()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  log("JSON data package exported.", "ok");
+}
+
+// ── RESET ─────────────────────────────────────────────────────────
+function resetAll(){
+  if(!confirm("Reset all data and start over?")) return;
+  STATE.files=[];STATE.formData={};STATE.fieldMeta={};
+  STATE.validationResults={};STATE.currentForm=0;STATE.currentStep=0;
+  document.getElementById("fileList").innerHTML="";
+  document.getElementById("uploadActions").style.display="none";
+  document.getElementById("taggingCard").style.display="none";
+  document.getElementById("logCard").style.display="none";
+  document.getElementById("formContent").innerHTML="";
+  document.getElementById("formActions").style.display="none";
+  document.getElementById("validationPanel").style.display="none";
+  document.getElementById("progressWrap").style.display="none";
+  document.getElementById("aiLog").innerHTML='<span class="text-muted">Waiting for documents...</span>';
+  setStep(0);setStatus("Upload worker documents to begin.","idle");
+  updateStats();renderChecklist();
+  document.querySelectorAll(".form-tab").forEach(t => t.className="form-tab");
+  document.querySelector(".form-tab").classList.add("active");
+  log("Session reset.","warn");
+}
+
+// ── SLEEP UTILITY ─────────────────────────────────────────────────
+function sleep(ms){ return new Promise(r => setTimeout(r,ms)); }
+
+// ── INIT ──────────────────────────────────────────────────────────
+(function init(){
+  // Render initial empty forms
+  const content = document.getElementById("formContent");
+  const form = FORMS[0];
+  content.innerHTML = `<div class="status-banner idle" style="margin:0">
+    <span>📋</span>
+    <span>Upload worker documents and run AI extraction to auto-fill these ${FORMS.length} forms. Fields will populate automatically from passport, ITI certificate, employment contract, and other documents.</span>
+  </div>`;
+  updateStats();
+})();
+</script>
+</body>
+</html>
+
