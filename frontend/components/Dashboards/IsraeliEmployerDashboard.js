@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import {
   Grid, Card, CardContent, Typography, Box, Button,
-  Table, TableBody, TableCell, TableHead, TableRow,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Chip, Avatar, LinearProgress, IconButton,
   Badge, Tooltip, Alert, CircularProgress,
   Dialog, DialogTitle, DialogContent, DialogActions,
@@ -13,6 +13,7 @@ import {
   Work, People, Assessment, Schedule, CheckCircle,
   Warning, Visibility, Message, Download, Edit,
   TrendingUp, Close, Add, AutoAwesome, Business,
+  Dashboard, PersonAdd, DesktopMac,
 } from '@mui/icons-material';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -27,6 +28,32 @@ const AIJobGenerator = dynamic(
   () => import('../AI/AIJobGenerator'),
   { ssr: false }
 );
+
+function employerCandidateBand(c) {
+  const st = String(c.status || '').toLowerCase();
+  if (st === 'rejected') return { label: 'Reassess', color: 'default' };
+  const sc = Number(c.profileScore) || 0;
+  if (sc >= 85) return { label: 'Premium', color: 'success' };
+  if (sc >= 70) return { label: 'Deployable', color: 'primary' };
+  if (sc >= 50) return { label: 'Train', color: 'warning' };
+  return { label: 'Hold', color: 'default' };
+}
+
+function employerStatusChipColor(status) {
+  const s = String(status || '').toLowerCase();
+  if (s === 'approved') return 'success';
+  if (s === 'rejected') return 'error';
+  if (s === 'interviewed') return 'info';
+  if (s === 'under_review' || s === 'submitted') return 'warning';
+  return 'primary';
+}
+
+function employerFraudMeter(riskLevel) {
+  const r = String(riskLevel?.level || 'low').toLowerCase();
+  if (r === 'high') return { value: 88, label: 'High', color: 'error' };
+  if (r === 'medium') return { value: 52, label: 'Med', color: 'warning' };
+  return { value: 18, label: 'Low', color: 'success' };
+}
 
 const IsraeliEmployerDashboard = () => {
   const router = useRouter();
@@ -44,28 +71,14 @@ const IsraeliEmployerDashboard = () => {
     }
   }, []);
 
-  const employerNavGroups = useMemo(
-    () => [
-      {
-        section: 'Employer',
-        items: [
-          { id: 0, label: 'Active Jobs', icon: <Work /> },
-          { id: 1, label: 'Candidate Pipeline', icon: <People /> },
-          { id: 2, label: 'Performance', icon: <Assessment /> },
-          { id: 3, label: 'Compliance', icon: <CheckCircle /> },
-        ],
-      },
-    ],
-    []
-  );
-
   const employerTabTitle = (tab) =>
     (
       {
-        0: 'Active Jobs',
-        1: 'Candidate Pipeline',
-        2: 'Performance',
-        3: 'Compliance',
+        0: 'Recruitment Dashboard',
+        1: 'Active Jobs',
+        2: 'Candidate Pipeline',
+        3: 'Performance',
+        4: 'Compliance',
       }[tab] ?? 'Dashboard'
     );
 
@@ -94,6 +107,23 @@ const IsraeliEmployerDashboard = () => {
   });
   const [formErrors, setFormErrors] = useState({});
 
+  const employerNavGroups = useMemo(() => {
+    const activeJobs = dashboardData?.jobs?.activeJobs ?? 0;
+    const pipeCount = (dashboardData?.pipeline?.candidates ?? []).length;
+    return [
+      {
+        section: 'Employer',
+        items: [
+          { id: 0, label: 'Dashboard', icon: <Dashboard /> },
+          { id: 1, label: 'Active Jobs', icon: <Work />, ...(activeJobs ? { badge: activeJobs } : {}) },
+          { id: 2, label: 'Candidate Pipeline', icon: <People />, ...(pipeCount ? { badge: pipeCount } : {}) },
+          { id: 3, label: 'Performance', icon: <Assessment /> },
+          { id: 4, label: 'Compliance', icon: <CheckCircle /> },
+        ],
+      },
+    ];
+  }, [dashboardData]);
+
   useEffect(() => {
     fetchDashboardData();
     const interval = setInterval(fetchDashboardData, 120000); // 2 min refresh
@@ -110,7 +140,7 @@ const IsraeliEmployerDashboard = () => {
         setPostJobDialogOpen(true);
         sessionStorage.removeItem('openPostJob');
       }
-      if (Number.isFinite(tabIndex) && tabIndex >= 0 && tabIndex <= 3) {
+      if (Number.isFinite(tabIndex) && tabIndex >= 0 && tabIndex <= 4) {
         setActiveTab(tabIndex);
       }
       // Clean up URL if we had openPostJob or tab
@@ -348,6 +378,110 @@ const IsraeliEmployerDashboard = () => {
     }
   };
 
+  const accent = useMemo(
+    () => ({
+      blue: '#4285F4',
+      green: '#34A853',
+      purple: '#7B61FF',
+      orange: '#FB8C00',
+    }),
+    []
+  );
+
+  const recruitmentWeekLabel = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const daysUntilSunday = day === 0 ? 0 : 7 - day;
+    const end = new Date(now);
+    end.setDate(now.getDate() + daysUntilSunday);
+    return end.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  }, []);
+
+  const pipelineStatusRows = useMemo(() => {
+    const dist = dashboardData?.pipeline?.stageDistribution ?? {};
+    const entries = Object.entries(dist).filter(([, v]) => v > 0);
+    const total = entries.reduce((s, [, v]) => s + v, 0);
+    const palette = [accent.green, accent.orange, accent.blue, accent.purple, '#9C27B0', '#00BCD4', '#E91E63'];
+    if (total === 0) return [];
+    return entries.map(([key, count], i) => ({
+      key,
+      label: key
+        .split('_')
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' '),
+      count,
+      pct: Math.round((count / total) * 1000) / 10,
+      color: palette[i % palette.length],
+    }));
+  }, [dashboardData, accent]);
+
+  const scoreDistributionBars = useMemo(() => {
+    const cands = dashboardData?.pipeline?.candidates ?? [];
+    const rows = [
+      { name: 'Premium (85–100)', fill: accent.green, count: 0 },
+      { name: 'Deployable (70–84)', fill: accent.blue, count: 0 },
+      { name: 'Train then deploy', fill: accent.orange, count: 0 },
+      { name: 'Rejected / reassess', fill: '#e53935', count: 0 },
+    ];
+    cands.forEach((c) => {
+      const st = String(c.status || '').toLowerCase();
+      const sc = Number(c.profileScore) || 0;
+      if (st === 'rejected') rows[3].count += 1;
+      else if (sc >= 85) rows[0].count += 1;
+      else if (sc >= 70) rows[1].count += 1;
+      else if (sc >= 50) rows[2].count += 1;
+      else rows[3].count += 1;
+    });
+    return rows;
+  }, [dashboardData, accent]);
+
+  const employerHomeKpis = useMemo(() => {
+    const cands = dashboardData?.pipeline?.candidates ?? [];
+    const totalApps = dashboardData?.jobs?.totalApplications ?? 0;
+    const deployable70 = cands.filter((c) => (Number(c.profileScore) || 0) >= 70).length;
+    const progressed = cands.filter((c) => {
+      const s = String(c.status || '').toLowerCase();
+      const step = String(c.step_name || '').toLowerCase();
+      return s === 'interviewed' || s === 'approved' || step.includes('interview');
+    }).length;
+    const flagged = cands.filter((c) => {
+      const s = String(c.status || '').toLowerCase();
+      const r = String(c.riskLevel?.level || 'low').toLowerCase();
+      return s === 'rejected' || r === 'high' || r === 'medium';
+    }).length;
+    const passPct = totalApps > 0 ? Math.round((deployable70 / totalApps) * 1000) / 10 : 0;
+    return [
+      {
+        label: 'Applications',
+        value: totalApps,
+        sub: 'Across open roles',
+        trend: 'up',
+        accent: accent.blue,
+      },
+      {
+        label: 'Progressed',
+        value: progressed,
+        sub: 'Interview & beyond',
+        trend: 'up',
+        accent: accent.green,
+      },
+      {
+        label: 'Deployable (70+)',
+        value: deployable70,
+        sub: `${passPct}% at target score`,
+        trend: 'neutral',
+        accent: accent.purple,
+      },
+      {
+        label: 'Needs review',
+        value: flagged,
+        sub: flagged > 0 ? 'Risk or rejected' : 'All clear',
+        trend: flagged > 0 ? 'warn' : 'neutral',
+        accent: flagged > 0 ? '#e53935' : accent.orange,
+      },
+    ];
+  }, [dashboardData, accent]);
+
   const shellProps = {
     navGroups: employerNavGroups,
     activeId: activeTab,
@@ -383,6 +517,350 @@ const IsraeliEmployerDashboard = () => {
 
   return (
     <DashboardShell {...shellProps}>
+      {activeTab === 0 ? (
+        <Box>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="flex-start"
+            flexWrap="wrap"
+            gap={2}
+            mb={3}
+          >
+            <Box>
+              <Typography variant="h4" component="h1" fontWeight={800} sx={{ letterSpacing: '-0.02em', color: '#1e293b' }}>
+                Recruitment Dashboard
+              </Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
+                Week ending {recruitmentWeekLabel}
+                {' · '}
+                {dashboardData?.profile?.companyName ?? 'Your company'}
+              </Typography>
+            </Box>
+            <Box display="flex" flexWrap="wrap" gap={1}>
+              <Button
+                variant="contained"
+                startIcon={<PersonAdd />}
+                onClick={() => setActiveTab(2)}
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  borderRadius: 2,
+                  bgcolor: accent.blue,
+                  boxShadow: '0 4px 14px rgba(66,133,244,0.35)',
+                  '&:hover': { bgcolor: '#3367d6' },
+                }}
+              >
+                Review candidates
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={() => setPostJobDialogOpen(true)}
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  borderRadius: 2,
+                  bgcolor: '#7B0FF5',
+                  '&:hover': { bgcolor: '#9D4EDD' },
+                }}
+              >
+                Post job
+              </Button>
+            </Box>
+          </Box>
+
+          <Grid container spacing={2} mb={3}>
+            {employerHomeKpis.map((k) => (
+              <Grid item xs={12} sm={6} md={3} key={k.label}>
+                <Card
+                  elevation={0}
+                  sx={{
+                    borderRadius: 2,
+                    border: '1px solid #e8eaf0',
+                    height: '100%',
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+                    borderLeft: '4px solid',
+                    borderLeftColor: k.accent,
+                  }}
+                >
+                  <CardContent sx={{ pt: 2.5 }}>
+                    <Typography variant="caption" color="text.secondary" fontWeight={700} letterSpacing="0.06em">
+                      {k.label.toUpperCase()}
+                    </Typography>
+                    <Typography variant="h3" fontWeight={800} sx={{ my: 0.75, lineHeight: 1.1, color: '#0f172a' }}>
+                      {k.value}
+                    </Typography>
+                    <Box display="flex" alignItems="center" gap={0.75} flexWrap="wrap">
+                      {k.trend === 'up' ? (
+                        <TrendingUp sx={{ fontSize: 18, color: accent.green }} />
+                      ) : k.trend === 'warn' ? (
+                        <Warning sx={{ fontSize: 18, color: '#e53935' }} />
+                      ) : null}
+                      <Typography variant="body2" color="text.secondary">
+                        {k.sub}
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+
+          <Grid container spacing={3} mb={3}>
+            <Grid item xs={12} md={5}>
+              <Card
+                elevation={0}
+                sx={{ borderRadius: 2, border: '1px solid #e8eaf0', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', height: '100%' }}
+              >
+                <CardContent>
+                  <Typography variant="h6" fontWeight={700} gutterBottom sx={{ color: '#1e293b' }}>
+                    Pipeline by status
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Count and share of applicants by stage
+                  </Typography>
+                  {pipelineStatusRows.length === 0 ? (
+                    <Box sx={{ py: 4, textAlign: 'center', color: 'text.secondary', bgcolor: 'grey.50', borderRadius: 2 }}>
+                      <Typography variant="body2">No pipeline data yet.</Typography>
+                    </Box>
+                  ) : (
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 700, color: '#64748b', borderBottom: '1px solid #e8eaf0' }}>
+                            Status
+                          </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 700, color: '#64748b', borderBottom: '1px solid #e8eaf0' }}>
+                            Count
+                          </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 700, color: '#64748b', borderBottom: '1px solid #e8eaf0' }}>
+                            % Total
+                          </TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {pipelineStatusRows.map((row) => (
+                          <TableRow key={row.key} hover sx={{ '&:last-child td': { border: 0 } }}>
+                            <TableCell sx={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <Box display="flex" alignItems="center" gap={1}>
+                                <Box
+                                  sx={{
+                                    width: 8,
+                                    height: 8,
+                                    borderRadius: '50%',
+                                    bgcolor: row.color,
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                <Typography variant="body2" fontWeight={600}>
+                                  {row.label}
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell align="right" sx={{ borderBottom: '1px solid #f1f5f9', fontWeight: 700 }}>
+                              {row.count}
+                            </TableCell>
+                            <TableCell align="right" sx={{ borderBottom: '1px solid #f1f5f9', color: 'text.secondary' }}>
+                              {row.pct}%
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} md={7}>
+              <Card
+                elevation={0}
+                sx={{ borderRadius: 2, border: '1px solid #e8eaf0', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', height: '100%' }}
+              >
+                <CardContent>
+                  <Typography variant="h6" fontWeight={700} gutterBottom sx={{ color: '#1e293b' }}>
+                    Score distribution
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Candidates by profile score band
+                  </Typography>
+                  {(dashboardData?.pipeline?.candidates ?? []).length === 0 ? (
+                    <Box sx={{ py: 4, textAlign: 'center', color: 'text.secondary', bgcolor: 'grey.50', borderRadius: 2 }}>
+                      <DesktopMac sx={{ fontSize: 40, opacity: 0.35, mb: 1 }} />
+                      <Typography variant="body2">No candidates to chart yet.</Typography>
+                    </Box>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart
+                        layout="vertical"
+                        data={scoreDistributionBars}
+                        margin={{ top: 4, right: 16, left: 4, bottom: 4 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e8eaf0" />
+                        <XAxis type="number" allowDecimals={false} tick={{ fill: '#64748b', fontSize: 12 }} />
+                        <YAxis
+                          type="category"
+                          dataKey="name"
+                          width={150}
+                          tick={{ fontSize: 11, fill: '#475569' }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <RechartsTooltip
+                          contentStyle={{ borderRadius: 8, border: '1px solid #e8eaf0' }}
+                          formatter={(value) => [`${value}`, 'Count']}
+                        />
+                        <Bar dataKey="count" radius={[0, 6, 6, 0]} maxBarSize={28}>
+                          {scoreDistributionBars.map((e) => (
+                            <Cell key={e.name} fill={e.fill} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+
+          <Card
+            elevation={0}
+            sx={{ borderRadius: 2, border: '1px solid #e8eaf0', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}
+          >
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Typography variant="h6" fontWeight={700} gutterBottom sx={{ color: '#1e293b' }}>
+                Recent candidates
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Latest applicants linked to your job postings
+              </Typography>
+              <TableContainer sx={{ maxWidth: '100%', overflowX: 'auto' }}>
+                <Table size="small" sx={{ minWidth: 900 }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 700, color: '#64748b', whiteSpace: 'nowrap' }}>Candidate</TableCell>
+                      <TableCell sx={{ fontWeight: 700, color: '#64748b' }}>Code</TableCell>
+                      <TableCell sx={{ fontWeight: 700, color: '#64748b' }}>Trade</TableCell>
+                      <TableCell sx={{ fontWeight: 700, color: '#64748b' }}>State</TableCell>
+                      <TableCell sx={{ fontWeight: 700, color: '#64748b' }}>Status</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: '#64748b' }}>
+                        Score
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 700, color: '#64748b' }}>Band</TableCell>
+                      <TableCell sx={{ fontWeight: 700, color: '#64748b', minWidth: 100 }}>Fraud</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: '#64748b' }}>
+                        Action
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {(dashboardData?.pipeline?.candidates ?? []).length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={9} sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
+                          No candidates yet. Post a job to start receiving applications.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      (dashboardData?.pipeline?.candidates ?? []).slice(0, 25).map((c) => {
+                        const band = employerCandidateBand(c);
+                        const fraud = employerFraudMeter(c.riskLevel);
+                        const stageLabel = String(c.step_name || c.status || '—').replace(/_/g, ' ');
+                        return (
+                          <TableRow key={c.id} hover>
+                            <TableCell>
+                              <Typography variant="subtitle2" fontWeight={700}>
+                                {c.full_name || '—'}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                Applicant
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2" sx={{ fontFamily: 'ui-monospace, monospace', fontSize: '0.8rem' }}>
+                                APR-{String(c.id).padStart(6, '0')}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">{c.job_title || (c.skills && c.skills[0]) || '—'}</Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2" color="text.secondary">
+                                —
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                size="small"
+                                label={stageLabel}
+                                color={employerStatusChipColor(c.status)}
+                                sx={{ textTransform: 'capitalize', fontWeight: 600 }}
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography variant="body2" fontWeight={700}>
+                                {Number(c.profileScore ?? 0).toFixed(1)}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip size="small" label={band.label} color={band.color} variant="outlined" sx={{ fontWeight: 600 }} />
+                            </TableCell>
+                            <TableCell>
+                              <Box sx={{ minWidth: 72 }}>
+                                <LinearProgress
+                                  variant="determinate"
+                                  value={fraud.value}
+                                  color={fraud.color}
+                                  sx={{ height: 6, borderRadius: 3, mb: 0.25 }}
+                                />
+                                <Typography variant="caption" color="text.secondary">
+                                  {fraud.label}
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                sx={{ textTransform: 'none', mr: 0.5 }}
+                                onClick={() => setActiveTab(2)}
+                              >
+                                View
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                sx={{ textTransform: 'none' }}
+                                onClick={() => {
+                                  window.location.href = `/interviews/assess/${c.applicationId || c.id}`;
+                                }}
+                              >
+                                Review
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Card>
+
+          <Box display="flex" flexWrap="wrap" gap={1} mt={2}>
+            <Button size="small" variant="text" startIcon={<AutoAwesome />} onClick={() => setAiGeneratorOpen(true)} sx={{ color: '#9c27b0' }}>
+              AI Job Generator
+            </Button>
+            <Button size="small" variant="text" startIcon={<Business />} onClick={() => { window.location.href = '/merf'; }}>
+              MERF
+            </Button>
+            <Button size="small" variant="text" startIcon={<Download />}>
+              Export
+            </Button>
+          </Box>
+        </Box>
+      ) : (
+      <>
       {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} flexWrap="wrap" gap={2}>
         <Box>
@@ -543,7 +1021,7 @@ const IsraeliEmployerDashboard = () => {
       <Card elevation={2}>
         <CardContent>
           {/* Active Jobs Tab */}
-          {activeTab === 0 && (
+          {activeTab === 1 && (
             <Box>
               <Typography variant="h6" gutterBottom>
                 Job Postings
@@ -616,7 +1094,7 @@ const IsraeliEmployerDashboard = () => {
           )}
 
           {/* Candidate Pipeline Tab */}
-          {activeTab === 1 && (
+          {activeTab === 2 && (
             <Box>
               <Typography variant="h6" gutterBottom>
                 Candidate Pipeline
@@ -699,7 +1177,7 @@ const IsraeliEmployerDashboard = () => {
           )}
 
           {/* Performance Tab */}
-          {activeTab === 2 && (
+          {activeTab === 3 && (
             <Box>
               <Typography variant="h6" gutterBottom>
                 Performance Metrics
@@ -759,7 +1237,7 @@ const IsraeliEmployerDashboard = () => {
           )}
 
           {/* Compliance Tab */}
-          {activeTab === 3 && (
+          {activeTab === 4 && (
             <Box>
               <Typography variant="h6" gutterBottom>
                 Compliance Status
@@ -814,6 +1292,8 @@ const IsraeliEmployerDashboard = () => {
           )}
         </CardContent>
       </Card>
+      </>
+      )}
 
       {/* Post New Job Dialog */}
       <Dialog 

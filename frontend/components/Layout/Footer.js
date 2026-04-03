@@ -161,8 +161,8 @@ const Footer = () => {
                 variant="body2"
                 sx={linkSx}
                 onClick={() => {
-                  if (mounted && user?.role === 'employer') router.push('/dashboard/employer?tab=1');
-                  else router.push('/login?next=' + encodeURIComponent('/dashboard/employer?tab=1'));
+                  if (mounted && user?.role === 'employer') router.push('/dashboard/employer?tab=2');
+                  else router.push('/login?next=' + encodeURIComponent('/dashboard/employer?tab=2'));
                 }}
               >
                 Browse Candidates
