@@ -4,13 +4,14 @@
  * Safe to run on every container start - only seeds when no users exist.
  */
 const db = require('../database/db');
-const { seedUsers, seedJobs, seedApplications } = require('../database/seed');
+const { seedUsers, seedJobs, seedApplications, ensureAdminUser } = require('../database/seed');
 
 function initDb() {
   try {
     const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
     if (userCount > 0) {
-      console.log(`✅ Database already has ${userCount} users, skipping seed`);
+      console.log(`✅ Database already has ${userCount} users, skipping full seed`);
+      ensureAdminUser();
       return;
     }
     console.log('🌱 Database empty, seeding initial data...');

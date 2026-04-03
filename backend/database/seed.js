@@ -21,7 +21,9 @@ function seedUsers() {
       fullName: 'Apravas Admin',
       role: 'admin',
       phone: '+91-9876543210',
-      address: 'Mumbai, India'
+      address: 'Mumbai, India',
+      is_demo_account: 1,
+      demo_password: null,
     },
     {
       email: 'employer@israel.com',
@@ -107,6 +109,41 @@ function seedUsers() {
 
   insertMany(users);
   console.log(`✅ Seeded ${users.length} users`);
+}
+
+const DEFAULT_ADMIN_EMAIL = 'admin@apravas.com';
+
+/**
+ * If the DB has users but no admin@apravas.com (e.g. init-db skipped full seed),
+ * insert the default admin so production login works. Safe to run on every startup.
+ */
+function ensureAdminUser() {
+  const existing = db.prepare('SELECT id, is_demo_account FROM users WHERE email = ?').get(DEFAULT_ADMIN_EMAIL);
+  if (!existing) {
+    const insertUser = db.prepare(`
+      INSERT INTO users (email, password, name, fullName, role, companyName, phone, address, is_demo_account, demo_password)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    insertUser.run(
+      DEFAULT_ADMIN_EMAIL,
+      bcrypt.hashSync('admin123', 10),
+      'Apravas Admin',
+      'Apravas Admin',
+      'admin',
+      null,
+      '+91-9876543210',
+      'Mumbai, India',
+      1,
+      null
+    );
+    console.log(`✅ Created missing default admin (${DEFAULT_ADMIN_EMAIL})`);
+    return;
+  }
+  // Demo cards on /login come from is_demo_account=1 only (see GET /auth/login-credentials)
+  if (existing.is_demo_account !== 1) {
+    db.prepare('UPDATE users SET is_demo_account = 1, demo_password = NULL WHERE email = ?').run(DEFAULT_ADMIN_EMAIL);
+    console.log(`✅ Default admin is now included in demo accounts on the login page (${DEFAULT_ADMIN_EMAIL})`);
+  }
 }
 
 // Seed login page settings (nav label + test credentials) if not set
@@ -449,4 +486,12 @@ if (require.main === module) {
   seed();
 }
 
-module.exports = { seed, seedUsers, seedJobs, seedApplications, seedLoginPageSettings, seedJobsForCategories };
+module.exports = {
+  seed,
+  seedUsers,
+  seedJobs,
+  seedApplications,
+  seedLoginPageSettings,
+  seedJobsForCategories,
+  ensureAdminUser,
+};
