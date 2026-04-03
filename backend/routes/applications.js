@@ -1,4 +1,5 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -513,6 +514,155 @@ router.delete('/israel-skilled-worker/:id', (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to delete application',
+      error: error.message,
+    });
+  }
+});
+
+function employerAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.replace('Bearer ', '');
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'Authentication required' });
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const user = db.prepare('SELECT id, role FROM users WHERE id = ?').get(decoded.id);
+    if (!user || user.role !== 'employer') {
+      return res.status(403).json({ success: false, message: 'Employer access required' });
+    }
+    req.employerUserId = user.id;
+    next();
+  } catch (err) {
+    return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+  }
+}
+
+/**
+ * Employer registers a candidate against one of their job postings (minimal intake; full KYC can follow later).
+ */
+router.post('/employer-candidate', employerAuth, (req, res) => {
+  try {
+    const {
+      fullName,
+      email,
+      mobileNumber,
+      jobId,
+      dateOfBirth,
+      gender,
+      hasPassport,
+      jobCategory,
+      specificTrade,
+      experienceYears,
+      permanentAddress,
+      stateRegion,
+      notes,
+    } = req.body;
+
+    if (!fullName?.trim() || !email?.trim() || !mobileNumber?.trim() || jobId == null || jobId === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'fullName, email, mobileNumber, and jobId are required',
+      });
+    }
+
+    const jid = parseInt(String(jobId), 10);
+    if (!jid) {
+      return res.status(400).json({ success: false, message: 'Invalid jobId' });
+    }
+
+    const job = db.prepare('SELECT * FROM jobs WHERE id = ? AND postedBy = ?').get(jid, req.employerUserId);
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: 'Job not found or not owned by your account',
+      });
+    }
+
+    const category = (jobCategory && String(jobCategory).trim()) || job.category || 'General';
+    const expYears = parseInt(String(experienceYears ?? '0'), 10);
+    const experience = Number.isFinite(expYears) ? Math.max(0, Math.min(60, expYears)) : 0;
+    const dob = (dateOfBirth && String(dateOfBirth).trim()) || '1990-01-01';
+    const gen = (gender && String(gender).trim().toLowerCase()) || 'other';
+    const passport = (hasPassport && String(hasPassport).trim().toLowerCase()) || 'no';
+    const trade = (specificTrade && String(specificTrade).trim()) || job.title || '';
+    const addressParts = [permanentAddress, stateRegion].filter(Boolean).map((s) => String(s).trim()).filter(Boolean);
+    const permanentAddr = addressParts.length ? addressParts.join(', ') : null;
+
+    const submissionId = `EMP-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    const autoScore = Math.min(100, 45 + experience * 4 + (category ? 5 : 0));
+    const routing = {
+      source: 'employer_portal',
+      registeredByEmployerId: req.employerUserId,
+      notes: notes ? String(notes).trim() : undefined,
+    };
+
+    const insertApp = db.prepare(`
+      INSERT INTO applications (
+        submissionId, userId, jobId, fullName, dateOfBirth, gender, maritalStatus,
+        mobileNumber, email, permanentAddress, hasPassport, passportNumber,
+        passportIssuePlace, passportIssueDate, passportExpiryDate, jobCategory,
+        specificTrade, experienceYears, workedAbroad, countriesWorked,
+        hasCertificate, certificateDetails, canReadDrawings, languages,
+        medicalCondition, medicalDetails, criminalCase, criminalDetails,
+        declaration, digitalSignature, autoScore, routing, status, language, files
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const digitalSignature = `Employer registration — employerUserId=${req.employerUserId} — ${new Date().toISOString()}`;
+
+    const result = insertApp.run(
+      submissionId,
+      null,
+      jid,
+      fullName.trim(),
+      dob,
+      gen,
+      null,
+      String(mobileNumber).trim(),
+      String(email).trim(),
+      permanentAddr,
+      passport,
+      null,
+      null,
+      null,
+      null,
+      category,
+      trade || null,
+      String(experience),
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      1,
+      digitalSignature,
+      autoScore,
+      JSON.stringify(routing),
+      'submitted',
+      'en',
+      JSON.stringify({})
+    );
+
+    const newApplication = parseApplication(
+      db.prepare('SELECT * FROM applications WHERE id = ?').get(result.lastInsertRowid)
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Candidate registered successfully',
+      data: newApplication,
+    });
+  } catch (error) {
+    console.error('Employer candidate registration error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to register candidate',
       error: error.message,
     });
   }

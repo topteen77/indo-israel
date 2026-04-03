@@ -13,7 +13,7 @@ import {
   Work, People, Assessment, Schedule, CheckCircle,
   Warning, Visibility, Message, Download, Edit,
   TrendingUp, Close, Add, AutoAwesome, Business,
-  Dashboard, PersonAdd, DesktopMac,
+  Dashboard, PersonAdd, PersonAddOutlined, DesktopMac,
 } from '@mui/icons-material';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -119,6 +119,7 @@ const IsraeliEmployerDashboard = () => {
           { id: 2, label: 'Candidate Pipeline', icon: <People />, ...(pipeCount ? { badge: pipeCount } : {}) },
           { id: 3, label: 'Performance', icon: <Assessment /> },
           { id: 4, label: 'Compliance', icon: <CheckCircle /> },
+          { id: 5, label: 'Register candidate', icon: <PersonAddOutlined /> },
         ],
       },
     ];
@@ -482,10 +483,18 @@ const IsraeliEmployerDashboard = () => {
     ];
   }, [dashboardData, accent]);
 
+  const handleEmployerNav = (id) => {
+    if (id === 5) {
+      router.push('/dashboard/employer/register');
+      return;
+    }
+    setActiveTab(id);
+  };
+
   const shellProps = {
     navGroups: employerNavGroups,
     activeId: activeTab,
-    onNavSelect: setActiveTab,
+    onNavSelect: handleEmployerNav,
     topbarTitle: employerTabTitle(activeTab),
     roleLabel: shellUser.role,
     userDisplayName: shellUser.display,
@@ -552,6 +561,20 @@ const IsraeliEmployerDashboard = () => {
                 }}
               >
                 Review candidates
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<PersonAddOutlined />}
+                onClick={() => router.push('/dashboard/employer/register')}
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  borderRadius: 2,
+                  borderColor: accent.green,
+                  color: accent.green,
+                }}
+              >
+                Register candidate
               </Button>
               <Button
                 variant="contained"
