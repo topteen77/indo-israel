@@ -27,6 +27,7 @@ import {
   CheckCircle,
   Dashboard,
   Gavel,
+  MenuBook,
 } from '@mui/icons-material';
 import api from '../../utils/api';
 import DashboardShell from '../Layout/DashboardShell';
@@ -114,6 +115,7 @@ export default function EmployerRegisterCandidate() {
           { id: 4, label: 'Compliance', icon: <CheckCircle /> },
           { id: 5, label: 'Register candidate', icon: <PersonAddOutlined /> },
           { id: 6, label: 'Contracts', icon: <Gavel /> },
+          { id: 7, label: 'Resources', icon: <MenuBook /> },
         ],
       },
     ];
@@ -126,6 +128,10 @@ export default function EmployerRegisterCandidate() {
     }
     if (id === 6) {
       router.push('/dashboard/employer/contracts');
+      return;
+    }
+    if (id === 7) {
+      router.push('/dashboard/employer/resources');
       return;
     }
     router.push(id === 0 ? '/dashboard/employer' : `/dashboard/employer?tab=${id}`);

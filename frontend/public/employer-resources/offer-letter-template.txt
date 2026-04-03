@@ -1,0 +1,23 @@
+OFFER LETTER — TEMPLATE OUTLINE
+===============================
+Apravas · Employer resources — Customise and verify with HR/legal.
+
+Date: [DATE]
+To: [CANDIDATE NAME]
+Re: Offer of employment — [JOB TITLE]
+
+Dear [Name],
+
+We are pleased to offer you the position of [JOB TITLE] with [COMPANY], based in [LOCATION], with a proposed start date of [DATE].
+
+Key terms (summary):
+- Compensation: [SALARY / BENEFITS SUMMARY]
+- Employment type: [Full-time / contract]
+- Probation: [IF ANY]
+- Conditions: Subject to [medical / visa / references] as applicable.
+
+Please confirm acceptance by [DATE].
+
+Sincerely,
+[Name, title]
+[Company]

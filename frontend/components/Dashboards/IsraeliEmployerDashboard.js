@@ -13,7 +13,7 @@ import {
   Work, People, Assessment, Schedule, CheckCircle,
   Warning, Visibility, Message, Edit,
   TrendingUp, Close, Add,
-  Dashboard, PersonAdd, PersonAddOutlined, DesktopMac, Gavel,
+  Dashboard, PersonAdd, PersonAddOutlined, DesktopMac, Gavel, MenuBook,
 } from '@mui/icons-material';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -113,6 +113,7 @@ const IsraeliEmployerDashboard = () => {
           { id: 4, label: 'Compliance', icon: <CheckCircle /> },
           { id: 5, label: 'Register candidate', icon: <PersonAddOutlined /> },
           { id: 6, label: 'Contracts', icon: <Gavel /> },
+          { id: 7, label: 'Resources', icon: <MenuBook /> },
         ],
       },
     ];
@@ -483,6 +484,10 @@ const IsraeliEmployerDashboard = () => {
     }
     if (id === 6) {
       router.push('/dashboard/employer/contracts');
+      return;
+    }
+    if (id === 7) {
+      router.push('/dashboard/employer/resources');
       return;
     }
     setActiveTab(id);
