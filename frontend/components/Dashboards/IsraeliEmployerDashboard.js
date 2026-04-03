@@ -11,9 +11,9 @@ import {
 } from '@mui/material';
 import {
   Work, People, Assessment, Schedule, CheckCircle,
-  Warning, Visibility, Message, Download, Edit,
-  TrendingUp, Close, Add, AutoAwesome, Business,
-  Dashboard, PersonAdd, PersonAddOutlined, DesktopMac,
+  Warning, Visibility, Message, Edit,
+  TrendingUp, Close, Add,
+  Dashboard, PersonAdd, PersonAddOutlined, DesktopMac, Gavel,
 } from '@mui/icons-material';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -21,13 +21,7 @@ import {
   ResponsiveContainer, Legend,
 } from 'recharts';
 import api from '../../utils/api';
-import dynamic from 'next/dynamic';
 import DashboardShell from '../Layout/DashboardShell';
-
-const AIJobGenerator = dynamic(
-  () => import('../AI/AIJobGenerator'),
-  { ssr: false }
-);
 
 function employerCandidateBand(c) {
   const st = String(c.status || '').toLowerCase();
@@ -86,8 +80,6 @@ const IsraeliEmployerDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
   const [postJobDialogOpen, setPostJobDialogOpen] = useState(false);
-  const [aiGeneratorOpen, setAiGeneratorOpen] = useState(false);
-  const [jobPostTab, setJobPostTab] = useState(0); // 0 = manual, 1 = AI generator
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [viewJobDialogOpen, setViewJobDialogOpen] = useState(false);
   const [editJobDialogOpen, setEditJobDialogOpen] = useState(false);
@@ -120,6 +112,7 @@ const IsraeliEmployerDashboard = () => {
           { id: 3, label: 'Performance', icon: <Assessment /> },
           { id: 4, label: 'Compliance', icon: <CheckCircle /> },
           { id: 5, label: 'Register candidate', icon: <PersonAddOutlined /> },
+          { id: 6, label: 'Contracts', icon: <Gavel /> },
         ],
       },
     ];
@@ -486,6 +479,10 @@ const IsraeliEmployerDashboard = () => {
   const handleEmployerNav = (id) => {
     if (id === 5) {
       router.push('/dashboard/employer/register');
+      return;
+    }
+    if (id === 6) {
+      router.push('/dashboard/employer/contracts');
       return;
     }
     setActiveTab(id);
@@ -869,18 +866,6 @@ const IsraeliEmployerDashboard = () => {
               </TableContainer>
             </CardContent>
           </Card>
-
-          <Box display="flex" flexWrap="wrap" gap={1} mt={2}>
-            <Button size="small" variant="text" startIcon={<AutoAwesome />} onClick={() => setAiGeneratorOpen(true)} sx={{ color: '#9c27b0' }}>
-              AI Job Generator
-            </Button>
-            <Button size="small" variant="text" startIcon={<Business />} onClick={() => { window.location.href = '/merf'; }}>
-              MERF
-            </Button>
-            <Button size="small" variant="text" startIcon={<Download />}>
-              Export
-            </Button>
-          </Box>
         </Box>
       ) : (
       <>
@@ -896,34 +881,6 @@ const IsraeliEmployerDashboard = () => {
         </Box>
         <Box display="flex" gap={2}>
           <Button
-            variant="outlined"
-            startIcon={<Business />}
-            onClick={() => window.location.href = '/merf'}
-            sx={{
-              borderColor: '#7B0FF5',
-              color: '#7B0FF5',
-              '&:hover': {
-                borderColor: '#9D4EDD',
-                bgcolor: 'rgba(123, 15, 245, 0.04)',
-              },
-            }}
-          >
-            MERF Requisitions
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AutoAwesome />}
-            onClick={() => setAiGeneratorOpen(true)}
-            sx={{
-              bgcolor: '#9c27b0',
-              '&:hover': {
-                bgcolor: '#7b1fa2',
-              },
-            }}
-          >
-            AI Job Generator
-          </Button>
-          <Button
             variant="contained"
             startIcon={<Add />}
             onClick={() => setPostJobDialogOpen(true)}
@@ -935,12 +892,6 @@ const IsraeliEmployerDashboard = () => {
             }}
           >
             Post New Job
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<Download />}
-          >
-            Export Report
           </Button>
         </Box>
       </Box>
@@ -1474,8 +1425,7 @@ const IsraeliEmployerDashboard = () => {
             </Grid>
           </Grid>
         </DialogContent>
-        {jobPostTab === 0 && (
-          <DialogActions sx={{ p: 3, pt: 2, borderTop: '1px solid #E0E0E0' }}>
+        <DialogActions sx={{ p: 3, pt: 2, borderTop: '1px solid #E0E0E0' }}>
           <Button onClick={handleCloseDialog} sx={{ color: '#666' }}>
             Cancel
           </Button>
@@ -1493,7 +1443,6 @@ const IsraeliEmployerDashboard = () => {
             Post Job
           </Button>
         </DialogActions>
-        )}
       </Dialog>
 
       {/* Snackbar for notifications */}
@@ -1511,74 +1460,6 @@ const IsraeliEmployerDashboard = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
-
-      {/* AI Job Generator Dialog */}
-      <Dialog
-        open={aiGeneratorOpen}
-        onClose={() => setAiGeneratorOpen(false)}
-        maxWidth="lg"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            maxHeight: '90vh',
-          }
-        }}
-      >
-        <DialogTitle sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          pb: 2,
-          borderBottom: '1px solid #E0E0E0',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
-        }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <AutoAwesome />
-            <Typography variant="h5" sx={{ fontWeight: 700 }}>
-              AI Job Post Generator
-            </Typography>
-          </Box>
-          <IconButton 
-            onClick={() => setAiGeneratorOpen(false)} 
-            size="small"
-            sx={{ color: 'white' }}
-          >
-            <Close />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ pt: 3, bgcolor: '#f5f5f5' }}>
-          <AIJobGenerator
-            onGenerated={(jobData) => {
-              // Populate the job form with generated data
-              setJobForm({
-                title: jobData.title || '',
-                company: jobData.company || dashboardData?.profile?.companyName || '',
-                location: jobData.location || '',
-                salary: jobData.salary || '',
-                experience: jobData.experience || '',
-                type: jobData.type || 'Full-time',
-                description: jobData.description || '',
-                requirements: Array.isArray(jobData.requirements) 
-                  ? jobData.requirements.join(', ') 
-                  : (jobData.requirements || ''),
-                category: jobData.category || '',
-                openings: jobData.openings || 1,
-              });
-              // Close AI generator and open the post job dialog
-              setAiGeneratorOpen(false);
-              setPostJobDialogOpen(true);
-              setSnackbar({
-                open: true,
-                message: 'Job generated successfully! Please review and submit.',
-                severity: 'success'
-              });
-            }}
-            onClose={() => setAiGeneratorOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
 
       {/* View Job Dialog */}
       <Dialog

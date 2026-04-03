@@ -110,6 +110,7 @@ function getEmployerDashboard(userId) {
       job_id: app.jobId,
       job_title: job ? job.title : 'Job',
       full_name: app.fullName || 'Applicant',
+      email: app.email || '',
       skills: app.jobCategory ? [app.jobCategory] : [],
       experience_years: expYears,
       status: app.status || 'submitted',
