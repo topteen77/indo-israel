@@ -847,7 +847,12 @@ const IsraeliEmployerDashboard = () => {
                                 size="small"
                                 variant="outlined"
                                 sx={{ textTransform: 'none', mr: 0.5 }}
-                                onClick={() => setActiveTab(2)}
+                                onClick={() => {
+                                  const appId = c.applicationId ?? c.id;
+                                  if (appId != null && String(appId).trim() !== '') {
+                                    router.push(`/apply/${encodeURIComponent(String(appId))}`);
+                                  }
+                                }}
                               >
                                 View
                               </Button>
@@ -1129,8 +1134,16 @@ const IsraeliEmployerDashboard = () => {
                       </TableCell>
                       <TableCell>{candidate.days_in_stage || 0}</TableCell>
                       <TableCell>
-                        <Tooltip title="View Details">
-                          <IconButton size="small">
+                        <Tooltip title="View candidate profile">
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              const appId = candidate.applicationId ?? candidate.id;
+                              if (appId != null && String(appId).trim() !== '') {
+                                router.push(`/apply/${encodeURIComponent(String(appId))}`);
+                              }
+                            }}
+                          >
                             <Visibility />
                           </IconButton>
                         </Tooltip>
