@@ -354,6 +354,41 @@ function seedApplications() {
   console.log(`✅ Seeded ${applications.length} applications`);
 }
 
+/** Demo GPS for Rajesh (worker@india.com) — Sector 17, Chandigarh (latest worker_locations row wins). */
+function seedDemoWorkerLocations() {
+  const row = db.prepare("SELECT id FROM users WHERE email = ? AND role = 'worker'").get('worker@india.com');
+  if (!row) {
+    console.log('⚠️  Demo worker worker@india.com not found — skipping demo GPS seed');
+    return;
+  }
+  const ts = new Date().toISOString();
+  const lat = 30.7415;
+  const lng = 76.7684;
+  db.prepare(`
+    INSERT INTO worker_locations (
+      workerId, latitude, longitude, accuracy, altitude, heading, speed,
+      address, city, country, timestamp, source, batteryLevel, isCharging
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    row.id,
+    lat,
+    lng,
+    25,
+    null,
+    null,
+    null,
+    'Sector 17, Chandigarh, India',
+    'Chandigarh',
+    'India',
+    ts,
+    'manual',
+    82,
+    0
+  );
+  db.prepare('UPDATE users SET address = ? WHERE id = ?').run('Sector 17, Chandigarh, India', row.id);
+  console.log('✅ Seeded demo GPS: Rajesh → Sector 17, Chandigarh');
+}
+
 // Seed jobs for specific categories only (without clearing existing data)
 function seedJobsForCategories(categoriesToSeed) {
   const cities = ['Tel Aviv', 'Jerusalem', 'Haifa', 'Netanya', 'Ashdod', 'Rishon LeZion', 'Beer Sheva'];
@@ -465,6 +500,7 @@ function seed() {
     seedUsers();
     seedJobs();
     seedApplications();
+    seedDemoWorkerLocations();
     seedLoginPageSettings();
 
     console.log('\n✅ Database seeding completed successfully!');
@@ -491,6 +527,7 @@ module.exports = {
   seedUsers,
   seedJobs,
   seedApplications,
+  seedDemoWorkerLocations,
   seedLoginPageSettings,
   seedJobsForCategories,
   ensureAdminUser,

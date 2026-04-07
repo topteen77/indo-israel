@@ -70,6 +70,19 @@ const EmployerWorkersMap = dynamic(
 
 const TAB_KEYS = ['gps', 'sos', 'welfare'];
 
+/** Avoid "Tel Aviv, Israel · Tel Aviv, Israel" when address already includes city + country. */
+function formatWorkerLocationLine(w) {
+  const primary = (w.displayLocation || w.location?.address || '').trim();
+  const secondary = [w.city, w.country].filter(Boolean).join(', ').trim();
+  if (!primary && !secondary) return '—';
+  if (!primary) return secondary;
+  if (!secondary) return primary;
+  const p = primary.toLowerCase().replace(/\s+/g, ' ');
+  const s = secondary.toLowerCase().replace(/\s+/g, ' ');
+  if (p === s || p.includes(s)) return primary;
+  return `${primary} · ${secondary}`;
+}
+
 function TabPanel({ children, value, index }) {
   return (
     <div role="tabpanel" hidden={value !== index} style={{ marginTop: 16 }}>
@@ -353,7 +366,7 @@ function GpsTab({ data, onTrack }) {
       icon: <People />,
     },
     {
-      label: 'Active & safe',
+      label: 'Recent GPS (safe)',
       value: stats?.activeSafe ?? 0,
       color: '#2e7d32',
       icon: <CheckCircle />,
@@ -378,10 +391,14 @@ function GpsTab({ data, onTrack }) {
         <GpsFixed color="primary" />
         Real-time GPS tracking & worker safety
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
         Live overview of applicants on your job postings and linked worker accounts (GPS when the worker logs in and shares
         location).
       </Typography>
+      <Alert severity="info" sx={{ mb: 2, py: 0.5 }}>
+        <strong>GPS OK</strong> (green) means a recent location check-in — it is not an open emergency. Closed and open
+        emergencies are listed under <strong>Safety & SOS</strong>.
+      </Alert>
 
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {cards.map((c) => (
@@ -426,7 +443,7 @@ function GpsTab({ data, onTrack }) {
             Interactive world map
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Real-time worker locations — pan, zoom, tap markers for details.
+            Every linked worker with a current or last-known GPS position is shown — pan, zoom, tap markers for details.
           </Typography>
         </Box>
         <EmployerWorkersMap workers={workers} />
@@ -474,8 +491,7 @@ function GpsTab({ data, onTrack }) {
                   <Box>
                     <Typography fontWeight={700}>{w.name}</Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {w.displayLocation || w.location?.address || '—'}
-                      {w.city || w.country ? ` · ${[w.city, w.country].filter(Boolean).join(', ')}` : ''}
+                      {formatWorkerLocationLine(w)}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {w.jobTitle} · {w.employer}
@@ -485,7 +501,7 @@ function GpsTab({ data, onTrack }) {
                 <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
                   <Chip
                     size="small"
-                    label={isSafe ? 'Active' : isCrit ? 'SOS' : 'Offline'}
+                    label={isSafe ? 'GPS OK' : isCrit ? 'SOS' : 'Offline'}
                     color={isSafe ? 'success' : isCrit ? 'error' : 'warning'}
                     sx={{ fontWeight: 700 }}
                   />

@@ -18,6 +18,35 @@ function formatRelative(iso) {
   return `${d} day(s) ago`;
 }
 
+/**
+ * Map pins: prefer latest worker_locations row; otherwise use most recent history point
+ * (history can exist without a current row).
+ */
+function buildWorkerLocationForMap(loc, history) {
+  if (loc && loc.latitude != null && loc.longitude != null) {
+    return {
+      latitude: loc.latitude,
+      longitude: loc.longitude,
+      address: loc.address,
+      city: loc.city,
+      country: loc.country,
+      timestamp: loc.timestamp,
+    };
+  }
+  const h = history && history[0];
+  if (h && h.latitude != null && h.longitude != null) {
+    return {
+      latitude: h.latitude,
+      longitude: h.longitude,
+      address: null,
+      city: null,
+      country: null,
+      timestamp: h.timestamp,
+    };
+  }
+  return null;
+}
+
 function deriveStatus(loc, history) {
   const emergencyRecent = history.some((h) => {
     if (h.eventType !== 'emergency') return false;
@@ -211,6 +240,7 @@ function getEmployerSafetySummary(employerUserId) {
     const loc = enhancedLocationService.getCurrentLocation(userId);
     const history = enhancedLocationService.getLocationHistory(userId, { limit: 40 });
     const st = deriveStatus(loc, history);
+    const mapLoc = buildWorkerLocationForMap(loc, history);
 
     const lastTs = loc?.timestamp || history[0]?.timestamp;
     const batteryPct =
@@ -230,19 +260,19 @@ function getEmployerSafetySummary(employerUserId) {
       jobTitle,
       employer: companyName,
       status: st,
-      location: loc
+      location: mapLoc
         ? {
-            latitude: loc.latitude,
-            longitude: loc.longitude,
-            address: loc.address,
-            city: loc.city,
-            country: loc.country,
-            timestamp: loc.timestamp,
+            latitude: mapLoc.latitude,
+            longitude: mapLoc.longitude,
+            address: mapLoc.address,
+            city: mapLoc.city,
+            country: mapLoc.country,
+            timestamp: mapLoc.timestamp,
           }
         : null,
       displayLocation: loc?.address || app.permanentAddress || 'Unknown',
-      city: loc?.city || '',
-      country: loc?.country || 'Israel',
+      city: loc?.city || mapLoc?.city || '',
+      country: loc?.country || mapLoc?.country || '',
       lastSeenLabel: formatRelative(lastTs),
       batteryPct,
       signalLabel,

@@ -12,6 +12,24 @@ function statusColor(status) {
   return '#2e7d32';
 }
 
+/** Slight offset so markers at the same coordinates do not stack invisibly. */
+function spreadDuplicatePins(points) {
+  const counts = new Map();
+  return points.map((p) => {
+    const k = `${Number(p.lat).toFixed(5)}|${Number(p.lng).toFixed(5)}`;
+    const idx = counts.get(k) ?? 0;
+    counts.set(k, idx + 1);
+    if (idx === 0) return p;
+    const step = 0.00032 * idx;
+    const angle = (idx * 2.399963) % (2 * Math.PI);
+    return {
+      ...p,
+      lat: p.lat + step * Math.cos(angle),
+      lng: p.lng + step * Math.sin(angle),
+    };
+  });
+}
+
 function FitBounds({ points }) {
   const map = useMap();
 
@@ -36,11 +54,18 @@ function FitBounds({ points }) {
  * Interactive map with OpenStreetMap tiles — works without API keys.
  * (Google Maps / Mapbox can be wired separately via env for other views, e.g. LocationMapView embed.)
  */
+function statusLabel(status) {
+  if (status === 'critical') return 'SOS';
+  if (status === 'warning') return 'Offline / delayed';
+  return 'GPS OK';
+}
+
 export default function EmployerWorkersMap({ workers }) {
   const points = useMemo(() => {
-    return (workers || [])
+    const raw = (workers || [])
       .filter((w) => w.location?.latitude != null && w.location?.longitude != null)
       .map((w) => ({
+        id: String(w.id),
         lat: Number(w.location.latitude),
         lng: Number(w.location.longitude),
         name: w.name || 'Worker',
@@ -48,6 +73,7 @@ export default function EmployerWorkersMap({ workers }) {
         jobTitle: w.jobTitle || '',
         lastSeen: w.lastSeenLabel || '—',
       }));
+    return spreadDuplicatePins(raw);
   }, [workers]);
 
   return (
@@ -62,9 +88,9 @@ export default function EmployerWorkersMap({ workers }) {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {points.map((p, i) => (
+        {points.map((p) => (
           <CircleMarker
-            key={`${p.lat}-${p.lng}-${i}`}
+            key={p.id}
             center={[p.lat, p.lng]}
             radius={11}
             pathOptions={{
@@ -76,6 +102,8 @@ export default function EmployerWorkersMap({ workers }) {
           >
             <Popup>
               <strong>{p.name}</strong>
+              <br />
+              <span style={{ fontSize: 12, color: '#555' }}>{statusLabel(p.status)}</span>
               <br />
               {p.jobTitle}
               <br />
@@ -101,7 +129,7 @@ export default function EmployerWorkersMap({ workers }) {
           zIndex: 500,
         }}
       >
-        Interactive map — real-time worker locations (OpenStreetMap). Optional: add{' '}
+        Pins include all workers with coordinates (current or latest history). Optional: add{' '}
         <Box component="span" sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
           NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
         </Box>{' '}
