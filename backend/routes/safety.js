@@ -1,7 +1,9 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const router = express.Router();
 const db = require('../database/db');
-const { generateSafetyData, generateEmployerSafetyBundle } = require('../services/safetyService');
+const { generateSafetyData } = require('../services/safetyService');
+const { getEmployerSafetySummary, resolveEmployerEmergency } = require('../services/employerSafetyService');
 const { sendEmergencySMS } = require('../services/smsService');
 const { sendWhatsAppMessage } = require('../services/whatsappService');
 const { reverseGeocode } = require('../services/reverseGeocodeService');
@@ -662,12 +664,31 @@ router.get('/admin/geofences', (req, res) => {
   }
 });
 
-// Employer: summary for company workers (mock bundle; pass company from client)
-router.get('/employer/summary', (req, res) => {
+function getEmployerFromToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.replace('Bearer ', '');
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'Authentication required' });
+  }
   try {
-    const company =
-      (req.query.company && String(req.query.company).trim()) || 'Your company';
-    const data = generateEmployerSafetyBundle(company);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const user = db
+      .prepare('SELECT id, role, companyName, fullName, name, email FROM users WHERE id = ?')
+      .get(decoded.id);
+    if (!user || user.role !== 'employer') {
+      return res.status(403).json({ success: false, message: 'Employer access required' });
+    }
+    req.employer = user;
+    next();
+  } catch (e) {
+    return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+  }
+}
+
+// Employer: summary — applicants on your jobs + live GPS when worker account is linked (DB-backed)
+router.get('/employer/summary', getEmployerFromToken, (req, res) => {
+  try {
+    const data = getEmployerSafetySummary(req.employer.id);
     res.json({
       success: true,
       data,
@@ -677,6 +698,27 @@ router.get('/employer/summary', (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to load employer safety data',
+    });
+  }
+});
+
+// Employer: acknowledge / close an active emergency alert (location_history row)
+router.post('/employer/emergency/resolve', getEmployerFromToken, (req, res) => {
+  try {
+    const { historyId } = req.body || {};
+    const result = resolveEmployerEmergency(req.employer.id, historyId);
+    if (!result.success) {
+      return res.status(result.code || 400).json({
+        success: false,
+        message: result.message || 'Could not close alert',
+      });
+    }
+    res.json({ success: true, message: 'Alert closed' });
+  } catch (error) {
+    console.error('Error resolving employer emergency:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to close alert',
     });
   }
 });

@@ -20,6 +20,7 @@ import {
   ListItemText,
   Alert,
   IconButton,
+  CircularProgress,
 } from '@mui/material';
 import {
   MyLocation,
@@ -64,6 +65,7 @@ export default function EmployerSafetyPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tab, setTab] = useState(0);
+  const [resolvingId, setResolvingId] = useState(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -113,10 +115,7 @@ export default function EmployerSafetyPage() {
     try {
       setLoading(true);
       setError(null);
-      const company = shellUser.company || 'Your company';
-      const res = await api.get('/safety/employer/summary', {
-        params: { company },
-      });
+      const res = await api.get('/safety/employer/summary');
       if (res.data?.success) {
         setData(res.data.data);
       } else {
@@ -124,15 +123,37 @@ export default function EmployerSafetyPage() {
       }
     } catch (e) {
       console.error(e);
-      setError('Failed to load safety data');
+      if (e.response?.status === 401) {
+        setError('Please sign in as an employer to view this data.');
+      } else {
+        setError('Failed to load safety data');
+      }
     } finally {
       setLoading(false);
     }
-  }, [shellUser.company]);
+  }, []);
+
+  const handleResolveEmergency = async (historyId) => {
+    if (historyId == null) return;
+    try {
+      setResolvingId(historyId);
+      setError(null);
+      await api.post('/safety/employer/emergency/resolve', { historyId });
+      await load();
+    } catch (e) {
+      console.error(e);
+      const msg = e.response?.data?.message || 'Could not close alert';
+      setError(msg);
+    } finally {
+      setResolvingId(null);
+    }
+  };
 
   useEffect(() => {
-    if (shellUser.company) load();
-  }, [load, shellUser.company]);
+    load();
+    const t = setInterval(load, 60000);
+    return () => clearInterval(t);
+  }, [load]);
 
   const employerNavGroups = useMemo(
     () => [
@@ -286,7 +307,7 @@ export default function EmployerSafetyPage() {
           <GpsTab data={data} onTrack={openMaps} />
         </TabPanel>
         <TabPanel value={tab} index={1}>
-          <SosTab data={data} />
+          <SosTab data={data} onResolveEmergency={handleResolveEmergency} resolvingId={resolvingId} />
         </TabPanel>
         <TabPanel value={tab} index={2}>
           <WelfareTab data={data} />
@@ -334,7 +355,8 @@ function GpsTab({ data, onTrack }) {
         Real-time GPS tracking & worker safety
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Live overview of workers deployed under your company (demo data).
+        Live overview of applicants on your job postings and linked worker accounts (GPS when the worker logs in and shares
+        location).
       </Typography>
 
       <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -399,11 +421,20 @@ function GpsTab({ data, onTrack }) {
       <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>
         Workers
       </Typography>
+      {workers.length === 0 && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          No applicants on your jobs yet, or applicants have not linked a worker account. GPS appears after a worker logs in and
+          shares location.
+        </Alert>
+      )}
       <Stack spacing={1.5}>
         {workers.map((w) => {
           const lat = w.location?.latitude;
           const lng = w.location?.longitude;
-          const isSafe = w.status?.current === 'safe';
+          const st = w.status?.current;
+          const isSafe = st === 'safe';
+          const isCrit = st === 'critical';
+          const canTrack = w.hasLiveGps !== false && lat != null && lng != null;
           return (
             <Paper
               key={w.id}
@@ -411,7 +442,11 @@ function GpsTab({ data, onTrack }) {
               sx={{
                 p: 2,
                 borderRadius: 2,
-                bgcolor: isSafe ? 'rgba(46, 125, 50, 0.06)' : 'rgba(237, 108, 2, 0.08)',
+                bgcolor: isCrit
+                  ? 'rgba(211, 47, 47, 0.06)'
+                  : isSafe
+                    ? 'rgba(46, 125, 50, 0.06)'
+                    : 'rgba(237, 108, 2, 0.08)',
               }}
             >
               <Stack
@@ -425,27 +460,32 @@ function GpsTab({ data, onTrack }) {
                   <Box>
                     <Typography fontWeight={700}>{w.name}</Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {w.displayLocation || w.location?.address || '—'} · {w.city}, {w.country}
+                      {w.displayLocation || w.location?.address || '—'}
+                      {w.city || w.country ? ` · ${[w.city, w.country].filter(Boolean).join(', ')}` : ''}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {w.employer}
+                      {w.jobTitle} · {w.employer}
                     </Typography>
                   </Box>
                 </Stack>
                 <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
                   <Chip
                     size="small"
-                    label={isSafe ? 'Active' : 'Offline'}
-                    color={isSafe ? 'success' : 'warning'}
+                    label={isSafe ? 'Active' : isCrit ? 'SOS' : 'Offline'}
+                    color={isSafe ? 'success' : isCrit ? 'error' : 'warning'}
                     sx={{ fontWeight: 700 }}
                   />
                   <Typography variant="caption" color="text.secondary">
                     Last seen: {w.lastSeenLabel}
                   </Typography>
-                  <Stack direction="row" alignItems="center" spacing={0.5}>
-                    <BatteryStd sx={{ fontSize: 18, color: w.batteryPct < 30 ? 'error.main' : 'success.main' }} />
-                    <Typography variant="caption">{w.batteryPct}%</Typography>
-                  </Stack>
+                  {w.batteryPct != null && (
+                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                      <BatteryStd
+                        sx={{ fontSize: 18, color: w.batteryPct < 30 ? 'error.main' : 'success.main' }}
+                      />
+                      <Typography variant="caption">{w.batteryPct}%</Typography>
+                    </Stack>
+                  )}
                   <Stack direction="row" alignItems="center" spacing={0.5}>
                     <SignalCellularAlt sx={{ fontSize: 18, color: isSafe ? 'success.main' : 'warning.main' }} />
                     <Typography variant="caption">{w.signalLabel}</Typography>
@@ -454,7 +494,8 @@ function GpsTab({ data, onTrack }) {
                     size="small"
                     variant="contained"
                     startIcon={<MyLocation />}
-                    onClick={() => onTrack(lat, lng)}
+                    disabled={!canTrack}
+                    onClick={() => canTrack && onTrack(lat, lng)}
                     sx={{ textTransform: 'none', fontWeight: 700 }}
                   >
                     Track
@@ -469,7 +510,7 @@ function GpsTab({ data, onTrack }) {
   );
 }
 
-function SosTab({ data }) {
+function SosTab({ data, onResolveEmergency, resolvingId }) {
   const incidents = data?.recentIncidents || [];
 
   return (
@@ -526,20 +567,50 @@ function SosTab({ data }) {
                   sx={{
                     p: 2,
                     borderRadius: 2,
-                    bgcolor: inc.variant === 'success' ? 'rgba(46, 125, 50, 0.08)' : 'grey.50',
+                    bgcolor:
+                      inc.variant === 'success'
+                        ? 'rgba(46, 125, 50, 0.08)'
+                        : inc.variant === 'error'
+                          ? 'rgba(211, 47, 47, 0.08)'
+                          : 'grey.50',
                   }}
                 >
-                  <Typography fontWeight={700} color={inc.variant === 'success' ? 'success.main' : 'text.primary'}>
-                    {inc.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {inc.subtitle}
-                  </Typography>
-                  {inc.when ? (
-                    <Typography variant="caption" color="text.disabled">
-                      {inc.when}
-                    </Typography>
-                  ) : null}
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'flex-start' }}>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography
+                        fontWeight={700}
+                        color={
+                          inc.variant === 'success' ? 'success.main' : inc.variant === 'error' ? 'error.main' : 'text.primary'
+                        }
+                      >
+                        {inc.title}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {inc.subtitle}
+                      </Typography>
+                      {inc.when ? (
+                        <Typography variant="caption" color="text.disabled" display="block" sx={{ mt: 0.5 }}>
+                          {inc.when}
+                        </Typography>
+                      ) : null}
+                    </Box>
+                    {inc.canResolve && inc.historyId != null && typeof onResolveEmergency === 'function' ? (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="error"
+                        disabled={resolvingId === inc.historyId}
+                        onClick={() => onResolveEmergency(inc.historyId)}
+                        sx={{ textTransform: 'none', fontWeight: 700, flexShrink: 0, alignSelf: { xs: 'stretch', sm: 'center' } }}
+                      >
+                        {resolvingId === inc.historyId ? (
+                          <CircularProgress size={22} color="inherit" />
+                        ) : (
+                          'Acknowledge & close'
+                        )}
+                      </Button>
+                    ) : null}
+                  </Stack>
                 </Paper>
               ))}
             </Stack>
@@ -559,9 +630,10 @@ function WelfareTab({ data }) {
         <Favorite color="error" />
         Worker welfare monitoring
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Regular monitoring of worker well-being, accommodation, and working conditions.
-      </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Regular monitoring of worker well-being, accommodation, and working conditions — aggregated from interviews and
+          check-ins on your roles.
+        </Typography>
 
       <Paper
         variant="outlined"
@@ -577,7 +649,7 @@ function WelfareTab({ data }) {
           Weekly welfare check-ins
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Summaries below reflect your company workforce (demo).
+          Metrics update from interview assessments and safety check-ins for workers linked to your job postings.
         </Typography>
       </Paper>
 
