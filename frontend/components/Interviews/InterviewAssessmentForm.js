@@ -19,13 +19,15 @@ import {
   Paper,
   LinearProgress,
   CircularProgress,
-  Stepper,
-  Step,
-  StepLabel,
   Select,
   MenuItem,
   InputLabel,
   FormHelperText,
+  Stack,
+  Avatar,
+  useTheme,
+  alpha,
+  Skeleton,
 } from '@mui/material';
 import {
   Person,
@@ -34,15 +36,28 @@ import {
   Send,
   ArrowBack,
   CheckCircle,
-  Schedule,
   Star,
+  VideoCall,
+  Psychology,
+  RecordVoiceOver,
+  Lightbulb,
+  Notes,
 } from '@mui/icons-material';
 import { useRouter } from 'next/router';
 import { useForm, Controller } from 'react-hook-form';
 import api from '../../utils/api';
 
+const sectionCardSx = {
+  mb: 3,
+  borderRadius: 2,
+  borderColor: 'divider',
+  boxShadow: '0 2px 14px rgba(15, 23, 42, 0.06)',
+  overflow: 'visible',
+};
+
 const InterviewAssessmentForm = ({ applicationId, interviewerId, onSuccess }) => {
   const router = useRouter();
+  const theme = useTheme();
   const [applicationData, setApplicationData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -217,146 +232,276 @@ const InterviewAssessmentForm = ({ applicationId, interviewerId, onSuccess }) =>
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <CircularProgress size={60} />
+      <Box sx={{ width: 1, maxWidth: 1200, mx: 'auto', py: 2 }}>
+        <Stack spacing={3} alignItems="center" sx={{ minHeight: '50vh', justifyContent: 'center' }}>
+          <CircularProgress size={48} thickness={4} sx={{ color: 'primary.main' }} />
+          <Typography variant="body1" color="text.secondary" fontWeight={500}>
+            Loading application and assessment form…
+          </Typography>
+          <Paper variant="outlined" sx={{ p: 3, borderRadius: 2, width: 1, maxWidth: 480 }}>
+            <Stack spacing={1.5}>
+              <Skeleton variant="rounded" height={28} width="55%" />
+              <Skeleton variant="rounded" height={20} width="85%" />
+              <Skeleton variant="rounded" height={20} width="70%" />
+            </Stack>
+          </Paper>
+        </Stack>
       </Box>
     );
   }
 
   if (error && !applicationData) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">{error}</Alert>
-        <Button
-          startIcon={<ArrowBack />}
-          onClick={() => router.back()}
-          sx={{ mt: 2 }}
+      <Box sx={{ width: 1, maxWidth: 560, mx: 'auto', py: 4 }}>
+        <Paper
+          elevation={0}
+          sx={{
+            p: 4,
+            borderRadius: 3,
+            border: '1px solid',
+            borderColor: 'divider',
+            textAlign: 'center',
+          }}
         >
-          Go Back
-        </Button>
+          <Assessment sx={{ fontSize: 48, color: 'error.main', mb: 2, opacity: 0.9 }} />
+          <Alert severity="error" sx={{ textAlign: 'left', mb: 3 }}>
+            {error}
+          </Alert>
+          <Button variant="contained" startIcon={<ArrowBack />} onClick={() => router.back()} sx={{ textTransform: 'none' }}>
+            Go back
+          </Button>
+        </Paper>
       </Box>
     );
   }
 
   const application = applicationData || {};
+  const scoreKey = getScoreColor(totalScore);
+  const scoreMain = theme.palette[scoreKey]?.main || theme.palette.primary.main;
+  const scoreBg = alpha(scoreMain, 0.12);
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
+    <Box sx={{ width: 1, maxWidth: 1200, mx: 'auto', pb: 4 }}>
       <Button
         startIcon={<ArrowBack />}
         onClick={() => router.back()}
-        sx={{ mb: 3 }}
+        sx={{ mb: 2, textTransform: 'none', fontWeight: 600, color: 'text.secondary' }}
       >
         Back
       </Button>
 
-      <Card elevation={3}>
-        <CardContent sx={{ p: 4 }}>
-          {/* Header */}
-          <Box sx={{ mb: 4 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <Assessment sx={{ fontSize: 40, color: 'primary.main', mr: 2 }} />
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: 3,
+          mb: 3,
+          overflow: 'hidden',
+          background: `linear-gradient(135deg, ${theme.palette.primary.dark ?? theme.palette.primary.main} 0%, #4C1D95 42%, #7B0FF5 100%)`,
+          color: 'common.white',
+          p: { xs: 2.5, sm: 3.5 },
+        }}
+      >
+        <Stack spacing={2}>
+          <Chip
+            label={`Application #${applicationId}`}
+            size="small"
+            sx={{
+              alignSelf: 'flex-start',
+              bgcolor: alpha('#fff', 0.12),
+              color: 'common.white',
+              fontWeight: 600,
+              border: '1px solid',
+              borderColor: alpha('#fff', 0.28),
+            }}
+          />
+          <Typography variant="h4" component="h1" fontWeight={800} sx={{ letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+            Interview assessment
+          </Typography>
+          <Typography variant="body1" sx={{ opacity: 0.92, maxWidth: 640, lineHeight: 1.65 }}>
+            Rate each area with the stars below. Points total 100; the score and suggested recommendation update as you go.
+          </Typography>
+          {(application.fullName || application.email) && (
+            <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" sx={{ pt: 0.5 }}>
+              <Avatar
+                sx={{
+                  width: 52,
+                  height: 52,
+                  bgcolor: alpha('#fff', 0.2),
+                  color: 'common.white',
+                  fontWeight: 800,
+                  fontSize: '1.25rem',
+                }}
+              >
+                {(application.fullName || application.email || '?').charAt(0).toUpperCase()}
+              </Avatar>
               <Box>
-                <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
-                  Interview Assessment Form
+                <Typography fontWeight={700} variant="h6" sx={{ fontSize: '1.1rem' }}>
+                  {application.fullName || 'Candidate'}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Application ID: {applicationId}
+                <Typography variant="body2" sx={{ opacity: 0.88 }}>
+                  {[application.jobCategory, application.specificTrade].filter(Boolean).join(' · ') || 'Applicant'}
                 </Typography>
               </Box>
-            </Box>
-          </Box>
+            </Stack>
+          )}
+        </Stack>
+      </Paper>
 
-          <Divider sx={{ mb: 4 }} />
-
-          {/* Application Information */}
-          <Paper elevation={1} sx={{ p: 3, mb: 4, bgcolor: 'grey.50' }}>
-            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-              <Person sx={{ mr: 1 }} />
-              Candidate Information
-            </Typography>
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="body2" color="text.secondary">Name</Typography>
-                <Typography variant="body1" fontWeight={600}>
-                  {application.fullName || 'N/A'}
-                </Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="body2" color="text.secondary">Job Category</Typography>
-                <Typography variant="body1">
-                  {application.jobCategory || 'N/A'}
-                </Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="body2" color="text.secondary">Experience</Typography>
-                <Typography variant="body1">
-                  {application.experienceYears || 'N/A'} years
-                </Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="body2" color="text.secondary">Email</Typography>
-                <Typography variant="body1">
-                  {application.email || 'N/A'}
-                </Typography>
-              </Grid>
-            </Grid>
-          </Paper>
-
-          {/* Total Score Display */}
-          <Paper
-            elevation={2}
+      <Grid container spacing={3} alignItems="flex-start">
+        <Grid item xs={12} lg={4}>
+          <Stack
+            spacing={2.5}
             sx={{
-              p: 3,
-              mb: 4,
-              bgcolor: `${getScoreColor(totalScore)}.light`,
-              textAlign: 'center',
+              position: { lg: 'sticky' },
+              top: { lg: 24 },
             }}
           >
-            <Typography variant="h6" gutterBottom>
-              Total Assessment Score
-            </Typography>
-            <Typography
-              variant="h2"
+            <Card variant="outlined" sx={{ ...sectionCardSx, mb: 0 }}>
+              <CardContent sx={{ p: 2.5 }}>
+                <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
+                  <Avatar sx={{ bgcolor: 'primary.main', width: 44, height: 44 }}>
+                    <Person />
+                  </Avatar>
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    Candidate details
+                  </Typography>
+                </Stack>
+                <Divider sx={{ mb: 2 }} />
+                <Stack spacing={2}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.04 }}>
+                      Name
+                    </Typography>
+                    <Typography variant="body1" fontWeight={700}>
+                      {application.fullName || '—'}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.04 }}>
+                      Role / trade
+                    </Typography>
+                    <Typography variant="body2">
+                      {[application.jobCategory, application.specificTrade].filter(Boolean).join(' · ') || '—'}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.04 }}>
+                      Experience
+                    </Typography>
+                    <Typography variant="body2">
+                      {application.experienceYears != null && application.experienceYears !== ''
+                        ? `${application.experienceYears} years`
+                        : '—'}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.04 }}>
+                      Email
+                    </Typography>
+                    <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
+                      {application.email || '—'}
+                    </Typography>
+                  </Box>
+                  {(application.mobileNumber || application.phone) && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.04 }}>
+                        Phone
+                      </Typography>
+                      <Typography variant="body2">{application.mobileNumber || application.phone}</Typography>
+                    </Box>
+                  )}
+                </Stack>
+              </CardContent>
+            </Card>
+
+            <Paper
+              elevation={0}
               sx={{
-                fontWeight: 700,
-                color: `${getScoreColor(totalScore)}.main`,
+                p: 2.5,
+                borderRadius: 2,
+                border: '1px solid',
+                borderColor: 'divider',
+                textAlign: 'center',
+                bgcolor: scoreBg,
               }}
             >
-              {totalScore} / 100
-            </Typography>
-            <LinearProgress
-              variant="determinate"
-              value={totalScore}
-              sx={{ mt: 2, height: 10, borderRadius: 5 }}
-              color={getScoreColor(totalScore)}
-            />
-            <Box sx={{ mt: 2 }}>
-              <Chip
-                label={getRecommendationLabel(recommendation)}
-                color={getRecommendationColor(recommendation)}
-                size="large"
+              <Typography variant="overline" fontWeight={700} color="text.secondary" sx={{ letterSpacing: 0.08 }}>
+                Running total
+              </Typography>
+              <Typography
+                variant="h3"
+                sx={{
+                  fontWeight: 800,
+                  color: scoreMain,
+                  letterSpacing: '-0.03em',
+                  my: 1,
+                }}
+              >
+                {totalScore}
+                <Typography component="span" variant="h5" color="text.secondary" fontWeight={600}>
+                  {' '}
+                  / 100
+                </Typography>
+              </Typography>
+              <LinearProgress
+                variant="determinate"
+                value={Math.min(100, totalScore)}
+                sx={{
+                  height: 10,
+                  borderRadius: 5,
+                  bgcolor: alpha(scoreMain, 0.2),
+                  '& .MuiLinearProgress-bar': { borderRadius: 5 },
+                }}
+                color={scoreKey}
               />
-            </Box>
-          </Paper>
+              <Box sx={{ mt: 2 }}>
+                <Chip
+                  label={getRecommendationLabel(recommendation)}
+                  color={getRecommendationColor(recommendation)}
+                  size="medium"
+                  sx={{ fontWeight: 700 }}
+                />
+              </Box>
+            </Paper>
+          </Stack>
+        </Grid>
 
-          {/* Error Alert */}
+        <Grid item xs={12} lg={8}>
           {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
+            <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
               {error}
             </Alert>
           )}
 
-          {/* Assessment Form */}
           <form onSubmit={handleSubmit(onSubmit)}>
             {/* Interview Details */}
-            <Card variant="outlined" sx={{ mb: 4 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Schedule sx={{ mr: 1 }} />
-                  Interview Details
-                </Typography>
-                <Grid container spacing={3} sx={{ mt: 1 }}>
+            <Card variant="outlined" sx={sectionCardSx}>
+              <Box
+                sx={{
+                  px: 2.5,
+                  py: 1.75,
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: 'grey.50',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                }}
+              >
+                <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main' }}>
+                  <VideoCall sx={{ fontSize: 20 }} />
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    Interview details
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    When and how the interview took place
+                  </Typography>
+                </Box>
+              </Box>
+              <CardContent sx={{ pt: 3 }}>
+                <Grid container spacing={3}>
                   <Grid item xs={12} sm={6}>
                     <Controller
                       name="interviewDate"
@@ -425,12 +570,33 @@ const InterviewAssessmentForm = ({ applicationId, interviewerId, onSuccess }) =>
             </Card>
 
             {/* Technical Skills Section */}
-            <Card variant="outlined" sx={{ mb: 4 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Technical Skills & Knowledge (0-30 points)
-                </Typography>
-                <Box sx={{ mb: 3 }}>
+            <Card variant="outlined" sx={sectionCardSx}>
+              <Box
+                sx={{
+                  px: 2.5,
+                  py: 1.75,
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: 'grey.50',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                }}
+              >
+                <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main' }}>
+                  <Psychology sx={{ fontSize: 20 }} />
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    Technical skills & knowledge
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Up to 30 points
+                  </Typography>
+                </Box>
+              </Box>
+              <CardContent sx={{ pt: 3 }}>
+                <Box sx={{ mb: 0 }}>
                   <FormLabel component="legend">Technical Knowledge</FormLabel>
                   <Controller
                     name="technicalKnowledge"
@@ -443,7 +609,7 @@ const InterviewAssessmentForm = ({ applicationId, interviewerId, onSuccess }) =>
                           max={6}
                           value={field.value / 5}
                           onChange={(e, newValue) => field.onChange(newValue * 5)}
-                          sx={{ fontSize: 40, mb: 1 }}
+                          sx={{ fontSize: 36, mb: 1 }}
                         />
                         <Typography variant="body2" color="text.secondary">
                           Score: {field.value} / 30
@@ -470,11 +636,32 @@ const InterviewAssessmentForm = ({ applicationId, interviewerId, onSuccess }) =>
             </Card>
 
             {/* Experience & Qualifications Section */}
-            <Card variant="outlined" sx={{ mb: 4 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Experience & Qualifications (0-25 points)
-                </Typography>
+            <Card variant="outlined" sx={sectionCardSx}>
+              <Box
+                sx={{
+                  px: 2.5,
+                  py: 1.75,
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: 'grey.50',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                }}
+              >
+                <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main' }}>
+                  <Work sx={{ fontSize: 20 }} />
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    Experience & qualifications
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Up to 25 points
+                  </Typography>
+                </Box>
+              </Box>
+              <CardContent sx={{ pt: 3 }}>
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={6}>
                     <FormLabel component="legend">Experience Relevance</FormLabel>
@@ -553,11 +740,32 @@ const InterviewAssessmentForm = ({ applicationId, interviewerId, onSuccess }) =>
             </Card>
 
             {/* Communication Skills Section */}
-            <Card variant="outlined" sx={{ mb: 4 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Communication Skills (0-20 points)
-                </Typography>
+            <Card variant="outlined" sx={sectionCardSx}>
+              <Box
+                sx={{
+                  px: 2.5,
+                  py: 1.75,
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: 'grey.50',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                }}
+              >
+                <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main' }}>
+                  <RecordVoiceOver sx={{ fontSize: 20 }} />
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    Communication & language
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Up to 20 points
+                  </Typography>
+                </Box>
+              </Box>
+              <CardContent sx={{ pt: 3 }}>
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={6}>
                     <FormLabel component="legend">Communication Skills</FormLabel>
@@ -636,11 +844,32 @@ const InterviewAssessmentForm = ({ applicationId, interviewerId, onSuccess }) =>
             </Card>
 
             {/* Problem Solving & Adaptability Section */}
-            <Card variant="outlined" sx={{ mb: 4 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Problem Solving & Adaptability (0-15 points)
-                </Typography>
+            <Card variant="outlined" sx={sectionCardSx}>
+              <Box
+                sx={{
+                  px: 2.5,
+                  py: 1.75,
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: 'grey.50',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                }}
+              >
+                <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main' }}>
+                  <Lightbulb sx={{ fontSize: 20 }} />
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    Problem solving & adaptability
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Up to 15 points
+                  </Typography>
+                </Box>
+              </Box>
+              <CardContent sx={{ pt: 3 }}>
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={6}>
                     <FormLabel component="legend">Problem Solving</FormLabel>
@@ -719,12 +948,33 @@ const InterviewAssessmentForm = ({ applicationId, interviewerId, onSuccess }) =>
             </Card>
 
             {/* Overall Assessment */}
-            <Card variant="outlined" sx={{ mb: 4 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Overall Assessment (0-10 points)
-                </Typography>
-                <Box sx={{ mb: 3 }}>
+            <Card variant="outlined" sx={sectionCardSx}>
+              <Box
+                sx={{
+                  px: 2.5,
+                  py: 1.75,
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: 'grey.50',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                }}
+              >
+                <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main' }}>
+                  <Star sx={{ fontSize: 20 }} />
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    Overall impression
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Up to 10 points
+                  </Typography>
+                </Box>
+              </Box>
+              <CardContent sx={{ pt: 3 }}>
+                <Box sx={{ mb: 0 }}>
                   <FormLabel component="legend">Overall Impression</FormLabel>
                   <Controller
                     name="overallImpression"
@@ -764,11 +1014,32 @@ const InterviewAssessmentForm = ({ applicationId, interviewerId, onSuccess }) =>
             </Card>
 
             {/* Recommendation */}
-            <Card variant="outlined" sx={{ mb: 4 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Final Recommendation
-                </Typography>
+            <Card variant="outlined" sx={sectionCardSx}>
+              <Box
+                sx={{
+                  px: 2.5,
+                  py: 1.75,
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: 'grey.50',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                }}
+              >
+                <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main' }}>
+                  <CheckCircle sx={{ fontSize: 20 }} />
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    Final recommendation
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Aligns with score; you can override below
+                  </Typography>
+                </Box>
+              </Box>
+              <CardContent sx={{ pt: 3 }}>
                 <Controller
                   name="recommendation"
                   control={control}
@@ -776,7 +1047,7 @@ const InterviewAssessmentForm = ({ applicationId, interviewerId, onSuccess }) =>
                   render={({ field }) => (
                     <FormControl fullWidth error={!!errors.recommendation}>
                       <FormLabel component="legend">Recommendation</FormLabel>
-                      <RadioGroup {...field} row>
+                      <RadioGroup {...field} row sx={{ flexWrap: 'wrap', gap: 0.5 }}>
                         <FormControlLabel
                           value="strongly_recommend"
                           control={<Radio />}
@@ -822,11 +1093,32 @@ const InterviewAssessmentForm = ({ applicationId, interviewerId, onSuccess }) =>
             </Card>
 
             {/* Additional Notes */}
-            <Card variant="outlined" sx={{ mb: 4 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Additional Notes
-                </Typography>
+            <Card variant="outlined" sx={sectionCardSx}>
+              <Box
+                sx={{
+                  px: 2.5,
+                  py: 1.75,
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: 'grey.50',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                }}
+              >
+                <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main' }}>
+                  <Notes sx={{ fontSize: 20 }} />
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    Additional notes
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Strengths, gaps, and other observations
+                  </Typography>
+                </Box>
+              </Box>
+              <CardContent sx={{ pt: 3 }}>
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={6}>
                     <Controller
@@ -880,28 +1172,56 @@ const InterviewAssessmentForm = ({ applicationId, interviewerId, onSuccess }) =>
               </CardContent>
             </Card>
 
-            {/* Submit Button */}
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 4 }}>
-              <Button
-                variant="outlined"
-                onClick={() => router.back()}
-                disabled={submitting}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                size="large"
-                startIcon={submitting ? <CircularProgress size={20} /> : <Send />}
-                disabled={submitting}
-              >
-                {submitting ? 'Submitting...' : 'Submit Assessment'}
-              </Button>
-            </Box>
+            {/* Submit */}
+            <Paper
+              elevation={0}
+              sx={{
+                mt: 3,
+                p: 2.5,
+                borderRadius: 2,
+                border: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                alignItems: { xs: 'stretch', sm: 'center' },
+                justifyContent: 'space-between',
+                gap: 2,
+              }}
+            >
+              <Box>
+                <Typography variant="subtitle2" fontWeight={700}>
+                  Ready to submit?
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Total {totalScore}/100 · {getRecommendationLabel(recommendation)}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5, flexShrink: 0 }}>
+                <Button variant="outlined" onClick={() => router.back()} disabled={submitting} sx={{ textTransform: 'none' }}>
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  size="large"
+                  startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <Send />}
+                  disabled={submitting}
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    px: 3,
+                    borderRadius: 2,
+                    boxShadow: '0 4px 14px rgba(123, 15, 245, 0.35)',
+                  }}
+                >
+                  {submitting ? 'Submitting…' : 'Submit assessment'}
+                </Button>
+              </Box>
+            </Paper>
           </form>
-        </CardContent>
-      </Card>
+        </Grid>
+      </Grid>
     </Box>
   );
 };

@@ -856,16 +856,6 @@ const IsraeliEmployerDashboard = () => {
                               >
                                 View
                               </Button>
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                sx={{ textTransform: 'none' }}
-                                onClick={() => {
-                                  window.location.href = `/interviews/assess/${c.applicationId || c.id}`;
-                                }}
-                              >
-                                Review
-                              </Button>
                             </TableCell>
                           </TableRow>
                         );

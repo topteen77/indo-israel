@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import MainLayout from '../../../components/Layout/MainLayout';
 import InterviewAssessmentForm from '../../../components/Interviews/InterviewAssessmentForm';
-import { Box, CircularProgress, Alert, Paper, Typography } from '@mui/material';
+import { Box, CircularProgress, Alert, Typography, Stack, Paper, Skeleton } from '@mui/material';
 import api from '../../../utils/api';
 
 export default function InterviewAssessmentPage() {
@@ -32,8 +32,17 @@ export default function InterviewAssessmentPage() {
   if (loading) {
     return (
       <MainLayout>
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-          <CircularProgress size={60} />
+        <Box sx={{ maxWidth: 520, mx: 'auto', py: 6 }}>
+          <Stack spacing={3} alignItems="center">
+            <CircularProgress size={48} thickness={4} />
+            <Typography variant="body1" color="text.secondary" fontWeight={500}>
+              Preparing assessment…
+            </Typography>
+            <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2, width: 1 }}>
+              <Skeleton width="60%" height={24} sx={{ mb: 1 }} />
+              <Skeleton width="90%" />
+            </Paper>
+          </Stack>
         </Box>
       </MainLayout>
     );
@@ -42,8 +51,12 @@ export default function InterviewAssessmentPage() {
   if (error) {
     return (
       <MainLayout>
-        <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
-          <Alert severity="error">{error}</Alert>
+        <Box sx={{ maxWidth: 480, mx: 'auto', py: 4 }}>
+          <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+            <Alert severity="error" sx={{ borderRadius: 2 }}>
+              {error}
+            </Alert>
+          </Paper>
         </Box>
       </MainLayout>
     );
@@ -52,8 +65,10 @@ export default function InterviewAssessmentPage() {
   if (!applicationId) {
     return (
       <MainLayout>
-        <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
-          <Alert severity="error">Application ID is required</Alert>
+        <Box sx={{ maxWidth: 480, mx: 'auto', py: 4 }}>
+          <Alert severity="error" sx={{ borderRadius: 2 }}>
+            Application ID is required
+          </Alert>
         </Box>
       </MainLayout>
     );
