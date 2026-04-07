@@ -10,8 +10,8 @@ import {
   FormHelperText, Snackbar,
 } from '@mui/material';
 import {
-  Work, People, Assessment, Schedule, CheckCircle,
-  Warning, Visibility, Message, Edit,
+  Work, People, Assessment, CheckCircle,
+  Warning, Visibility, Edit,
   TrendingUp, Close, Add,
   Dashboard, PersonAdd, PersonAddOutlined, DesktopMac, Gavel, MenuBook,
 } from '@mui/icons-material';
@@ -1135,19 +1135,6 @@ const IsraeliEmployerDashboard = () => {
                             }}
                           >
                             <Visibility />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Conduct Interview Assessment">
-                          <IconButton
-                            size="small"
-                            onClick={() => window.location.href = `/interviews/assess/${candidate.applicationId || candidate.id}`}
-                          >
-                            <Schedule />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Send Message">
-                          <IconButton size="small">
-                            <Message />
                           </IconButton>
                         </Tooltip>
                       </TableCell>
