@@ -315,13 +315,13 @@ router.get('/search/:searchTerm', (req, res) => {
   }
 });
 
-// Get single job by ID
-// IMPORTANT: Only returns jobs from Book1.xlsx (jobs with vacancyCode or postedDate)
+// Get single job by ID (any origin: employer-posted, Excel import, etc.)
+// Listing routes (/all, /search, …) still filter to Excel-sourced rows where required.
 router.get('/:id', (req, res) => {
   try {
     const { id } = req.params;
-    const job = db.prepare("SELECT * FROM jobs WHERE id = ? AND status = ? AND ((vacancyCode IS NOT NULL AND vacancyCode != '') OR (postedDate IS NOT NULL AND postedDate != ''))").get(id, 'active');
-    
+    const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+
     if (!job) {
       return res.status(404).json({
         success: false,
