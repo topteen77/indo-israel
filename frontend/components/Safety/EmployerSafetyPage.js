@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import {
   Box,
@@ -32,7 +33,6 @@ import {
   ErrorOutline,
   GpsFixed,
   Refresh,
-  Public,
   Shield,
   VerifiedUser,
   SignalCellularAlt,
@@ -46,6 +46,27 @@ import {
 } from '@mui/icons-material';
 import DashboardShell from '../Layout/DashboardShell';
 import api from '../../utils/api';
+
+const EmployerWorkersMap = dynamic(
+  () => import('./EmployerWorkersMap'),
+  {
+    ssr: false,
+    loading: () => (
+      <Box
+        sx={{
+          height: 360,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bgcolor: 'grey.50',
+          borderRadius: 2,
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    ),
+  }
+);
 
 const TAB_KEYS = ['gps', 'sos', 'welfare'];
 
@@ -320,6 +341,9 @@ export default function EmployerSafetyPage() {
 function GpsTab({ data, onTrack }) {
   const stats = data?.stats;
   const workers = data?.workers || [];
+  const workersWithGps = workers.filter(
+    (w) => w.location?.latitude != null && w.location?.longitude != null
+  );
 
   const cards = [
     {
@@ -390,32 +414,22 @@ function GpsTab({ data, onTrack }) {
         ))}
       </Grid>
 
-      <Paper
-        variant="outlined"
-        sx={{
-          p: 4,
-          mb: 3,
-          textAlign: 'center',
-          borderRadius: 2,
-          bgcolor: 'grey.50',
-          minHeight: 280,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 1,
-        }}
-      >
-        <Public sx={{ fontSize: 56, color: 'text.disabled' }} />
-        <Typography variant="h6" fontWeight={700}>
-          Interactive world map
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Real-time worker locations displayed here
-        </Typography>
-        <Typography variant="caption" color="text.disabled">
-          Integration: Google Maps API / Mapbox — connect your key for live map.
-        </Typography>
+      {workers.length > 0 && workersWithGps.length === 0 && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          No GPS coordinates yet for linked workers. The map below shows when workers share location from the app.
+        </Alert>
+      )}
+
+      <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', mb: 3 }}>
+        <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'grey.50' }}>
+          <Typography variant="subtitle2" fontWeight={700}>
+            Interactive world map
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Real-time worker locations — pan, zoom, tap markers for details.
+          </Typography>
+        </Box>
+        <EmployerWorkersMap workers={workers} />
       </Paper>
 
       <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>
