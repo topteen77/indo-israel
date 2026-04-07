@@ -14,6 +14,7 @@ import {
   Warning, Visibility, Edit,
   TrendingUp, Close, Add,
   Dashboard, PersonAdd, PersonAddOutlined, DesktopMac, Gavel, MenuBook,
+  VerifiedUser,
 } from '@mui/icons-material';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -114,6 +115,7 @@ const IsraeliEmployerDashboard = () => {
           { id: 5, label: 'Register candidate', icon: <PersonAddOutlined /> },
           { id: 6, label: 'Contracts', icon: <Gavel /> },
           { id: 7, label: 'Resources', icon: <MenuBook /> },
+          { id: 8, label: 'Safety & Welfare', icon: <VerifiedUser /> },
         ],
       },
     ];
@@ -488,6 +490,10 @@ const IsraeliEmployerDashboard = () => {
     }
     if (id === 7) {
       router.push('/dashboard/employer/resources');
+      return;
+    }
+    if (id === 8) {
+      router.push('/dashboard/employer/safety');
       return;
     }
     setActiveTab(id);

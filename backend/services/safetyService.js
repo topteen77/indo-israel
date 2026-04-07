@@ -245,6 +245,67 @@ function getRandomLocation() {
   return locations[Math.floor(Math.random() * locations.length)];
 }
 
+/**
+ * Employer view: workers attributed to this company (demo: subset of admin mock with relabelled employer).
+ */
+function generateEmployerSafetyBundle(companyName = 'Your company') {
+  const admin = generateAdminSafetyData();
+  const workers = admin.allWorkersStatus.slice(0, 8).map((w, i) => {
+    const battery = 55 + ((i * 17) % 45);
+    const strong = w.status.current === 'safe';
+    return {
+      ...w,
+      employer: companyName,
+      city: w.location?.city || 'Tel Aviv',
+      country: w.location?.country || 'Israel',
+      displayLocation: w.location?.address || getRandomLocation(),
+      batteryPct: battery,
+      signalLabel: strong ? 'Strong' : 'Weak',
+      lastSeenLabel: strong ? `${2 + (i % 8)} min ago` : `${40 + i * 3} min ago`,
+    };
+  });
+
+  const emergencies = admin.emergencyAlerts.filter((e) => workers.some((w) => w.id === e.workerId));
+
+  const activeSafe = workers.filter((w) => w.status.current === 'safe').length;
+  const offline = workers.filter((w) => w.status.current !== 'safe').length;
+  const sos = emergencies.filter((e) => e.type === 'emergency' || e.status === 'active').length;
+
+  return {
+    companyName,
+    workers,
+    stats: {
+      total: workers.length,
+      activeSafe,
+      offline,
+      sos,
+    },
+    emergencies,
+    recentIncidents: [
+      {
+        id: 'inc-1',
+        title: 'Location Alert - Resolved',
+        subtitle: 'Worker at unauthorized location – Resolved in 5 minutes',
+        when: '1 day ago',
+        variant: 'success',
+      },
+      {
+        id: 'inc-2',
+        title: 'All Clear',
+        subtitle: 'No active incidents in last 24 hours',
+        when: '',
+        variant: 'neutral',
+      },
+    ],
+    welfare: {
+      completed: 156,
+      avgScore: 4.8,
+      satisfactionPct: 98,
+    },
+  };
+}
+
 module.exports = {
-  generateSafetyData
+  generateSafetyData,
+  generateEmployerSafetyBundle,
 };

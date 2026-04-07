@@ -14,6 +14,7 @@ import {
   CheckCircle,
   PersonAddOutlined,
   Gavel,
+  VerifiedUser,
 } from '@mui/icons-material';
 import api from '../../utils/api';
 import DashboardShell from '../Layout/DashboardShell';
@@ -92,6 +93,7 @@ export default function EmployerResources() {
           { id: 5, label: 'Register candidate', icon: <PersonAddOutlined /> },
           { id: 6, label: 'Contracts', icon: <Gavel /> },
           { id: 7, label: 'Resources', icon: <MenuBook /> },
+          { id: 8, label: 'Safety & Welfare', icon: <VerifiedUser /> },
         ],
       },
     ];
@@ -108,6 +110,10 @@ export default function EmployerResources() {
     }
     if (id === 7) {
       router.push('/dashboard/employer/resources');
+      return;
+    }
+    if (id === 8) {
+      router.push('/dashboard/employer/safety');
       return;
     }
     router.push(id === 0 ? '/dashboard/employer' : `/dashboard/employer?tab=${id}`);

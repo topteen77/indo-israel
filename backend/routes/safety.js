@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database/db');
-const { generateSafetyData } = require('../services/safetyService');
+const { generateSafetyData, generateEmployerSafetyBundle } = require('../services/safetyService');
 const { sendEmergencySMS } = require('../services/smsService');
 const { sendWhatsAppMessage } = require('../services/whatsappService');
 const { reverseGeocode } = require('../services/reverseGeocodeService');
@@ -658,6 +658,25 @@ router.get('/admin/geofences', (req, res) => {
       success: false,
       message: 'Failed to get geo-fences',
       error: error.message,
+    });
+  }
+});
+
+// Employer: summary for company workers (mock bundle; pass company from client)
+router.get('/employer/summary', (req, res) => {
+  try {
+    const company =
+      (req.query.company && String(req.query.company).trim()) || 'Your company';
+    const data = generateEmployerSafetyBundle(company);
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error('Error building employer safety summary:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to load employer safety data',
     });
   }
 });
