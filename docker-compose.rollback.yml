@@ -2,11 +2,16 @@
 # Used by deploy.sh when health check fails. No build step.
 services:
   nginx:
-    image: nginx:alpine
+    image: indo-israel-nginx:latest
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
     ports:
       - "${APP_PORT:-80}:80"
+      - "${SSL_PORT:-9443}:9443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs
     depends_on:
       - frontend
       - backend

@@ -1,10 +1,19 @@
 services:
   nginx:
-    image: nginx:alpine
+    image: indo-israel-nginx:latest
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
     ports:
       - "${APP_PORT:-80}:80"
+      - "${SSL_PORT:-9443}:9443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # Provide your TLS cert/key as:
+      # - nginx/certs/fullchain.pem
+      # - nginx/certs/privkey.pem
+      # If missing, the nginx container will generate a self-signed cert here at startup.
+      - ./nginx/certs:/etc/nginx/certs
     depends_on:
       - frontend
       - backend
