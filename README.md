@@ -36,7 +36,7 @@ docker compose up --build
 - **App:** http://localhost (port 80)  
 - **API:** http://localhost/api/...
 
-For production-style deploy (health check + rollback on failure): `./deploy.sh deploy` — see [DEPLOY.md](DEPLOY.md). Create `.env` from `.env.example` before first run (`cp .env.example .env`); `deploy.sh` checks for it.  
+For production-style deploy (health check + rollback on failure): `./deploy.sh deploy` — see [DEPLOY.md](DEPLOY.md). Create `.env` from `.env.example` before first run (`cp .env.example .env`); run `./deploy.sh preflight` to verify Docker, `.env`, and ports. Clean rebuild: `./deploy.sh deploy --remove --rebuild` (or `./deploy.sh --remove` to drop containers/images only).  
 For EC2: [DEPLOY.md](DEPLOY.md).
 
 ### Option B: Node.js
@@ -210,6 +210,36 @@ apravas-recruitment-platform/
 - Verify backend is running on port 5000
 - Check browser console for API errors
 - Ensure you're logged in with a valid role
+
+**Docker build: `BuildKit is enabled but the buildx component is missing` (EC2/Ubuntu):**
+- `./deploy.sh` auto-disables BuildKit when `docker buildx` is not installed and uses the classic builder.
+- If it still fails: `DEPLOY_USE_BUILDKIT=0 ./deploy.sh deploy`
+
+**`Unable to locate package docker-buildx-plugin` (Ubuntu `docker.io` only):**  
+Those packages are **not** in Ubuntu’s default repos—only in [Docker’s official apt repo](https://docs.docker.com/engine/install/ubuntu/). You can either skip plugins (deploy above) or install them one of these ways:
+
+1. **Manual plugins (keeps `docker.io`)** — recommended on existing EC2:
+   ```bash
+   cd ~/git-project/indo-israel
+   git pull
+   sudo ./scripts/install-docker-plugins.sh
+   ./deploy.sh deploy
+   ```
+
+2. **Docker CE apt repo** (installs `docker-ce` + plugins; may replace `docker.io`):
+   ```bash
+   sudo ./scripts/install-docker-plugins.sh --apt
+   ```
+
+3. **One-off buildx binary** (if you only need buildx):
+   ```bash
+   sudo mkdir -p /usr/local/lib/docker/cli-plugins
+   sudo curl -fsSL -o /usr/local/lib/docker/cli-plugins/docker-buildx \
+     https://github.com/docker/buildx/releases/download/v0.21.1/buildx-v0.21.1.linux-amd64
+   sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
+   docker buildx create --use
+   ```
+   Use `linux-arm64` instead of `linux-amd64` on Graviton (ARM) instances.
 
 ## Next Steps
 
